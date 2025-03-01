@@ -1,0 +1,16 @@
+# Vim
+**/*~
+**/*.swp
+**/.*~
+**/.*.swp
+
+# glad
+glad
+
+# Binary
+**/*.o
+**/out
+**/*vgcore*
+
+# In-progress
+Style_Guide.md

@@ -1,0 +1,285 @@
+name: 'Build utilities'
+
+on:
+  push:
+    branches:
+      - '**'
+    paths:
+      - '.github/workflows/**'
+      - 'gamedata/**'
+      - 'sdk/**'
+      - 'src/**'
+      - '**/CMakeLists.txt'
+      - '**/*.ltx'
+      - '**/*.json'
+  pull_request:
+    branches:
+      - '**'
+    paths:
+      - '.github/workflows/**'
+      - 'gamedata/**'
+      - 'sdk/**'
+      - 'src/**'
+      - '**/CMakeLists.txt'
+      - '**/*.ltx'
+      - '**/*.json'
+
+defaults:
+  run:
+    shell: pwsh
+
+jobs:
+  build-utilities:
+    name: 'Build utilities'
+
+    strategy:
+      matrix:
+        system:
+          - windows-2022
+        preset:
+          - Utilities
+        platform:
+          - x64
+        config:
+          - Debug
+          - RelWithDebInfo
+          - Release
+
+    runs-on: ${{ matrix.system }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Cache packages
+        uses: actions/cache@v4
+        with:
+          key: ${{ matrix.preset }}-NuGet-${{ hashFiles('**/Packages.config') }}
+          restore-keys: |
+            ${{ matrix.preset }}-NuGet-${{ hashFiles('**/Packages.config') }}
+            ${{ matrix.preset }}-NuGet-
+          path: |
+            ~/.nuget/packages
+
+      - name: Configure utilities
+        run: |
+          cmake `
+            --preset ${{ matrix.preset }}-${{ matrix.platform }}-${{ runner.os }} `
+            -DIXRAY_CI=ON
+
+      - name: Build utilities
+        run: |
+          cmake `
+            --build `
+            --preset ${{ matrix.preset }}-${{ matrix.platform }}-${{ runner.os }}-${{ matrix.config }}
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: utilities-binaries-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.exe
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.dll
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.config != 'Release' }}
+        with:
+          name: utilities-symbols-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.pdb
+
+      - name: Upload libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: utilities-libraries-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/lib/${{ matrix.config }}/
+
+      - name: Upload packages
+        uses: actions/upload-artifact@v4
+        if: ${{ (matrix.config == 'Debug' && matrix.platform == 'x64') }}
+        with:
+          name: utilities-packages-${{ matrix.system }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/packages/
+
+  build-targets:
+    name: 'Build targets'
+
+    strategy:
+      matrix:
+        system:
+          - ubuntu-22.04
+        preset:
+          - Targets
+        platform:
+          - x64
+        config:
+          - Debug
+          - RelWithDebInfo
+          - Release
+
+    defaults:
+      run:
+        shell: bash
+
+    runs-on: ${{ matrix.system }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Ninja
+        uses: imesense/gha-setup-ninja@v0.2
+
+      - name: Configure targets
+        run: |
+          cmake \
+            -S . \
+            -B build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }} \
+            -G "Ninja Multi-Config" \
+            -DCMAKE_C_COMPILER=clang-14 \
+            -DCMAKE_CXX_COMPILER=clang++-14 \
+            -DIXRAY_UTILS=ON \
+            -DIXRAY_CI=ON
+
+      - name: Build targets
+        run: |
+          cmake \
+            --build build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }} \
+            --target TextureCloner \
+            --config ${{ matrix.config }} \
+            -j$(nproc)
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: targets-binaries-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/
+            !build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.pdb
+            !build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.debug
+          if-no-files-found: ignore
+
+      - name: Upload symbols
+        uses: actions/upload-artifact@v4
+        if: ${{ matrix.config != 'Release' }}
+        with:
+          name: targets-symbols-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.pdb
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.debug
+          if-no-files-found: ignore
+
+      - name: Upload libraries
+        uses: actions/upload-artifact@v4
+        with:
+          name: targets-libraries-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: |
+            build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/lib/${{ matrix.config }}/
+          if-no-files-found: ignore
+
+  pack-assets:
+    name: 'Pack assets'
+
+    needs:
+      - build-utilities
+
+    strategy:
+      matrix:
+        system:
+          - windows-2022
+
+    runs-on: ${{ matrix.system }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup compressor
+        uses: ixray-team/setup-compressor@v0.1
+        with:
+          codebase: '1.6-stcop'
+
+      - name: Generate patch
+        run: |
+          ${{ github.workspace }}/util/generate-patch.bat `
+            xrCompress.exe
+          type `
+            *.log
+          move `
+            ${{ github.workspace }}/gamedata `
+            ${{ github.workspace }}/gamedata_full
+          move `
+            ${{ github.workspace }}/patch `
+            ${{ github.workspace }}/gamedata
+
+      - name: Upload assets
+        uses: actions/upload-artifact@v4
+        with:
+          name: utilities-assets-${{ github.sha }}
+          path: |
+            gamedata/
+            patches/xpatch_03.db
+            .xrignore
+            fs*.ltx
+          include-hidden-files: true
+
+  publish-utilities:
+    name: 'Publish utilities'
+
+    needs:
+      - pack-assets
+
+    strategy:
+      matrix:
+        system:
+          - windows-2022
+        platform:
+          - x64
+        preset:
+          - Utilities
+        config:
+          - RelWithDebInfo
+
+    runs-on: ${{ matrix.system }}
+
+    steps:
+      - name: Get utilities
+        uses: actions/download-artifact@v4
+        with:
+          name: utilities-binaries-${{ matrix.system }}-${{ matrix.platform }}-${{ matrix.config }}-${{ github.sha }}
+          path: build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/
+
+      - name: Get assets
+        uses: actions/download-artifact@v4
+        with:
+          name: utilities-assets-${{ github.sha }}
+          path: ./
+
+      - name: Move files
+        run: |
+          mkdir `
+            ${{ github.workspace }}/bin
+          move `
+            ${{ github.workspace }}/build/${{ matrix.platform }}/${{ matrix.preset }}-${{ runner.os }}/bin/${{ matrix.config }}/*.* `
+            ${{ github.workspace }}/bin
+
+      - name: Upload utilities
+        uses: actions/upload-artifact@v4
+        with:
+          name: utilities-publish-${{ matrix.system }}-${{ matrix.platform }}-${{ github.sha }}
+          path: |
+            bin/
+            gamedata/
+            patches/xpatch_03.db
+            .xrignore
+            fs*.ltx
+          include-hidden-files: true
