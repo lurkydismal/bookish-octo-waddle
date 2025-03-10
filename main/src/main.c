@@ -8,150 +8,96 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/time.h>
-#include <unistd.h>
+
+#include "applicationState_t.h"
+#include "callbacks.h"
+#include "stdfunc.h"
 
 #define ONE_MILLISECOND_IN_NANOSECONDS 1000000
 #define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
     ( _milliseconds * ONE_MILLISECOND_IN_NANOSECONDS )
 
-static size_t g_fps = 0;
-static bool g_exit = false;
+applicationState_t g_applicationState;
 
-void error_callback( int error, const char* description ) {
+void errorCallback( int error, const char* description ) {
     fprintf( stderr, "Error: %d %s\n", error, description );
 }
 
-void* t( void* data ) {
-    static size_t l_fps = 0;
+static void keyCallback( GLFWwindow* _window,
+                         int _key,
+                         int _scancode,
+                         int _action,
+                         int _modifiers ) {
+    ( void )( sizeof( _scancode ) );
+    ( void )( sizeof( _action ) );
 
+    callbackResult_t l_callbackResult =
+        event( &g_applicationState, _key, _modifiers );
+
+    if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
+        glfwSetWindowShouldClose( _window, GLFW_TRUE );
+    }
+}
+
+void* limitedIterate( void* data ) {
     ( void )( sizeof( data ) );
-
-    while ( !g_exit ) {
-        printf( "%lu\n", ( g_fps - l_fps ) );
-
-        l_fps = g_fps;
-
-        sleep( 1 );
-    }
-
-    return ( NULL );
-}
-
-static void keyCallback( GLFWwindow* window,
-                          int key,
-                          int scancode,
-                          int action,
-                          int mods ) {
-    l_callbackResult = event( key, mods );
-
-    if ( UNLIKELY( !( l_callbackResult == ( callbackResult_t )remain ) ) ) {
-        glfwSetWindowShouldClose( window, GLFW_TRUE );
-    }
-}
-
-int main( void ) {
-    glfwSetErrorCallback( error_callback );
-
-    GLFWwindow* window;
-
-    /* Initialize the library */
-    if ( !glfwInit() )
-        return -1;
-
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow( 640, 480, "Hello World", NULL, NULL );
-    if ( !window ) {
-        glfwTerminate();
-        return -1;
-    }
-
-    glfwSetKeyCallback( window, key_callback );
-
-    /* Make the window's context current */
-    glfwMakeContextCurrent( window );
-
-    int version = gladLoadGL( glfwGetProcAddress );
-    printf( "GL %d.%d\n", GLAD_VERSION_MAJOR( version ),
-            GLAD_VERSION_MINOR( version ) );
-
-    glfwSwapInterval( 1 );
 
     struct timespec next_frame;
 
     next_frame.tv_sec = 0;
     next_frame.tv_nsec = MILLISECONDS_TO_NANOSECONDS( 16.6666667 );
 
-#if 1
-    pthread_t tr;
-
-    if ( pthread_create( &tr, NULL, t, NULL ) ) {
-        printf( "error: \n" );
-    }
-#endif
-
-    for ( ;; ) {
-        {
-            /* Poll for and process events */
-            glfwPollEvents();
-        }
-
-        {
-            int width, height;
-            glfwGetFramebufferSize( window, &width, &height );
-            glViewport( 0, 0, width, height );
-
-            /* Render here */
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-            /* Swap front and back buffers */
-            glfwSwapBuffers( window );
-        }
-
-        {
-            g_fps++;
-
-#if 0
-            clock_nanosleep( CLOCK_MONOTONIC, 0, &next_frame, NULL );
-#endif
-        }
-
-        if ( glfwWindowShouldClose( window ) ) {
-            g_exit = true;
-
-            break;
-        }
+    while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
+        clock_nanosleep( CLOCK_MONOTONIC, 0, &next_frame, NULL );
     }
 
-#if 1
-    pthread_join( tr, NULL );
-#endif
-
-    glfwTerminate();
-
-    return ( 0 );
+    return ( NULL );
 }
 
 int main( void ) {
     callbackResult_t l_callbackResult = ( callbackResult_t )success;
 
-    l_callbackResult = init();
-
-    if ( UNLIKELY( !( l_callbackResult == ( callbackResult_t )remain ) ) ) {
+    if ( UNLIKELY( glfwSetErrorCallback( errorCallback ) ) ) {
         goto EXIT;
     }
 
-    glfwSetKeyCallback( window, key_callback );
+    l_callbackResult = init( &g_applicationState );
 
-    // Not limited iteration
-    while ( !glfwWindowShouldClose( window ) ) {
-        l_callbackResult = iterate();
+    if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
+        goto EXIT;
+    }
 
-        if ( UNLIKELY(
-                    !( l_callbackResult == ( callbackResult_t )remain ) ) ) {
-            break;
+    glfwSetKeyCallback( g_applicationState.window, keyCallback );
+
+    {
+        pthread_t l_limitedIterateThread;
+
+        // Limited iteration
+        if ( pthread_create( &l_limitedIterateThread, NULL, limitedIterate,
+                             NULL ) ) {
+            printf( "error: \n" );
+
+            l_callbackResult = ( callbackResult_t )failure;
+
+            goto EXIT_THREADS;
         }
+
+        // Not limited iteration
+        while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
+            l_callbackResult = iterate( &g_applicationState );
+
+            if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
+                break;
+            }
+
+            glfwPollEvents();
+        }
+
+    EXIT_THREADS:
+        pthread_join( l_limitedIterateThread, NULL );
     }
 
 EXIT:
-    return ( quit( l_callbackResult ) );
+    return ( quit( &g_applicationState, l_callbackResult ) ==
+             ( callbackResult_t )failure );
 }

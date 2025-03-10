@@ -1,5 +1,11 @@
 #pragma once
 
+#define GLFW_INCLUDE_NONE
+
+#include <GLFW/glfw3.h>
+
+#include "applicationState_t.h"
+
 typedef enum { remain, success, failure } callbackResult_t;
 
 typedef enum {
@@ -47,9 +53,9 @@ typedef enum {
     x = GLFW_KEY_X,
     y = GLFW_KEY_Y,
     z = GLFW_KEY_Z,
-    bracket = GLFW_KEY_LEFT_BRACKET,
+    left_bracket = GLFW_KEY_LEFT_BRACKET,
     backslash = GLFW_KEY_BACKSLASH,
-    bracket = GLFW_KEY_RIGHT_BRACKET,
+    right_bracket = GLFW_KEY_RIGHT_BRACKET,
     accent = GLFW_KEY_GRAVE_ACCENT,
     escape = GLFW_KEY_ESCAPE,
     enter = GLFW_KEY_ENTER,
@@ -119,11 +125,14 @@ typedef enum {
 } eventModifier_t;
 
 // Called once per application run
-callbackResult_t init( void );
-callbackResult_t quit( callbackResult_t _exitCode );
+callbackResult_t init( applicationState_t* _applicationState );
+callbackResult_t quit( applicationState_t* _applicationState,
+                       callbackResult_t _exitCode );
 
 // Called each render frame
-callbackResult_t iterate( void );
+callbackResult_t iterate( applicationState_t* _applicationState );
 
 // Called N times per second
-callbackResult_t event( event_t _event, eventModifier_t _eventModifier );
+callbackResult_t event( applicationState_t* _applicationState,
+                        event_t _event,
+                        eventModifier_t _eventModifier );
