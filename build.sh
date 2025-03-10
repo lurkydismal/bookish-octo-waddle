@@ -30,6 +30,8 @@ export declare BUILD_DEFINES_PROFILE=(
 
 export declare BUILD_INCLUDES=(
     "glad/include"
+    "stdfunc/include"
+    "main/applicationState_t/include"
 )
 
 export LINK_FLAGS="-flto -fPIC -fuse-ld=mold -Wl,-O1 -Wl,--gc-sections -Wl,--no-eh-frame-hdr"

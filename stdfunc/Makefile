@@ -1,54 +1,48 @@
 SRCDIR                = .
 SUBDIRS               =
 DLLS                  =
-LIBS                  =
-EXES                  = libmain.a
+LIBS                  = libstdfunc.a
+EXES                  =
 
 
 
 ### Common settings
 
-CEXTRA                = $(C_FLAGS)
+CEXTRA                =
 CXXEXTRA              =
 RCEXTRA               =
-DEFINES               = $(DEFINES)
-INCLUDE_PATH          = $(INCLUDES) \
-			-I callbacks/include
+DEFINES               =
+INCLUDE_PATH          = -I include
 DLL_PATH              =
 DLL_IMPORTS           =
 LIBRARY_PATH          =
-LIBRARIES             =
+LIBRARIES             = -lSDL3
 
 
-### libmain.a sources and settings
+### libstdfunc.a sources and settings
 
-libmain_a_MODULE       = libmain.a
-libmain_a_C_SRCS       = src/main.c \
-			 callbacks/src/init.c \
-			 callbacks/src/quit.c \
-			 callbacks/src/event.c \
-			 callbacks/src/iterate.c \
-			 applicationState_t/src/applicationState_t.c
-libmain_a_CXX_SRCS     =
-libmain_a_RC_SRCS      =
-libmain_a_LDFLAGS      =
-libmain_a_ARFLAGS      = rc
-libmain_a_DLL_PATH     =
-libmain_a_DLLS         =
-libmain_a_LIBRARY_PATH =
-libmain_a_LIBRARIES    =
+libstdfunc_a_MODULE       = libstdfunc.a
+libstdfunc_a_C_SRCS       = src/stdfunc.c
+libstdfunc_a_CXX_SRCS     =
+libstdfunc_a_RC_SRCS      =
+libstdfunc_a_LDFLAGS      =
+libstdfunc_a_ARFLAGS      = rc
+libstdfunc_a_DLL_PATH     =
+libstdfunc_a_DLLS         =
+libstdfunc_a_LIBRARY_PATH =
+libstdfunc_a_LIBRARIES    =
 
-libmain_a_OBJS         = $(libmain_a_C_SRCS:.c=.o) \
-			$(libmain_a_CXX_SRCS:.cpp=.o) \
-			$(libmain_a_RC_SRCS:.rc=.res)
+libstdfunc_a_OBJS         = $(libstdfunc_a_C_SRCS:.c=.o) \
+			$(libstdfunc_a_CXX_SRCS:.cpp=.o) \
+			$(libstdfunc_a_RC_SRCS:.rc=.res)
 
 
 
 ### Global source lists
 
-C_SRCS                = $(libmain_a_C_SRCS)
-CXX_SRCS              = $(libmain_a_CXX_SRCS)
-RC_SRCS               = $(libmain_a_RC_SRCS)
+C_SRCS                = $(libstdfunc_a_C_SRCS)
+CXX_SRCS              = $(libstdfunc_a_CXX_SRCS)
+RC_SRCS               = $(libstdfunc_a_RC_SRCS)
 
 
 ### Tools
@@ -56,7 +50,7 @@ RC_SRCS               = $(libmain_a_RC_SRCS)
 CC = ccache gcc
 CXX = ccache g++
 RC = rcc
-AR = gcc-ar
+AR = ar
 
 
 ### Generic targets
@@ -105,7 +99,7 @@ $(EXTRASUBDIRS:%=%/__clean__): dummy
 ### Target specific build rules
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH) $(DLL_IMPORTS:%=-l%)
 
-$(libmain_a_MODULE): $(libmain_a_OBJS)
-	$(AR) $(libmain_a_ARFLAGS) $@ $(libmain_a_OBJS)
+$(libstdfunc_a_MODULE): $(libstdfunc_a_OBJS)
+	$(AR) $(libstdfunc_a_ARFLAGS) $@ $(libstdfunc_a_OBJS)
 
 
