@@ -4,3 +4,8 @@ declare -a partsToBuild=(
     "glad"
     "stdfunc"
 )
+declare -a testsToBuild=(
+    "stdfunc"
+)
+
+export testsMainPackage='test'
