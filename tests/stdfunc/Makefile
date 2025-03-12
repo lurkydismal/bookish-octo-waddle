@@ -12,8 +12,7 @@ CEXTRA                = $(C_FLAGS)
 CXXEXTRA              =
 RCEXTRA               =
 DEFINES               = $(DEFINES)
-INCLUDE_PATH          = $(INCLUDES) \
-			-I include
+INCLUDE_PATH          = $(INCLUDES)
 DLL_PATH              =
 DLL_IMPORTS           =
 LIBRARY_PATH          =

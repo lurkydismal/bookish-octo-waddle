@@ -1,8 +1,8 @@
 SRCDIR                = .
 SUBDIRS               =
 DLLS                  =
-LIBS                  =
-EXES                  = libmain.a
+LIBS                  = $(OUTPUT_FILE)
+EXES                  =
 
 
 
@@ -20,9 +20,9 @@ LIBRARY_PATH          =
 LIBRARIES             =
 
 
-### libmain.a sources and settings
+### Output file sources and settings
 
-libmain_a_MODULE       = libmain.a
+libmain_a_MODULE       = $(OUTPUT_FILE)
 libmain_a_C_SRCS       = src/main.c \
 			 callbacks/src/init.c \
 			 callbacks/src/quit.c \

@@ -56,9 +56,9 @@
 
 #define FREE_ARRAY( _type, _array ) \
     FOR_ARRAY( _type, _array ) {    \
-        SDL_free( *_element );      \
+        mi_free( *_element );       \
     }                               \
-    SDL_free( _array )
+    mi_free( _array )
 
 // Utility functions ( no side-effects )
 size_t lengthOfNumber( size_t _number );

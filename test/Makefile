@@ -12,8 +12,7 @@ CEXTRA                = $(C_FLAGS)
 CXXEXTRA              =
 RCEXTRA               =
 DEFINES               = $(DEFINES)
-INCLUDE_PATH          = $(INCLUDES) \
-			-I include
+INCLUDE_PATH          = $(INCLUDES)
 DLL_PATH              =
 DLL_IMPORTS           =
 LIBRARY_PATH          =
@@ -22,28 +21,28 @@ LIBRARIES             =
 
 ### Output file sources and settings
 
-libstdfunc_a_MODULE       = $(OUTPUT_FILE)
-libstdfunc_a_C_SRCS       = src/stdfunc.c
-libstdfunc_a_CXX_SRCS     =
-libstdfunc_a_RC_SRCS      =
-libstdfunc_a_LDFLAGS      =
-libstdfunc_a_ARFLAGS      = rc
-libstdfunc_a_DLL_PATH     =
-libstdfunc_a_DLLS         =
-libstdfunc_a_LIBRARY_PATH =
-libstdfunc_a_LIBRARIES    =
+libmain_a_MODULE       = $(OUTPUT_FILE)
+libmain_a_C_SRCS       = src/test.c
+libmain_a_CXX_SRCS     =
+libmain_a_RC_SRCS      =
+libmain_a_LDFLAGS      =
+libmain_a_ARFLAGS      = rc
+libmain_a_DLL_PATH     =
+libmain_a_DLLS         =
+libmain_a_LIBRARY_PATH =
+libmain_a_LIBRARIES    =
 
-libstdfunc_a_OBJS         = $(libstdfunc_a_C_SRCS:.c=.o) \
-			$(libstdfunc_a_CXX_SRCS:.cpp=.o) \
-			$(libstdfunc_a_RC_SRCS:.rc=.res)
+libmain_a_OBJS         = $(libmain_a_C_SRCS:.c=.o) \
+			$(libmain_a_CXX_SRCS:.cpp=.o) \
+			$(libmain_a_RC_SRCS:.rc=.res)
 
 
 
 ### Global source lists
 
-C_SRCS                = $(libstdfunc_a_C_SRCS)
-CXX_SRCS              = $(libstdfunc_a_CXX_SRCS)
-RC_SRCS               = $(libstdfunc_a_RC_SRCS)
+C_SRCS                = $(libmain_a_C_SRCS)
+CXX_SRCS              = $(libmain_a_CXX_SRCS)
+RC_SRCS               = $(libmain_a_RC_SRCS)
 
 
 ### Tools
@@ -51,7 +50,7 @@ RC_SRCS               = $(libstdfunc_a_RC_SRCS)
 CC = ccache gcc
 CXX = ccache g++
 RC = rcc
-AR = ar
+AR = gcc-ar
 
 
 ### Generic targets
@@ -100,7 +99,7 @@ $(EXTRASUBDIRS:%=%/__clean__): dummy
 ### Target specific build rules
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH) $(DLL_IMPORTS:%=-l%)
 
-$(libstdfunc_a_MODULE): $(libstdfunc_a_OBJS)
-	$(AR) $(libstdfunc_a_ARFLAGS) $@ $(libstdfunc_a_OBJS)
+$(libmain_a_MODULE): $(libmain_a_OBJS)
+	$(AR) $(libmain_a_ARFLAGS) $@ $(libmain_a_OBJS)
 
 
