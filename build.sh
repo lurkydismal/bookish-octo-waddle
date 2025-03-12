@@ -63,13 +63,13 @@ export declare EXECUTABLE_SECTIONS_TO_STRIP=(
     ".relro_padding"
 )
 
-export RED_LIGHT_COLOR='\e[1;31m'
-export GREEN_LIGHT_COLOR='\e[1;32m'
-export YELLOW_COLOR='\e[1;33m'
-export BLUE_LIGHT_COLOR='\e[1;34m'
-export PURPLE_LIGHT_COLOR='\e[1;35m'
-export CYAN_LIGHT_COLOR='\e[1;36m'
-export RESET_COLOR='\e[0m'
+export readonly RED_LIGHT_COLOR='\e[1;31m'
+export readonly GREEN_LIGHT_COLOR='\e[1;32m'
+export readonly YELLOW_COLOR='\e[1;33m'
+export readonly BLUE_LIGHT_COLOR='\e[1;34m'
+export readonly PURPLE_LIGHT_COLOR='\e[1;35m'
+export readonly CYAN_LIGHT_COLOR='\e[1;36m'
+export readonly RESET_COLOR='\e[0m'
 
 export BUILD_TYPE_COLOR="$PURPLE_LIGHT_COLOR"
 export DEFINES_COLOR="$CYAN_LIGHT_COLOR"
