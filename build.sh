@@ -13,6 +13,7 @@ export BUILD_C_FLAGS="-flto=jobserver -std=gnu99 -march=native -ffunction-sectio
 export BUILD_C_FLAGS_DEBUG="-Og -g"
 export BUILD_C_FLAGS_RELEASE="-Ofast -funroll-loops -fno-asynchronous-unwind-tables"
 export BUILD_C_FLAGS_PROFILE="$BUILD_C_FLAGS_RELEASE"
+export BUILD_C_FLAGS_TESTS="$BUILD_C_FLAGS_DEBUG"
 
 export declare BUILD_DEFINES=(
 )
@@ -35,7 +36,7 @@ export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
 )
 
-export declare BUILD_INCLUDES_TEST=(
+export declare BUILD_INCLUDES_TESTS=(
     "test/include"
 )
 
@@ -43,6 +44,7 @@ export LINK_FLAGS="-flto -fPIC -fuse-ld=mold -Wl,-O1 -Wl,--gc-sections -Wl,--no-
 export LINK_FLAGS_DEBUG="-g"
 export LINK_FLAGS_RELEASE="-s"
 export LINK_FLAGS_PROFILE="$LINK_FLAGS_DEBUG"
+export LINK_FLAGS_TESTS="$LINK_FLAGS_DEBUG -Wl,--whole-archive"
 
 export declare LIBRARIES_TO_LINK=(
     "glfw"
@@ -51,7 +53,7 @@ export declare LIBRARIES_TO_LINK=(
 )
 export LINKER="ccache gcc"
 export EXECUTABLE_NAME="main.out"
-export EXECUTABLE_NAME_TEST="$EXECUTABLE_NAME"'_test'
+export EXECUTABLE_NAME_TESTS="$EXECUTABLE_NAME"'_test'
 export declare EXECUTABLE_SECTIONS_TO_STRIP=(
     ".note.gnu.build-id"
     ".note.gnu.property"
@@ -61,6 +63,21 @@ export declare EXECUTABLE_SECTIONS_TO_STRIP=(
     ".relro_padding"
 )
 
+export RED_LIGHT_COLOR='\e[1;31m'
+export GREEN_LIGHT_COLOR='\e[1;32m'
+export YELLOW_COLOR='\e[1;33m'
+export BLUE_LIGHT_COLOR='\e[1;34m'
+export PURPLE_LIGHT_COLOR='\e[1;35m'
+export CYAN_LIGHT_COLOR='\e[1;36m'
+export RESET_COLOR='\e[0m'
+
+export BUILD_TYPE_COLOR="$PURPLE_LIGHT_COLOR"
+export DEFINES_COLOR="$CYAN_LIGHT_COLOR"
+export INCLUDES_COLOR="$BLUE_LIGHT_COLOR"
+export LIBRARIES_COLOR="$BLUE_LIGHT_COLOR"
+export PARTS_TO_BUILD_COLOR="$YELLOW_COLOR"
+export SECTIONS_TO_STRIP_COLOR="$RED_LIGHT_COLOR"
+
 clear
 
 source './config.sh' && {
@@ -68,42 +85,42 @@ source './config.sh' && {
 mkdir -p "$BUILD_DIRECTORY"
 
 if [ $BUILD_TYPE -eq 0 ]; then
-    echo -e '\033[1;35m''Debug build''\033[0m'
+    echo -e "$BUILD_TYPE_COLOR"'Debug build'"$RESET_COLOR"
 
     BUILD_C_FLAGS="$BUILD_C_FLAGS $BUILD_C_FLAGS_DEBUG"
     LINK_FLAGS="$LINK_FLAGS $LINK_FLAGS_DEBUG"
     BUILD_DEFINES+=( "${BUILD_DEFINES_DEBUG[@]}" )
 
 elif [ $BUILD_TYPE -eq 1 ]; then
-    echo -e '\033[1;35m''Release build''\033[0m'
+    echo -e "$BUILD_TYPE_COLOR"'Release build'"$RESET_COLOR"
 
     BUILD_C_FLAGS="$BUILD_C_FLAGS $BUILD_C_FLAGS_RELEASE"
     LINK_FLAGS="$LINK_FLAGS $LINK_FLAGS_RELEASE"
     BUILD_DEFINES+=( "${BUILD_DEFINES_RELEASE[@]}" )
 
 elif [ $BUILD_TYPE -eq 2 ]; then
-    echo -e '\033[1;35m''Profile build''\033[0m'
+    echo -e "$BUILD_TYPE_COLOR"'Profile build'"$RESET_COLOR"
 
     BUILD_C_FLAGS="$BUILD_C_FLAGS $BUILD_C_FLAGS_PROFILE"
     LINK_FLAGS="$LINK_FLAGS $LINK_FLAGS_PROFILE"
     BUILD_DEFINES+=( "${BUILD_DEFINES_PROFILE[@]}" )
 
 elif [ $BUILD_TYPE -eq 3 ]; then
-    echo -e '\033[1;35m''Building tests''\033[0m'
+    echo -e "$BUILD_TYPE_COLOR"'Building tests'"$RESET_COLOR"
 
-    BUILD_C_FLAGS="$BUILD_C_FLAGS $BUILD_C_FLAGS_DEBUG"
-    LINK_FLAGS="$LINK_FLAGS $LINK_FLAGS_DEBUG"
+    BUILD_C_FLAGS="$BUILD_C_FLAGS $BUILD_C_FLAGS_TESTS"
+    LINK_FLAGS="$LINK_FLAGS $LINK_FLAGS_TESTS"
     BUILD_DEFINES+=( "${BUILD_DEFINES_DEBUG[@]}" )
 fi
 
 if [ ${#BUILD_DEFINES[@]} -ne 0 ]; then
     printf -v definesAsString -- "-D %s " "${BUILD_DEFINES[@]}"
-    echo -e '\033[1;36m'"$definesAsString"'\033[0m'
+    echo -e "$DEFINES_COLOR""$definesAsString""$RESET_COLOR"
 fi
 
 if [ ${#BUILD_INCLUDES[@]} -ne 0 ]; then
     printf -v includesAsString -- "-I $SCRIPT_DIRECTORY/%s " "${BUILD_INCLUDES[@]}"
-    echo -e '\033[1;34m'"$includesAsString"'\033[0m'
+    echo -e "$INCLUDES_COLOR""$includesAsString""$RESET_COLOR"
 fi
 
 for partToBuild in "${partsToBuild[@]}"; do
@@ -120,12 +137,12 @@ done
 if [ $BUILD_STATUS -eq 0 ]; then
     if [ ${#partsToBuild[@]} -ne 0 ]; then
         printf -v partsToBuildAsString -- "$BUILD_DIRECTORY/lib%s.a " "${partsToBuild[@]}"
-        echo -e '\033[1;34m'"$partsToBuildAsString"'\033[0m'
+        echo -e "$PARTS_TO_BUILD_COLOR""$partsToBuildAsString""$RESET_COLOR"
     fi
 
     if [ ${#LIBRARIES_TO_LINK[@]} -ne 0 ]; then
         printf -v librariesToLinkAgainst -- "-l%s " "${LIBRARIES_TO_LINK[@]}"
-        echo  -e '\033[1;34m'"$librariesToLinkAgainst"'\033[0m'
+        echo  -e "$LIBRARIES_COLOR""$librariesToLinkAgainst""$RESET_COLOR"
     fi
 
     $LINKER $LINK_FLAGS $partsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME"
@@ -133,7 +150,7 @@ if [ $BUILD_STATUS -eq 0 ]; then
     if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
         if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
             printf -v sectionsToStripAsString -- "--remove-section %s " "${EXECUTABLE_SECTIONS_TO_STRIP[@]}"
-            echo  -e '\033[1;34m'"$sectionsToStripAsString"'\033[0m'
+            echo  -e "$SECTIONS_TO_STRIP_COLOR""$sectionsToStripAsString""$RESET_COLOR"
         fi
 
         objcopy "$BUILD_DIRECTORY/$EXECUTABLE_NAME" $sectionsToStripAsString
@@ -145,8 +162,8 @@ fi
 # Build tests
 if [ $BUILD_TYPE -eq 3 ]; then
     if [ ${#BUILD_INCLUDES[@]} -ne 0 ]; then
-        printf -v testIncludesAsString -- "-I $SCRIPT_DIRECTORY/%s " "${BUILD_INCLUDES_TEST[@]}"
-        echo  -e '\033[1;34m'"$testIncludesAsString"'\033[0m'
+        printf -v testIncludesAsString -- "-I $SCRIPT_DIRECTORY/%s " "${BUILD_INCLUDES_TESTS[@]}"
+        echo  -e "$INCLUDES_COLOR""$testIncludesAsString""$RESET_COLOR"
     fi
 
     for testToBuild in "${testsToBuild[@]}"; do
@@ -169,20 +186,20 @@ if [ $BUILD_TYPE -eq 3 ]; then
     if [ $BUILD_STATUS -eq 0 ]; then
         if [ ${#testsToBuild[@]} -ne 0 ]; then
             printf -v testsToBuildAsString -- "$BUILD_DIRECTORY/lib%s_test.a " "${testsToBuild[@]}"
-            echo  -e '\033[1;34m'"$testsToBuildAsString"'\033[0m'
+            echo  -e "$PARTS_TO_BUILD_COLOR""$testsToBuildAsString""$RESET_COLOR"
         fi
 
-        $LINKER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TEST"
+        $LINKER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
                 printf -v sectionsToStripAsString -- "--remove-section %s " "${EXECUTABLE_SECTIONS_TO_STRIP[@]}"
-                echo  -e '\033[1;34m'"$sectionsToStripAsString"'\033[0m'
+                echo  -e "$SECTIONS_TO_STRIP_COLOR""$sectionsToStripAsString""$RESET_COLOR"
             fi
 
-            objcopy "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TEST" $sectionsToStripAsString
+            objcopy "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS" $sectionsToStripAsString
 
-            strip --strip-section-headers "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TEST"
+            strip --strip-section-headers "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
         fi
     fi
 fi
