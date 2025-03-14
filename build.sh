@@ -189,7 +189,7 @@ if [ $BUILD_TYPE -eq 3 ]; then
             echo  -e "$PARTS_TO_BUILD_COLOR""$testsToBuildAsString""$RESET_COLOR"
         fi
 
-        $LINKER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
+        $LINKER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $partsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
