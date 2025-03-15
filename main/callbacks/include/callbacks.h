@@ -130,9 +130,12 @@ callbackResult_t quit( applicationState_t* _applicationState,
                        callbackResult_t _exitCode );
 
 // Called each render frame
-callbackResult_t iterate( applicationState_t* _applicationState );
+callbackResult_t iterate$unlimited( applicationState_t* _applicationState );
 
 // Called N times per second
+callbackResult_t iterate$limited( applicationState_t* _applicationState );
+
+// Called each event received
 callbackResult_t event( applicationState_t* _applicationState,
                         event_t _event,
                         eventModifier_t _eventModifier );

@@ -121,7 +121,7 @@ size_t concatBeforeAndAfterString( char** _string,
     {
         size_t l_stringLength = 0;
 
-        // TODO: Optimize this
+        // TODO: Discover if _string check is reduntant by *_string
         if ( LIKELY( _string ) && LIKELY( *_string ) ) {
             l_stringLength = __builtin_strlen( *_string );
         }

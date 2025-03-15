@@ -1,4 +1,6 @@
 #!/bin/bash
+shopt -s nullglob
+
 export SCRIPT_DIRECTORY=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 export BUILD_DIRECTORY_NAME='out'
 export BUILD_DIRECTORY="$SCRIPT_DIRECTORY/$BUILD_DIRECTORY_NAME"
@@ -7,7 +9,7 @@ export BUILD_DIRECTORY="$SCRIPT_DIRECTORY/$BUILD_DIRECTORY_NAME"
 # 1 - Release
 # 2 - Profile
 # 3 - Tests
-export BUILD_TYPE=3
+export BUILD_TYPE=0
 
 export BUILD_C_FLAGS="-flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
 export BUILD_C_FLAGS_DEBUG="-Og -g"
@@ -124,7 +126,11 @@ if [ ${#BUILD_INCLUDES[@]} -ne 0 ]; then
 fi
 
 for partToBuild in "${partsToBuild[@]}"; do
-    source "$partToBuild/config.sh" && './build_general.sh' "$partToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+    source "$partToBuild/config.sh" && {
+        './build_general.sh' "$partToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+        unset FILES_TO_INCLUDE FILES_TO_COMPILE
+    }
 
     BUILD_STATUS=$?
 
@@ -167,7 +173,11 @@ if [ $BUILD_TYPE -eq 3 ]; then
     fi
 
     for testToBuild in "${testsToBuild[@]}"; do
-        source "tests/$testToBuild/config.sh" && './build_general.sh' "tests/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString""$testIncludesAsString"
+        source "tests/$testToBuild/config.sh" && {
+            './build_general.sh' "tests/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+            unset FILES_TO_INCLUDE FILES_TO_COMPILE
+        }
 
         BUILD_STATUS=$?
 
@@ -178,7 +188,11 @@ if [ $BUILD_TYPE -eq 3 ]; then
 
     # Build tests main package
     if [ $BUILD_STATUS -eq 0 ]; then
-        source "$testsMainPackage/config.sh" && './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString""$testIncludesAsString"
+        source "$testsMainPackage/config.sh" && {
+            './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+            unset FILES_TO_INCLUDE FILES_TO_COMPILE
+        }
 
         BUILD_STATUS=$?
     fi

@@ -20,16 +20,23 @@ typedef struct {
 extern testEntry_t g_testRegistry[ MAX_TESTS ];
 extern size_t g_testCount;
 
-#define TEST( _name )                                                       \
-    static int _name##_test( void ) __attribute__( ( used ) );              \
-    __attribute__( ( constructor,                                           \
-                     used ) ) static void register_##_name##_test( void ) { \
-        if ( g_testCount < MAX_TESTS ) {                                    \
-            g_testRegistry[ g_testCount++ ] =                               \
-                ( testEntry_t ){ #_name, _name##_test };                    \
-        }                                                                   \
-    }                                                                       \
-    static int _name##_test( void )
+__attribute__( ( used ) ) static int g_status = 0;
+
+#define TEST( _name )                                                          \
+    static void _name##_test_implementation( void ) __attribute__( ( used ) ); \
+    static int _name##_test( void ) {                                          \
+        g_status = 0;                                                          \
+        _name##_test_implementation();                                         \
+        return ( g_status );                                                   \
+    }                                                                          \
+    __attribute__( ( constructor,                                              \
+                     used ) ) static void register_##_name##_test( void ) {    \
+        if ( g_testCount < MAX_TESTS ) {                                       \
+            g_testRegistry[ g_testCount++ ] =                                  \
+                ( testEntry_t ){ #_name, _name##_test };                       \
+        }                                                                      \
+    }                                                                          \
+    static void _name##_test_implementation( void )
 
 #define ASSERT_EQ( _format, _actual, _expected )                      \
     do {                                                              \
@@ -39,7 +46,8 @@ extern size_t g_testCount;
                         " but got "_format                            \
                         "\n",                                         \
                     __FILE__, __LINE__, ( _expected ), ( _actual ) ); \
-            return ( 1 );                                             \
+            g_status = 1;                                             \
+            return;                                                   \
         }                                                             \
     } while ( 0 )
 
@@ -47,10 +55,11 @@ extern size_t g_testCount;
     do {                                                              \
         if ( ( _actual ) == ( _expected ) ) {                         \
             printf( RED "[FAILED]" RESET                              \
-                        " %s:%d: Expected "_format                    \
+                        " %s:%d: Expected different from "_format     \
                         " but got "_format                            \
                         "\n",                                         \
                     __FILE__, __LINE__, ( _expected ), ( _actual ) ); \
-            return ( 1 );                                             \
+            g_status = 1;                                             \
+            return;                                                   \
         }                                                             \
     } while ( 0 )

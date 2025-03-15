@@ -2,7 +2,7 @@
 
 #include "callbacks.h"
 
-callbackResult_t iterate( applicationState_t* _applicationState ) {
+callbackResult_t iterate$unlimited( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
     {
@@ -19,6 +19,14 @@ callbackResult_t iterate( applicationState_t* _applicationState ) {
     }
 
     _applicationState->totalFramesRendered++;
+
+    l_returnValue = ( callbackResult_t )remain;
+
+    return ( l_returnValue );
+}
+
+callbackResult_t iterate$limited( applicationState_t* _applicationState ) {
+    callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
     l_returnValue = ( callbackResult_t )remain;
 

@@ -13,14 +13,17 @@
 #include "callbacks.h"
 #include "stdfunc.h"
 
+#define ONE_SECOND_IN_MILLISECONDS 1000
 #define ONE_MILLISECOND_IN_NANOSECONDS 1000000
 #define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
     ( _milliseconds * ONE_MILLISECOND_IN_NANOSECONDS )
 
+#define DESIRED_FPS 60
+
 applicationState_t g_applicationState;
 
-void errorCallback( int error, const char* description ) {
-    fprintf( stderr, "Error: %d %s\n", error, description );
+void errorCallback( int _code, const char* _description ) {
+    fprintf( stderr, "Error: %d %s\n", _code, _description );
 }
 
 static void keyCallback( GLFWwindow* _window,
@@ -42,13 +45,22 @@ static void keyCallback( GLFWwindow* _window,
 void* limitedIterate( void* data ) {
     ( void )( sizeof( data ) );
 
-    struct timespec next_frame;
+    callbackResult_t l_callbackResult = ( callbackResult_t )success;
 
-    next_frame.tv_sec = 0;
-    next_frame.tv_nsec = MILLISECONDS_TO_NANOSECONDS( 16.6666667 );
+    struct timespec l_sleepTime;
+
+    l_sleepTime.tv_sec = 0;
+    l_sleepTime.tv_nsec =
+        MILLISECONDS_TO_NANOSECONDS( ONE_SECOND_IN_MILLISECONDS / DESIRED_FPS );
 
     while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
-        clock_nanosleep( CLOCK_MONOTONIC, 0, &next_frame, NULL );
+        clock_nanosleep( CLOCK_MONOTONIC, 0, &l_sleepTime, NULL );
+
+        l_callbackResult = iterate$limited( &g_applicationState );
+
+        if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
+            break;
+        }
     }
 
     return ( NULL );
@@ -75,7 +87,10 @@ int main( void ) {
         // Limited iteration
         if ( pthread_create( &l_limitedIterateThread, NULL, limitedIterate,
                              NULL ) ) {
-            printf( "error: \n" );
+            errorCallback( 11,
+                           "Insufficient resources to create another thread, "
+                           "or a system-imposed limit on the number of threads "
+                           "was encountered" );
 
             l_callbackResult = ( callbackResult_t )failure;
 
@@ -84,7 +99,7 @@ int main( void ) {
 
         // Not limited iteration
         while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
-            l_callbackResult = iterate( &g_applicationState );
+            l_callbackResult = iterate$unlimited( &g_applicationState );
 
             if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
                 break;
