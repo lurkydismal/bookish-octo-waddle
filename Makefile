@@ -13,7 +13,7 @@ CXXEXTRA              =
 RCEXTRA               =
 DEFINES               = $(DEFINES)
 INCLUDE_PATH          = $(INCLUDES) \
-			-I include
+			$(patsubst %/*.h, %, $(FILES_TO_INCLUDE))
 DLL_PATH              =
 DLL_IMPORTS           =
 LIBRARY_PATH          =
@@ -22,28 +22,28 @@ LIBRARIES             =
 
 ### Output file sources and settings
 
-libstdfunc_a_MODULE       = $(OUTPUT_FILE)
-libstdfunc_a_C_SRCS       = src/stdfunc.c
-libstdfunc_a_CXX_SRCS     =
-libstdfunc_a_RC_SRCS      =
-libstdfunc_a_LDFLAGS      =
-libstdfunc_a_ARFLAGS      = rc
-libstdfunc_a_DLL_PATH     =
-libstdfunc_a_DLLS         =
-libstdfunc_a_LIBRARY_PATH =
-libstdfunc_a_LIBRARIES    =
+libfile_a_MODULE       = $(OUTPUT_FILE)
+libfile_a_C_SRCS       = $(foreach _pattern, $(FILES_TO_COMPILE), $(wildcard $(_pattern)))
+libfile_a_CXX_SRCS     =
+libfile_a_RC_SRCS      =
+libfile_a_LDFLAGS      =
+libfile_a_ARFLAGS      = rc
+libfile_a_DLL_PATH     =
+libfile_a_DLLS         =
+libfile_a_LIBRARY_PATH =
+libfile_a_LIBRARIES    =
 
-libstdfunc_a_OBJS         = $(libstdfunc_a_C_SRCS:.c=.o) \
-			$(libstdfunc_a_CXX_SRCS:.cpp=.o) \
-			$(libstdfunc_a_RC_SRCS:.rc=.res)
+libfile_a_OBJS         = $(libfile_a_C_SRCS:.c=.o) \
+			$(libfile_a_CXX_SRCS:.cpp=.o) \
+			$(libfile_a_RC_SRCS:.rc=.res)
 
 
 
 ### Global source lists
 
-C_SRCS                = $(libstdfunc_a_C_SRCS)
-CXX_SRCS              = $(libstdfunc_a_CXX_SRCS)
-RC_SRCS               = $(libstdfunc_a_RC_SRCS)
+C_SRCS                = $(libfile_a_C_SRCS)
+CXX_SRCS              = $(libfile_a_CXX_SRCS)
+RC_SRCS               = $(libfile_a_RC_SRCS)
 
 
 ### Tools
@@ -51,7 +51,7 @@ RC_SRCS               = $(libstdfunc_a_RC_SRCS)
 CC = ccache gcc
 CXX = ccache g++
 RC = rcc
-AR = ar
+AR = gcc-ar
 
 
 ### Generic targets
@@ -100,7 +100,7 @@ $(EXTRASUBDIRS:%=%/__clean__): dummy
 ### Target specific build rules
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH) $(DLL_IMPORTS:%=-l%)
 
-$(libstdfunc_a_MODULE): $(libstdfunc_a_OBJS)
-	$(AR) $(libstdfunc_a_ARFLAGS) $@ $(libstdfunc_a_OBJS)
+$(libfile_a_MODULE): $(libfile_a_OBJS)
+	$(AR) $(libfile_a_ARFLAGS) $@ $(libfile_a_OBJS)
 
 

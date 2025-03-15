@@ -38,8 +38,6 @@ TEST( lengthOfNumber ) {
         }
     }
 
-    return ( 0 );
-
 #undef MAX_NUMBER
 }
 
@@ -53,8 +51,6 @@ TEST( power ) {
     ASSERT_EQ( "%lu", power( 2, 8 ), ( size_t )256 );
     ASSERT_EQ( "%lu", power( 2, 31 ), ( size_t )2147483648 );
     ASSERT_EQ( "%lu", power( 10, 10 ), ( size_t )10000000000 );
-
-    return ( 0 );
 }
 
 TEST( convertNumberToString ) {
@@ -93,8 +89,6 @@ TEST( convertNumberToString ) {
         mi_free( l_result );
     }
 
-    return ( 0 );
-
 #undef convertNumberToStringTest
 }
 
@@ -113,8 +107,6 @@ TEST( randomNumber ) {
             ASSERT_NOT_EQ( "%lu", randomNumber(), ( size_t )0 );
         }
     }
-
-    return ( 0 );
 }
 
 TEST( duplicateString ) {
@@ -145,8 +137,6 @@ TEST( duplicateString ) {
         ASSERT_EQ( "%d", ( l_result == NULL ), 1 );
     }
 
-    return ( 0 );
-
 #undef duplicateStringTest
 }
 
@@ -171,8 +161,6 @@ TEST( findSymbolInString ) {
 
     // NULL string
     ASSERT_EQ( "%ld", findSymbolInString( NULL, 'a' ), ( ssize_t )( -1 ) );
-
-    return ( 0 );
 }
 
 TEST( findLastSymbolInString ) {
@@ -196,8 +184,6 @@ TEST( findLastSymbolInString ) {
 
     // NULL string
     ASSERT_EQ( "%ld", findLastSymbolInString( NULL, 'a' ), ( ssize_t )( -1 ) );
-
-    return ( 0 );
 }
 
 TEST( concatBeforeAndAfterString ) {
@@ -245,8 +231,6 @@ TEST( concatBeforeAndAfterString ) {
                    ( size_t )2 );
     }
 
-    return ( 0 );
-
 #undef concatBeforeAndAfterStringTest
 }
 
@@ -283,8 +267,6 @@ TEST( sanitizeString ) {
 
     // NULL input ( should return NULL )
     ASSERT_EQ( "%p", sanitizeString( NULL ), NULL );
-
-    return ( 0 );
 
 #undef sanitizeStringTest
 }
@@ -351,8 +333,6 @@ TEST( splitStringIntoArray ) {
 
         FREE_ARRAY( char**, l_result );
     }
-
-    return ( 0 );
 }
 
 TEST( createArray ) {
@@ -367,8 +347,6 @@ TEST( createArray ) {
 
     // Free allocated memory
     FREE_ARRAY( void**, l_array );
-
-    return ( 0 );
 }
 
 TEST( preallocateArray ) {
@@ -396,8 +374,6 @@ TEST( preallocateArray ) {
 
     // Free memory
     FREE_ARRAY( void**, l_array );
-
-    return ( 0 );
 }
 
 TEST( insertIntoArray ) {
@@ -423,8 +399,6 @@ TEST( insertIntoArray ) {
 
     // Free memory
     FREE_ARRAY( void**, l_array );
-
-    return ( 0 );
 }
 
 TEST( insertIntoArrayByIndex ) {
@@ -460,8 +434,6 @@ TEST( insertIntoArrayByIndex ) {
 
     // Free memory
     FREE_ARRAY( void**, l_array );
-
-    return ( 0 );
 }
 
 TEST( findStringInArray ) {
@@ -506,8 +478,6 @@ TEST( findStringInArray ) {
     ASSERT_EQ( "%ld",
                findStringInArray( l_array, arrayLengthNative( l_array ), NULL ),
                ( ssize_t )( -1 ) );
-
-    return ( 0 );
 }
 
 TEST( findInArray ) {
@@ -544,8 +514,6 @@ TEST( findInArray ) {
         "%ld",
         findInArray( l_array, arrayLengthNative( l_array ), ( size_t )NULL ),
         ( ssize_t )( -1 ) );
-
-    return ( 0 );
 }
 
 TEST( containsString ) {
@@ -589,8 +557,6 @@ TEST( containsString ) {
             false );
         ASSERT_EQ( "%u", containsString( NULL, 0, NULL ), false );
     }
-
-    return ( 0 );
 }
 
 TEST( contains ) {
@@ -624,6 +590,4 @@ TEST( contains ) {
                    false );
         ASSERT_EQ( "%u", contains( NULL, 0, 0 ), false );
     }
-
-    return ( 0 );
 }

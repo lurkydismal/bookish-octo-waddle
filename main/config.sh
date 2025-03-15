@@ -1,3 +1,4 @@
 #!/bin/bash
 export OUTPUT_FILE='libmain.a'
-export FILE_LIST='src/*.c callbacks/include/*.h callbacks/src/*.c applicationState_t/include/*.h applicationState_t/src/*.c'
+export FILES_TO_INCLUDE='callbacks/include/*.h applicationState_t/include/*.h'
+export FILES_TO_COMPILE='src/*.c callbacks/src/*.c applicationState_t/src/*.c'
