@@ -1,10 +1,14 @@
 #!/bin/bash
 declare -a partsToBuild=(
     "main"
-    "glad"
+    "asset_t"
+    "log"
     "stdfunc"
+    "glad"
 )
 declare -a testsToBuild=(
+    "asset_t"
+    "log"
     "stdfunc"
 )
 

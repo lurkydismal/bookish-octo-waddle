@@ -11,19 +11,20 @@
 
 #include "applicationState_t.h"
 #include "callbacks.h"
+#include "log.h"
 #include "stdfunc.h"
-
-#define ONE_SECOND_IN_MILLISECONDS 1000
-#define ONE_MILLISECOND_IN_NANOSECONDS 1000000
-#define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
-    ( _milliseconds * ONE_MILLISECOND_IN_NANOSECONDS )
 
 #define DESIRED_FPS 60
 
 applicationState_t g_applicationState;
 
-void errorCallback( int _code, const char* _description ) {
-    fprintf( stderr, "Error: %d %s\n", _code, _description );
+static void errorCallback( int _code, const char* _description ) {
+    char l_string[ 256 ];
+
+    snprintf( l_string, sizeof( l_string ), "Error: %d %s\n", _code,
+              _description );
+
+    log$transaction$query( l_string );
 }
 
 static void keyCallback( GLFWwindow* _window,

@@ -7,6 +7,11 @@
 #include <stdint.h>
 #include <sys/types.h>
 
+// File descriptors
+#define STDIN 0
+#define STDOUT 1
+#define STDERR 2
+
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
 #define NO_OPTIMIZE __attribute__( ( optimize( "0" ) ) )
@@ -16,12 +21,15 @@
 #define LIKELY( _expression ) __builtin_expect( !!( _expression ), 1 )
 #define UNLIKELY( _expression ) __builtin_expect( !!( _expression ), 0 )
 
-#define trim( _string, _from, _to ) \
-    do {                            \
-        ( *_string ) += _from;      \
-        ( *_string )[ _to ] = '\0'; \
-    } while ( false );
+// Constants
+#define ONE_SECOND_IN_MILLISECONDS 1000
+#define ONE_MILLISECOND_IN_NANOSECONDS 1000000
 
+// Utility macros ( no side-effects )
+#define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
+    ( _milliseconds * ONE_MILLISECOND_IN_NANOSECONDS )
+
+// Non-native and native array utility functions
 #define arrayLengthPointer( _array ) ( ( size_t* )( &( _array[ 0 ] ) ) )
 #define arrayLength( _array ) ( ( size_t )( _array[ 0 ] ) - 1 )
 #define arrayLengthNative( _array ) ( sizeof( _array ) / sizeof( _array[ 0 ] ) )
@@ -31,32 +39,17 @@
 #define arrayLastElementPointer( _array ) \
     ( ( arrayFirstElementPointer( _array ) - 1 ) + arrayLength( _array ) )
 
-#define _findStringInArray( _array, _value )                      \
-    ( findStringInArray(                                          \
-          ( const char** )( arrayFirstElementPointer( _array ) ), \
-          arrayLength( _array ), _value ) +                       \
-      1 )
-
-#define _findInArray( _array, _value )                                      \
-    findInArray( arrayFirstElementPointer( _array ), arrayLength( _array ), \
-                 _value )
-
-#define _containsString( _array, _value )                                   \
-    containsString( ( const char** )( arrayFirstElementPointer( _array ) ), \
-                    arrayLength( _array ), _value )
-
-#define _contains( _array, _value )                                      \
-    contains( arrayFirstElementPointer( _array ), arrayLength( _array ), \
-              _value )
-
+// Native array iteration FOR
 #define FOR( _type, _array )       \
     for ( _type _element = _array; \
           _element < ( _array + arrayLengthNative( _array ) ); _element++ )
 
+// Non-native array iteration FOR
 #define FOR_ARRAY( _type, _array )                             \
     for ( _type _element = arrayFirstElementPointer( _array ); \
           _element != ( arrayLastElementPointer( _array ) + 1 ); _element++ )
 
+// Non-native array free every element
 #define FREE_ARRAY( _type, _array )  \
     do {                             \
         FOR_ARRAY( _type, _array ) { \
@@ -66,6 +59,18 @@
     } while ( 0 )
 
 // Utility functions ( no side-effects )
+static FORCE_INLINE void trim( char** _string,
+                               const ssize_t _from,
+                               const ssize_t _to ) {
+    if ( _from >= 0 ) {
+        ( *_string ) += _from;
+    }
+
+    if ( _to >= 0 ) {
+        ( *_string )[ _to ] = '\0';
+    }
+}
+
 static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
     size_t l_length = 0;
 
@@ -175,9 +180,24 @@ static FORCE_INLINE void insertIntoArrayByIndex( void*** _array,
 ssize_t findStringInArray( const char** _array,
                            const size_t _arrayLength,
                            const char* _value );
+
+static FORCE_INLINE ssize_t _findStringInArray( const char** _array,
+                                                const char* _value ) {
+    return ( findStringInArray(
+                 ( const char** )( arrayFirstElementPointer( _array ) ),
+                 arrayLength( _array ), _value ) +
+             1 );
+}
+
 ssize_t findInArray( const size_t* _array,
                      const size_t _arrayLength,
                      const size_t _value );
+
+static FORCE_INLINE ssize_t _findInArray( const size_t* _array,
+                                          const size_t _value ) {
+    return ( findInArray( arrayFirstElementPointer( _array ),
+                          arrayLength( _array ), _value ) );
+}
 
 static FORCE_INLINE bool containsString( const char** _array,
                                          const size_t _arrayLength,
@@ -185,10 +205,24 @@ static FORCE_INLINE bool containsString( const char** _array,
     return ( findStringInArray( _array, _arrayLength, _value ) >= 0 );
 }
 
+static FORCE_INLINE bool _containsString( const char** _array,
+                                          const char* _value ) {
+    return (
+        containsString( ( const char** )( arrayFirstElementPointer( _array ) ),
+                        arrayLength( _array ), _value ) );
+}
+
 static FORCE_INLINE bool contains( const size_t* _array,
                                    const size_t _arrayLength,
                                    const size_t _value ) {
     return ( findInArray( _array, _arrayLength, _value ) >= 0 );
+}
+
+// Utility functions ( no side-effects ) wrappers for non-naitve array
+static FORCE_INLINE bool _contains( const size_t* _array,
+                                    const size_t _value ) {
+    return ( contains( arrayFirstElementPointer( _array ),
+                       arrayLength( _array ), _value ) );
 }
 
 #if 0

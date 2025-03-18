@@ -3,7 +3,9 @@ shopt -s nullglob
 
 export SCRIPT_DIRECTORY=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 export BUILD_DIRECTORY_NAME='out'
+export TESTS_DIRECTORY_NAME='tests'
 export BUILD_DIRECTORY="$SCRIPT_DIRECTORY/$BUILD_DIRECTORY_NAME"
+export TESTS_DIRECTORY="$SCRIPT_DIRECTORY/$TESTS_DIRECTORY_NAME"
 
 # 0 - Debug
 # 1 - Release
@@ -33,9 +35,11 @@ export declare BUILD_DEFINES_PROFILE=(
 )
 
 export declare BUILD_INCLUDES=(
-    "glad/include"
-    "stdfunc/include"
     "main/applicationState_t/include"
+    "asset_t/include"
+    "log/include"
+    "stdfunc/include"
+    "glad/include"
 )
 
 export declare BUILD_INCLUDES_TESTS=(
@@ -127,12 +131,14 @@ fi
 
 for partToBuild in "${partsToBuild[@]}"; do
     source "$partToBuild/config.sh" && {
+        export OUTPUT_FILE='lib'"$partToBuild"'.a'
+
         './build_general.sh' "$partToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+        BUILD_STATUS=$?
 
         unset FILES_TO_INCLUDE FILES_TO_COMPILE
     }
-
-    BUILD_STATUS=$?
 
     if [ $BUILD_STATUS -ne 0 ]; then
         break
@@ -173,13 +179,15 @@ if [ $BUILD_TYPE -eq 3 ]; then
     fi
 
     for testToBuild in "${testsToBuild[@]}"; do
-        source "tests/$testToBuild/config.sh" && {
-            './build_general.sh' "tests/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+        source "$TESTS_DIRECTORY/$testToBuild/config.sh" && {
+            export OUTPUT_FILE='lib'"$testToBuild"'_test.a'
+
+            './build_general.sh' "$TESTS_DIRECTORY/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+            BUILD_STATUS=$?
 
             unset FILES_TO_INCLUDE FILES_TO_COMPILE
         }
-
-        BUILD_STATUS=$?
 
         if [ $BUILD_STATUS -ne 0 ]; then
             break
@@ -189,12 +197,14 @@ if [ $BUILD_TYPE -eq 3 ]; then
     # Build tests main package
     if [ $BUILD_STATUS -eq 0 ]; then
         source "$testsMainPackage/config.sh" && {
+            export OUTPUT_FILE='lib'"$testsMainPackage"'_test.a'
+
             './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+            BUILD_STATUS=$?
 
             unset FILES_TO_INCLUDE FILES_TO_COMPILE
         }
-
-        BUILD_STATUS=$?
     fi
 
     if [ $BUILD_STATUS -eq 0 ]; then
