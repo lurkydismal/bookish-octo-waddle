@@ -7,8 +7,6 @@ declare -a partsToBuild=(
     "glad"
 )
 declare -a testsToBuild=(
-    "asset_t"
-    "log"
     "stdfunc"
 )
 

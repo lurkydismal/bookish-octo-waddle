@@ -10,6 +10,9 @@ typedef struct {
     size_t size;
 } asset_t;
 
+bool asset_t$loader$init( const char* _assetsDirectory );
+bool asset_t$loader$quit( void );
+
 asset_t asset_t$create( void );
 void asset_t$destroy( asset_t* _asset );
 
