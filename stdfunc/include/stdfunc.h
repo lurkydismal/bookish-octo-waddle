@@ -7,11 +7,6 @@
 #include <stdint.h>
 #include <sys/types.h>
 
-// File descriptors
-#define STDIN 0
-#define STDOUT 1
-#define STDERR 2
-
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
 #define NO_OPTIMIZE __attribute__( ( optimize( "0" ) ) )
