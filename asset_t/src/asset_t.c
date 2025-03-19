@@ -15,14 +15,13 @@
 // Max number of concurrent I/O operations
 #define QUEUE_DEPTH 8
 
-static bool g_isInitialized = false;
 static struct io_uring g_ring;
 
-static FORCE_INLINE void init_asset_loader( void ) {
+bool asset_t$loader$init( const char* _assetsDirectory ) {
     io_uring_queue_init( QUEUE_DEPTH, &g_ring, 0 );
 }
 
-static FORCE_INLINE void cleanup_asset_loader() {
+bool asset_t$loader$quit( void ) {
     io_uring_queue_exit( &g_ring );
 }
 

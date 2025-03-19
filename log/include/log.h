@@ -25,8 +25,7 @@
 #define LOG_LEVEL_AS_STRING_MAX_LENGTH \
     __builtin_strlen( LOG_LEVEL_AS_STRING_UNKNOWN )
 
-#define LOG_LEVEL_AS_STRING_DEFAULT LOG_LEVEL_AS_STRING_INFO
-#define LOG_LEVEL_DEFAULT ( ( logLevel_t )info )
+#define LOG_LEVEL_DEFAULT ( ( logLevel_t )warn )
 
 typedef enum { debug, info, warn, error, unknown } logLevel_t;
 

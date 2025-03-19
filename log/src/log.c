@@ -271,16 +271,10 @@ bool log$transaction$commit( void ) {
                 const char* l_logLevelAsString =
                     log$level$convert$toString( g_currentLogLevel );
 
-                __builtin_snprintf( l_buffer, l_bufferLength, "%s[%s]%s %s\n",
+                __builtin_snprintf( l_buffer, l_bufferLength, "%s[%s]%s %s",
                                     l_logLevelColor, l_logLevelAsString,
                                     COLOR_RESET, g_transactionString );
             }
-
-            __builtin_memcpy( l_buffer, l_logSignature,
-                              arrayLengthNative( l_logSignature ) );
-            __builtin_memcpy(
-                ( l_buffer + arrayLengthNative( l_logSignature ) ),
-                g_transactionString, g_transactionSize );
 
             const ssize_t l_writtenCount =
                 write( STDOUT_FILENO, l_buffer, __builtin_strlen( l_buffer ) );
