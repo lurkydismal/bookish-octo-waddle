@@ -1,6 +1,7 @@
 #include <glad/gl.h>
 
 #include "callbacks.h"
+#include "log.h"
 
 callbackResult_t iterate$unlimited( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
@@ -28,7 +29,14 @@ callbackResult_t iterate$unlimited( applicationState_t* _applicationState ) {
 callbackResult_t iterate$limited( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
-    l_returnValue = ( callbackResult_t )remain;
+    const bool l_logTransactionResult = log$transaction$commit();
+
+    if ( !l_logTransactionResult ) {
+        l_returnValue = ( callbackResult_t )failure;
+
+    } else {
+        l_returnValue = ( callbackResult_t )remain;
+    }
 
     return ( l_returnValue );
 }

@@ -37,6 +37,10 @@ static const char* log$level$convert$toString( logLevel_t _logLevel ) {
 }
 
 static logLevel_t log$level$convert$fromString( const char* _string ) {
+    if ( !_string ) {
+        return ( logLevel_t )unknown;
+    }
+
     if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_DEBUG ) == 0 ) {
         return ( ( logLevel_t )debug );
 
@@ -82,6 +86,18 @@ bool log$init( const char* _fileName,
                const char* _fileExtension,
                const size_t _maxTransactionSize ) {
     bool l_returnValue = false;
+
+    if ( !_fileName ) {
+        goto EXIT;
+    }
+
+    if ( !_fileExtension ) {
+        goto EXIT;
+    }
+
+    if ( !_maxTransactionSize ) {
+        goto EXIT;
+    }
 
     {
         // Open file descriptor
@@ -164,7 +180,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool log$level$set( const logLevel_t _logLevel ) {
+bool log$level$set( logLevel_t _logLevel ) {
     bool l_returnValue = false;
 
     {
@@ -179,12 +195,17 @@ bool log$level$set( const logLevel_t _logLevel ) {
 bool log$level$set$string( const char* _string ) {
     bool l_returnValue = false;
 
+    if ( !_string ) {
+        goto EXIT;
+    }
+
     {
         g_currentLogLevel = log$level$convert$fromString( _string );
 
         l_returnValue = true;
     }
 
+EXIT:
     return ( l_returnValue );
 }
 
@@ -198,6 +219,10 @@ const char* log$level$get$string( void ) {
 
 bool log$transaction$query( const logLevel_t _logLevel, const char* _string ) {
     bool l_returnValue = false;
+
+    if ( !_string ) {
+        goto EXIT;
+    }
 
     if ( _logLevel < g_currentLogLevel ) {
         goto EXIT;

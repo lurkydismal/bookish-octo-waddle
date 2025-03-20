@@ -1,12 +1,7 @@
 #include "asset_t.h"
 
 #include <fcntl.h>
-#include <liburing.h>
-#include <pthread.h>
-#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "log.h"
@@ -15,56 +10,133 @@
 // Max number of concurrent I/O operations
 #define QUEUE_DEPTH 8
 
-static struct io_uring g_ring;
+static const char* g_assetsDirectory;
 
 bool asset_t$loader$init( const char* _assetsDirectory ) {
-    io_uring_queue_init( QUEUE_DEPTH, &g_ring, 0 );
+    bool l_returnValue = false;
+
+    if ( !_assetsDirectory ) {
+        goto EXIT;
+    }
+
+    {
+        g_assetsDirectory = _assetsDirectory;
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
 }
 
 bool asset_t$loader$quit( void ) {
-    io_uring_queue_exit( &g_ring );
-}
+    bool l_returnValue = false;
 
-static FORCE_INLINE int check_asset_loaded( asset_t* _asset ) {
-    struct io_uring_cqe* cqe;
-
-    int ret = io_uring_peek_cqe( &g_ring, &cqe );
-
-    if ( ret == 0 && cqe ) {
-        asset_t* loaded_asset = io_uring_cqe_get_data( cqe );
-        io_uring_cqe_seen( &g_ring, cqe );
-        return 1;
+    {
+        l_returnValue = true;
     }
 
-    return 0;
+    return ( l_returnValue );
 }
 
-asset_t asset_t$create( void ) {}
+asset_t asset_t$create( void ) {
+    asset_t l_returnValue = DEFAULT_ASSET;
 
-void asset_t$destroy( asset_t* _asset ) {}
+    return ( l_returnValue );
+}
 
-void asset_t$load( asset_t* _asset, const char* _path ) {
-    int fd = open( _path, O_RDONLY );
+bool asset_t$destroy( asset_t* _asset ) {
+    bool l_returnValue = false;
 
-    if ( fd < 0 ) {
-        printf( "Failed to open asset: %s\n", _path );
-
-        return;
+    if ( !_asset ) {
+        goto EXIT;
     }
 
-    // Get file size
-    off_t file_size = lseek( fd, 0, SEEK_END );
-    lseek( fd, 0, SEEK_SET );
+    {
+        l_returnValue = true;
+    }
 
-    _asset->data = ( uint8_t* )malloc( file_size );
-    _asset->size = file_size;
-
-    struct io_uring_sqe* sqe = io_uring_get_sqe( &g_ring );
-    io_uring_prep_read( sqe, fd, _asset->data, file_size, 0 );
-    io_uring_sqe_set_data( sqe, _asset );
-
-    io_uring_submit( &g_ring );
-    close( fd );
+EXIT:
+    return ( l_returnValue );
 }
 
-void asset_t$unload( asset_t* _asset ) {}
+bool asset_t$load( asset_t* _asset, const char* _path ) {
+    bool l_returnValue = false;
+
+    if ( !_asset ) {
+        goto EXIT;
+    }
+
+    if ( !_path ) {
+        goto EXIT;
+    }
+
+    {
+        int l_fileDescriptor = open( _path, O_RDONLY );
+
+        if ( l_fileDescriptor == -1 ) {
+            char l_string[ 256 ];
+
+            snprintf( l_string, sizeof( l_string ), "Opening asset: %s\n",
+                      _path );
+
+            log$transaction$query( ( logLevel_t )error, l_string );
+
+            goto EXIT;
+        }
+
+        {
+            // Get file size
+            off_t l_fileSize = lseek( l_fileDescriptor, 0, SEEK_END );
+            lseek( l_fileDescriptor, 0, SEEK_SET );
+
+            _asset->data = ( uint8_t* )mi_malloc( l_fileSize );
+            _asset->size = l_fileSize;
+
+            const ssize_t l_readenCount =
+                read( l_fileDescriptor, _asset->data, l_fileSize );
+
+            // TODO: Move mi_free to a single place
+            if ( !l_readenCount ) {
+                mi_free( _asset->data );
+
+                l_returnValue = false;
+
+                goto FILE_EXIT;
+            }
+
+            l_returnValue = ( l_readenCount == l_fileSize );
+
+            if ( !l_returnValue ) {
+                mi_free( _asset->data );
+
+                goto FILE_EXIT;
+            }
+        }
+
+    FILE_EXIT:
+        close( l_fileDescriptor );
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool asset_t$unload( asset_t* _asset ) {
+    bool l_returnValue = false;
+
+    if ( !_asset ) {
+        goto EXIT;
+    }
+
+    {
+        mi_free( _asset->data );
+
+        _asset->size = 0;
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}

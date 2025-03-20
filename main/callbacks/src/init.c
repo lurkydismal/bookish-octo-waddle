@@ -1,12 +1,15 @@
 #include <glad/gl.h>
 #include <stdio.h>
 
+#include "asset_t.h"
 #include "callbacks.h"
 #include "log.h"
 
 #define LOG_FILE_NAME_DEFAULT "log"
 #define LOG_FILE_EXTENSION_DEFAULT "txt"
 #define LOG_MAX_TRANSACTION_SIZE_DEFAULT ( 1024 * sizeof( char ) )
+
+#define ASSETS_DIRECTORY "assets"
 
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGT 480
@@ -30,6 +33,13 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             }
 
 #endif
+        }
+
+        // Asset loader
+        {
+            if ( !asset_t$loader$init( ASSETS_DIRECTORY ) ) {
+                goto EXIT;
+            }
         }
 
         // GLFW
