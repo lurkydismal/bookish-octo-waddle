@@ -34,7 +34,7 @@ bool log$init( const char* _fileName,
                const size_t _maxTransactionSize );
 bool log$quit( void );
 
-bool log$level$set( const logLevel_t _logLevel );
+bool log$level$set( logLevel_t _logLevel );
 bool log$level$set$string( const char* _string );
 
 logLevel_t log$level$get( void );
