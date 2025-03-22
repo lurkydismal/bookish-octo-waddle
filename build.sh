@@ -36,6 +36,8 @@ export declare BUILD_DEFINES_PROFILE=(
 
 export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
+    "settings_t/include"
+    "window_t/include"
     "asset_t/include"
     "log/include"
     "stdfunc/include"

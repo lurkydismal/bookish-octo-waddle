@@ -10,7 +10,7 @@
 // Max number of concurrent I/O operations
 #define QUEUE_DEPTH 8
 
-static const char* g_assetsDirectory;
+static char* g_assetsDirectory;
 
 bool asset_t$loader$init( const char* _assetsDirectory ) {
     bool l_returnValue = false;
@@ -20,7 +20,20 @@ bool asset_t$loader$init( const char* _assetsDirectory ) {
     }
 
     {
-        g_assetsDirectory = _assetsDirectory;
+        const size_t l_assetsDirectoryLength =
+            __builtin_strlen( _assetsDirectory );
+
+        // 1 for /
+        // 1 for NUL
+        char* l_assetsDirectory = ( char* )mi_malloc(
+            ( l_assetsDirectoryLength + 1 + 1 ) * sizeof( char ) );
+
+        __builtin_memcpy( l_assetsDirectory, _assetsDirectory,
+                          l_assetsDirectoryLength );
+        l_assetsDirectory[ l_assetsDirectoryLength ] = '/';
+        l_assetsDirectory[ l_assetsDirectoryLength + 1 ] = '\0';
+
+        g_assetsDirectory = l_assetsDirectory;
 
         l_returnValue = true;
     }
@@ -33,6 +46,8 @@ bool asset_t$loader$quit( void ) {
     bool l_returnValue = false;
 
     {
+        mi_free( g_assetsDirectory );
+
         l_returnValue = true;
     }
 
@@ -72,13 +87,45 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
     }
 
     {
-        int l_fileDescriptor = open( _path, O_RDONLY );
+        const size_t l_assetsDirectoryLength =
+            __builtin_strlen( g_assetsDirectory );
+        const size_t l_pathLength = __builtin_strlen( _path );
+
+        // 1 for /
+        // 1 for /
+        // 1 for NUL
+        char* l_path = ( char* )mi_malloc(
+            ( l_assetsDirectoryLength + 1 + l_pathLength + 1 + 1 ) *
+            sizeof( char ) );
+
+        {
+            size_t l_index = 0;
+
+            __builtin_memcpy( ( l_path + l_index ), g_assetsDirectory,
+                              l_assetsDirectoryLength );
+            l_index += l_assetsDirectoryLength;
+
+            l_path[ l_index ] = '/';
+            l_index += 1;
+
+            __builtin_memcpy( ( l_path + l_index ), _path, l_pathLength );
+            l_index += l_pathLength;
+
+            l_path[ l_index ] = '/';
+            l_index += 1;
+
+            l_path[ l_index ] = '\0';
+        }
+
+        int l_fileDescriptor = open( l_path, O_RDONLY );
+
+        mi_free( l_path );
 
         if ( l_fileDescriptor == -1 ) {
             char l_string[ 256 ];
 
             snprintf( l_string, sizeof( l_string ), "Opening asset: %s\n",
-                      _path );
+                      l_path );
 
             log$transaction$query( ( logLevel_t )error, l_string );
 
