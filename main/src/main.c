@@ -19,11 +19,8 @@
 applicationState_t g_applicationState;
 
 static void errorCallback( int _code, const char* _description ) {
-    char l_string[ 256 ];
-
-    snprintf( l_string, sizeof( l_string ), "%d: %s\n", _code, _description );
-
-    log$transaction$query( ( logLevel_t )error, l_string );
+    log$transaction$query$format( ( logLevel_t )error, "%d: %s\n", _code,
+                                  _description );
 }
 
 static void keyCallback( GLFWwindow* _window,

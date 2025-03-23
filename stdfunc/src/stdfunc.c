@@ -266,6 +266,34 @@ EXIT:
     return ( l_returnValue );
 }
 
+// TODO: Implement this
+char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol ) {
+    char** l_returnValue = ( char** )createArray( sizeof( char* ) );
+
+    if ( UNLIKELY( !_string ) ) {
+        goto EXIT;
+    }
+
+#if 0
+    {
+        char* l_string = duplicateString( _string );
+        char* l_splitted = strtok( l_string, _delimiter );
+
+        while ( l_splitted ) {
+            insertIntoArray( ( void*** )&l_returnValue,
+                             duplicateString( l_splitted ) );
+
+            l_splitted = strtok( NULL, _delimiter );
+        }
+
+        mi_free( l_string );
+    }
+#endif
+
+EXIT:
+    return ( l_returnValue );
+}
+
 ssize_t findStringInArray( const char** _array,
                            const size_t _arrayLength,
                            const char* _value ) {

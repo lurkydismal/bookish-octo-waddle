@@ -15,6 +15,7 @@
 #define WINDOW_HEIGT 480
 #define WINDOW_NAME "Window name"
 
+// TODO: Load settings
 callbackResult_t init( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
@@ -42,12 +43,18 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             }
         }
 
+        // Application state
+        {
+            *_applicationState = applicationState_t$create();
+        }
+
         // GLFW
         {
             if ( !glfwInit() ) {
                 goto EXIT;
             }
 
+            // TODO: Change this
             _applicationState->window = glfwCreateWindow(
                 WINDOW_WIDTH, WINDOW_HEIGT, WINDOW_NAME, NULL, NULL );
 
@@ -58,17 +65,13 @@ callbackResult_t init( applicationState_t* _applicationState ) {
         {
             _applicationState->version = gladLoadGL( glfwGetProcAddress );
 
-            {
-                char l_string[ 256 ];
-
-                snprintf( l_string, sizeof( l_string ), "GL %d.%d\n",
-                          GLAD_VERSION_MAJOR( _applicationState->version ),
-                          GLAD_VERSION_MINOR( _applicationState->version ) );
-
-                log$transaction$query( ( logLevel_t )info, l_string );
-            }
+            log$transaction$query$format(
+                ( logLevel_t )info, "GL: %d %d\n",
+                GLAD_VERSION_MAJOR( _applicationState->version ),
+                GLAD_VERSION_MINOR( _applicationState->version ) );
         }
 
+        // TODO: Change this
         // Turn on Vsync
         glfwSwapInterval( 1 );
 

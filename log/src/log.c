@@ -1,7 +1,10 @@
 #include "log.h"
 
 #include <fcntl.h>
+#include <libgen.h>
 #include <mimalloc.h>
+#include <stdarg.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include "stdfunc.h"
@@ -113,6 +116,7 @@ bool log$init( const char* _fileName,
                 char* l_filePath = ( char* )mi_malloc(
                     ( l_filePathLength + 1 ) * sizeof( char ) );
 
+                // Name + dot + extension
                 {
                     size_t l_index = 0;
 
@@ -129,6 +133,65 @@ bool log$init( const char* _fileName,
                     l_index += l_fileExtensionLength;
 
                     l_filePath[ l_filePathLength ] = '\0';
+                }
+
+                // Prepend absolute path to executable directory
+                {
+                    char* l_executablePath =
+                        ( char* )mi_malloc( 250 * sizeof( char ) );
+
+                    // Get executable path
+                    {
+                        ssize_t l_executablePathLength =
+                            readlink( "/proc/self/exe", l_executablePath, 249 );
+
+                        if ( l_executablePathLength == -1 ) {
+                            log$transaction$query( ( logLevel_t )error,
+                                                   "readlink failed\n" );
+
+                            goto EXIT2;
+                        }
+
+                        l_executablePath[ l_executablePathLength ] = '\0';
+                    }
+
+                    char* l_directoryPath;
+
+                    // Get directory path
+                    {
+                        char* l_lastSlash =
+                            __builtin_strrchr( l_executablePath, '/' );
+
+                        if ( !l_lastSlash ) {
+                            log$transaction$query$format(
+                                ( logLevel_t )error,
+                                "Extracting directory failed: '%s'\n",
+                                l_executablePath );
+
+                            goto EXIT2;
+                        }
+
+                        const ssize_t l_lastSlashIndex =
+                            ( l_lastSlash - l_executablePath );
+
+                        l_directoryPath = l_executablePath;
+
+                        // Do not move the beginning
+                        trim( &l_directoryPath, -1, l_lastSlashIndex );
+
+                        concatBeforeAndAfterString( &l_directoryPath, NULL,
+                                                    "/" );
+                    }
+
+                    // Construct full file path
+                    concatBeforeAndAfterString( &l_filePath, l_directoryPath,
+                                                "" );
+
+                    printf( "%s\n", l_filePath );
+
+                EXIT2:
+                    // TODO: Fix
+                    mi_free( l_directoryPath );
                 }
 
                 g_fileDescriptor = open( l_filePath, O_WRONLY | O_CREAT, 0644 );
@@ -254,6 +317,42 @@ EXIT:
     return ( l_returnValue );
 }
 
+bool log$transaction$query$format( const logLevel_t _logLevel,
+                                   const char* _format,
+                                   ... ) {
+    bool l_returnValue = false;
+
+    if ( !_format ) {
+        goto EXIT;
+    }
+
+    if ( _logLevel < g_currentLogLevel ) {
+        goto EXIT;
+    }
+
+    {
+        va_list l_arguments;
+
+        va_start( l_arguments, _format );
+
+        const ssize_t l_writtenCount = vsprintf(
+            ( g_transactionString + g_transactionSize ), _format, l_arguments );
+
+        va_end( l_arguments );
+
+        if ( !l_writtenCount ) {
+            goto EXIT;
+        }
+
+        g_transactionSize += l_writtenCount;
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
 bool log$transaction$commit( void ) {
     bool l_returnValue = false;
 
@@ -304,9 +403,9 @@ bool log$transaction$commit( void ) {
             const ssize_t l_writtenCount =
                 write( STDOUT_FILENO, l_buffer, __builtin_strlen( l_buffer ) );
 
-            mi_free( l_buffer );
-
             if ( !l_writtenCount ) {
+                mi_free( l_buffer );
+
                 l_returnValue = false;
 
                 goto EXIT;
@@ -314,6 +413,8 @@ bool log$transaction$commit( void ) {
 
             l_returnValue =
                 ( ( size_t )l_writtenCount == __builtin_strlen( l_buffer ) );
+
+            mi_free( l_buffer );
 
             if ( !l_returnValue ) {
                 goto EXIT;

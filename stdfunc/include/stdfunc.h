@@ -108,6 +108,7 @@ size_t concatBeforeAndAfterString( char** _string,
                                    const char* _afterString );
 char* sanitizeString( const char* _string );
 char** splitStringIntoArray( const char* _string, const char* _delimiter );
+char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol );
 
 static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     void** l_array = ( void** )mi_malloc( 1 * _elementSize );
