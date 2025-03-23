@@ -11,6 +11,11 @@ callbackResult_t quit( applicationState_t* _applicationState,
         glfwTerminate();
     }
 
+    // Application state
+    {
+        applicationState_t$destroy( _applicationState );
+    }
+
     // Assets loader
     {
         asset_t$loader$quit();

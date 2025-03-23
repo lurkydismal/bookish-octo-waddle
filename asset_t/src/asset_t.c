@@ -122,12 +122,8 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
         mi_free( l_path );
 
         if ( l_fileDescriptor == -1 ) {
-            char l_string[ 256 ];
-
-            snprintf( l_string, sizeof( l_string ), "Opening asset: %s\n",
-                      l_path );
-
-            log$transaction$query( ( logLevel_t )error, l_string );
+            log$transaction$query$format( ( logLevel_t )error,
+                                          "Opening asset: %s\n", l_path );
 
             goto EXIT;
         }

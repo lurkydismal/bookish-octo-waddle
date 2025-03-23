@@ -41,4 +41,7 @@ logLevel_t log$level$get( void );
 const char* log$level$get$string( void );
 
 bool log$transaction$query( const logLevel_t _logLevel, const char* _string );
+bool log$transaction$query$format( const logLevel_t _logLevel,
+                                   const char* _format,
+                                   ... );
 bool log$transaction$commit( void );

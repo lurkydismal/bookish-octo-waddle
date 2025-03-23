@@ -1,6 +1,7 @@
 #include "settings_t.h"
 
 #include "asset_t.h"
+#include "stdfunc.h"
 
 settings_t settings_t$create( void ) {
     settings_t l_returnValue = DEFAULT_SETTINGS;
@@ -16,7 +17,11 @@ bool settings_t$destroy( settings_t* _settings ) {
     }
 
     {
-        window_t$destroy( &( _settings->window ) );
+        l_returnValue = window_t$destroy( &( _settings->window ) );
+
+        if ( !l_returnValue ) {
+            goto EXIT;
+        }
 
         l_returnValue = true;
     }
@@ -25,24 +30,55 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool settings_t$load( settings_t* _settings ) {
+bool settings_t$load( settings_t* _settings,
+                      const char* _fileName,
+                      const char* _fileExtension ) {
     bool l_returnValue = false;
 
     if ( !_settings ) {
         goto EXIT;
     }
 
+    // TODO: Error handling
     {
         settings_t l_settings = settings_t$create();
 
-        asset_t l_settingsAsset = asset_t$create();
+        // Parse settings file
+        {
+            asset_t l_settingsAsset = asset_t$create();
 
-        // TODO: soft code file name
-        asset_t$load( &l_settingsAsset, "settings.ini" );
+            // TODO: Comment this
+            {
+                // Load settings file
+                {
+                    char* l_filePath = duplicateString( "." );
 
-        asset_t$unload( &l_settingsAsset );
+                    concatBeforeAndAfterString( &l_filePath, _fileName,
+                                                _fileExtension );
 
-        asset_t$destroy( &l_settingsAsset );
+                    l_returnValue =
+                        asset_t$load( &l_settingsAsset, l_filePath );
+
+                    mi_free( l_filePath );
+                }
+
+                if ( !l_returnValue ) {
+                    goto EXIT;
+                }
+
+                l_returnValue = asset_t$unload( &l_settingsAsset );
+
+                if ( !l_returnValue ) {
+                    goto EXIT;
+                }
+            }
+
+            l_returnValue = asset_t$destroy( &l_settingsAsset );
+
+            if ( !l_returnValue ) {
+                goto EXIT;
+            }
+        }
 
         *_settings = l_settings;
 

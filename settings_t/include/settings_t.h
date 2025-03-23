@@ -14,5 +14,7 @@ typedef struct {
 settings_t settings_t$create( void );
 bool settings_t$destroy( settings_t* _settings );
 
-bool settings_t$load( settings_t* _settings );
+bool settings_t$load( settings_t* _settings,
+                      const char* _fileName,
+                      const char* _fileExtension );
 bool settings_t$unload( settings_t* _settings );
