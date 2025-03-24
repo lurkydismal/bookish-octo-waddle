@@ -266,7 +266,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-// TODO: Implement this
+// TODO: Fix
 char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol ) {
     char** l_returnValue = ( char** )createArray( sizeof( char* ) );
 
