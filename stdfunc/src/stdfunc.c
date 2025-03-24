@@ -1,9 +1,10 @@
 #include "stdfunc.h"
 
-#include <ctype.h>
-#include <mimalloc.h>
-#include <omp.h>
+#include <limits.h>
 #include <string.h>
+#include <unistd.h>
+
+#include "log.h"
 
 #if 0
 #include "_useCallback.h"
@@ -331,7 +332,7 @@ ssize_t findStringInArray( const char** _array,
                 continue;
             }
 
-            if ( strcmp( l_value, _value ) == 0 ) {
+            if ( __builtin_strcmp( l_value, _value ) == 0 ) {
                 l_index = _index;
 
                 break;
@@ -377,6 +378,61 @@ ssize_t findInArray( const size_t* _array,
     }
 
 EXIT:
+    return ( l_returnValue );
+}
+
+char* getApplicationDirectoryAbsolutePath( void ) {
+    char* l_returnValue = NULL;
+
+    {
+        char* l_executablePath =
+            ( char* )mi_malloc( PATH_MAX * sizeof( char ) );
+
+        // Get executable path
+        {
+            ssize_t l_executablePathLength = readlink(
+                "/proc/self/exe", l_executablePath, ( PATH_MAX - 1 ) );
+
+            if ( l_executablePathLength == -1 ) {
+                log$transaction$query( ( logLevel_t )error, "readlink\n" );
+
+                mi_free( l_executablePath );
+
+                goto EXIT_FILE_PATH;
+            }
+
+            l_executablePath[ l_executablePathLength ] = '\0';
+        }
+
+        char* l_directoryPath;
+
+        // Get directory path
+        {
+            char* l_lastSlash = __builtin_strrchr( l_executablePath, '/' );
+
+            if ( !l_lastSlash ) {
+                log$transaction$query$format( ( logLevel_t )error,
+                                              "Extracting directory: '%s'\n",
+                                              l_executablePath );
+
+                goto EXIT_FILE_PATH;
+            }
+
+            const ssize_t l_lastSlashIndex = ( l_lastSlash - l_executablePath );
+
+            l_directoryPath = l_executablePath;
+
+            // Do not move the beginning
+            trim( &l_directoryPath, -1, l_lastSlashIndex );
+
+            concatBeforeAndAfterString( &l_directoryPath, NULL, "/" );
+        }
+
+        l_returnValue = l_directoryPath;
+
+    EXIT_FILE_PATH:
+    }
+
     return ( l_returnValue );
 }
 

@@ -177,35 +177,14 @@ ssize_t findStringInArray( const char** _array,
                            const size_t _arrayLength,
                            const char* _value );
 
-static FORCE_INLINE ssize_t _findStringInArray( const char** _array,
-                                                const char* _value ) {
-    return ( findStringInArray(
-                 ( const char** )( arrayFirstElementPointer( _array ) ),
-                 arrayLength( _array ), _value ) +
-             1 );
-}
-
 ssize_t findInArray( const size_t* _array,
                      const size_t _arrayLength,
                      const size_t _value );
-
-static FORCE_INLINE ssize_t _findInArray( const size_t* _array,
-                                          const size_t _value ) {
-    return ( findInArray( arrayFirstElementPointer( _array ),
-                          arrayLength( _array ), _value ) );
-}
 
 static FORCE_INLINE bool containsString( const char** _array,
                                          const size_t _arrayLength,
                                          const char* _value ) {
     return ( findStringInArray( _array, _arrayLength, _value ) >= 0 );
-}
-
-static FORCE_INLINE bool _containsString( const char** _array,
-                                          const char* _value ) {
-    return (
-        containsString( ( const char** )( arrayFirstElementPointer( _array ) ),
-                        arrayLength( _array ), _value ) );
 }
 
 static FORCE_INLINE bool contains( const size_t* _array,
@@ -215,11 +194,35 @@ static FORCE_INLINE bool contains( const size_t* _array,
 }
 
 // Utility functions ( no side-effects ) wrappers for non-naitve array
+static FORCE_INLINE ssize_t _findStringInArray( const char** _array,
+                                                const char* _value ) {
+    return ( findStringInArray(
+                 ( const char** )( arrayFirstElementPointer( _array ) ),
+                 arrayLength( _array ), _value ) +
+             1 );
+}
+
+static FORCE_INLINE ssize_t _findInArray( const size_t* _array,
+                                          const size_t _value ) {
+    return ( findInArray( arrayFirstElementPointer( _array ),
+                          arrayLength( _array ), _value ) );
+}
+
+static FORCE_INLINE bool _containsString( const char** _array,
+                                          const char* _value ) {
+    return (
+        containsString( ( const char** )( arrayFirstElementPointer( _array ) ),
+                        arrayLength( _array ), _value ) );
+}
+
 static FORCE_INLINE bool _contains( const size_t* _array,
                                     const size_t _value ) {
     return ( contains( arrayFirstElementPointer( _array ),
                        arrayLength( _array ), _value ) );
 }
+
+// Utility OS specific functions ( no side-effects )
+char* getApplicationDirectoryAbsolutePath( void );
 
 #if 0
 void freeSettingsContent( char*** _content );
