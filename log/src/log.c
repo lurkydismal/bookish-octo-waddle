@@ -2,6 +2,7 @@
 
 #include <fcntl.h>
 #include <libgen.h>
+#include <limits.h>
 #include <mimalloc.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -105,99 +106,74 @@ bool log$init( const char* _fileName,
     {
         // Open file descriptor
         {
-            const size_t l_fileNameLength = __builtin_strlen( _fileName );
-            const size_t l_fileExtensionLength =
-                __builtin_strlen( _fileExtension );
-            const size_t l_filePathLength =
-                ( l_fileNameLength + 1 + l_fileExtensionLength );
+            char* l_filePath = duplicateString( "." );
 
+            concatBeforeAndAfterString( &l_filePath, _fileName,
+                                        _fileExtension );
+
+            // Prepend absolute path to executable directory
             {
-                // +1 for file name and extension separator
-                char* l_filePath = ( char* )mi_malloc(
-                    ( l_filePathLength + 1 ) * sizeof( char ) );
+                char* l_executablePath =
+                    ( char* )mi_malloc( PATH_MAX * sizeof( char ) );
 
-                // Name + dot + extension
+                // Get executable path
                 {
-                    size_t l_index = 0;
+                    ssize_t l_executablePathLength = readlink(
+                        "/proc/self/exe", l_executablePath, ( PATH_MAX - 1 ) );
 
-                    __builtin_memcpy( ( l_filePath + l_index ), _fileName,
-                                      l_fileNameLength );
-                    l_index += l_fileNameLength;
+                    if ( l_executablePathLength == -1 ) {
+                        log$transaction$query( ( logLevel_t )error,
+                                               "readlink\n" );
 
-                    // Separator
-                    l_filePath[ l_index ] = '.';
-                    l_index += 1;
+                        mi_free( l_executablePath );
 
-                    __builtin_memcpy( ( l_filePath + l_index ), _fileExtension,
-                                      l_fileExtensionLength );
-                    l_index += l_fileExtensionLength;
-
-                    l_filePath[ l_filePathLength ] = '\0';
-                }
-
-                // Prepend absolute path to executable directory
-                {
-                    char* l_executablePath =
-                        ( char* )mi_malloc( 250 * sizeof( char ) );
-
-                    // Get executable path
-                    {
-                        ssize_t l_executablePathLength =
-                            readlink( "/proc/self/exe", l_executablePath, 249 );
-
-                        if ( l_executablePathLength == -1 ) {
-                            log$transaction$query( ( logLevel_t )error,
-                                                   "readlink failed\n" );
-
-                            goto EXIT2;
-                        }
-
-                        l_executablePath[ l_executablePathLength ] = '\0';
+                        goto EXIT_FILE_PATH;
                     }
 
-                    char* l_directoryPath;
-
-                    // Get directory path
-                    {
-                        char* l_lastSlash =
-                            __builtin_strrchr( l_executablePath, '/' );
-
-                        if ( !l_lastSlash ) {
-                            log$transaction$query$format(
-                                ( logLevel_t )error,
-                                "Extracting directory failed: '%s'\n",
-                                l_executablePath );
-
-                            goto EXIT2;
-                        }
-
-                        const ssize_t l_lastSlashIndex =
-                            ( l_lastSlash - l_executablePath );
-
-                        l_directoryPath = l_executablePath;
-
-                        // Do not move the beginning
-                        trim( &l_directoryPath, -1, l_lastSlashIndex );
-
-                        concatBeforeAndAfterString( &l_directoryPath, NULL,
-                                                    "/" );
-                    }
-
-                    // Construct full file path
-                    concatBeforeAndAfterString( &l_filePath, l_directoryPath,
-                                                "" );
-
-                    printf( "%s\n", l_filePath );
-
-                EXIT2:
-                    // TODO: Fix
-                    mi_free( l_directoryPath );
+                    l_executablePath[ l_executablePathLength ] = '\0';
                 }
 
-                g_fileDescriptor = open( l_filePath, O_WRONLY | O_CREAT, 0644 );
+                char* l_directoryPath;
 
-                mi_free( l_filePath );
+                // Get directory path
+                {
+                    char* l_lastSlash =
+                        __builtin_strrchr( l_executablePath, '/' );
+
+                    if ( !l_lastSlash ) {
+                        log$transaction$query$format(
+                            ( logLevel_t )error, "Extracting directory: '%s'\n",
+                            l_executablePath );
+
+                        goto EXIT_FILE_PATH;
+                    }
+
+                    const ssize_t l_lastSlashIndex =
+                        ( l_lastSlash - l_executablePath );
+
+                    l_directoryPath = l_executablePath;
+
+                    // Do not move the beginning
+                    trim( &l_directoryPath, -1, l_lastSlashIndex );
+
+                    concatBeforeAndAfterString( &l_directoryPath, NULL, "/" );
+                }
+
+                // Construct full file path
+                concatBeforeAndAfterString( &l_filePath, l_directoryPath, "" );
+
+                mi_free( l_directoryPath );
+
+            EXIT_FILE_PATH:
             }
+
+            // 0 - No special bits
+            // 6 - Read & Write for owner
+            // 4 - Read for group members
+            // 4 - Read for others
+            g_fileDescriptor = open( l_filePath, O_WRONLY | O_CREAT, 0644 );
+
+            mi_free( l_filePath );
 
             if ( g_fileDescriptor == -1 ) {
                 goto EXIT;
