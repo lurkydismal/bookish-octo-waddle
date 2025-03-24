@@ -274,21 +274,31 @@ char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol ) {
         goto EXIT;
     }
 
-#if 0
     {
         char* l_string = duplicateString( _string );
-        char* l_splitted = strtok( l_string, _delimiter );
+        char* l_startIndex = l_string;
+        char* l_currentIndex = l_string;
 
-        while ( l_splitted ) {
+        while ( *l_currentIndex ) {
+            if ( *l_currentIndex == _symbol ) {
+                *l_currentIndex = '\0';
+
+                insertIntoArray( ( void*** )&l_returnValue,
+                                 duplicateString( l_startIndex ) );
+
+                l_startIndex = ( l_currentIndex + 1 );
+            }
+
+            l_currentIndex++;
+        }
+
+        if ( *l_startIndex ) {
             insertIntoArray( ( void*** )&l_returnValue,
-                             duplicateString( l_splitted ) );
-
-            l_splitted = strtok( NULL, _delimiter );
+                             duplicateString( l_startIndex ) );
         }
 
         mi_free( l_string );
     }
-#endif
 
 EXIT:
     return ( l_returnValue );
