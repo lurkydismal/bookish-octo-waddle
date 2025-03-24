@@ -11,7 +11,7 @@ export TESTS_DIRECTORY="$SCRIPT_DIRECTORY/$TESTS_DIRECTORY_NAME"
 # 1 - Release
 # 2 - Profile
 # 3 - Tests
-export BUILD_TYPE=0
+export BUILD_TYPE=3
 
 export BUILD_C_FLAGS="-flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
 export BUILD_C_FLAGS_DEBUG="-Og -g"
@@ -184,7 +184,7 @@ if [ $BUILD_TYPE -eq 3 ]; then
         source "$TESTS_DIRECTORY/$testToBuild/config.sh" && {
             export OUTPUT_FILE='lib'"$testToBuild"'_test.a'
 
-            './build_general.sh' "$TESTS_DIRECTORY/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+            './build_general.sh' "$TESTS_DIRECTORY/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString""$testIncludesAsString"
 
             BUILD_STATUS=$?
 
@@ -199,9 +199,9 @@ if [ $BUILD_TYPE -eq 3 ]; then
     # Build tests main package
     if [ $BUILD_STATUS -eq 0 ]; then
         source "$testsMainPackage/config.sh" && {
-            export OUTPUT_FILE='lib'"$testsMainPackage"'_test.a'
+            export OUTPUT_FILE='lib'"$testsMainPackage"'.a'
 
-            './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+            './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString""$testIncludesAsString"
 
             BUILD_STATUS=$?
 
