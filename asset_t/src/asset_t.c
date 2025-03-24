@@ -1,6 +1,7 @@
 #include "asset_t.h"
 
 #include <fcntl.h>
+#include <mimalloc.h>
 #include <stdio.h>
 #include <unistd.h>
 
@@ -20,18 +21,16 @@ bool asset_t$loader$init( const char* _assetsDirectory ) {
     }
 
     {
-        const size_t l_assetsDirectoryLength =
-            __builtin_strlen( _assetsDirectory );
+        char* l_assetsDirectory = duplicateString( _assetsDirectory );
 
-        // 1 for /
-        // 1 for NUL
-        char* l_assetsDirectory = ( char* )mi_malloc(
-            ( l_assetsDirectoryLength + 1 + 1 ) * sizeof( char ) );
+        {
+            char* l_directoryPath = getApplicationDirectoryAbsolutePath();
 
-        __builtin_memcpy( l_assetsDirectory, _assetsDirectory,
-                          l_assetsDirectoryLength );
-        l_assetsDirectory[ l_assetsDirectoryLength ] = '/';
-        l_assetsDirectory[ l_assetsDirectoryLength + 1 ] = '\0';
+            concatBeforeAndAfterString( &l_assetsDirectory, l_directoryPath,
+                                        "/" );
+
+            mi_free( l_directoryPath );
+        }
 
         g_assetsDirectory = l_assetsDirectory;
 
@@ -87,46 +86,24 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
     }
 
     {
-        const size_t l_assetsDirectoryLength =
-            __builtin_strlen( g_assetsDirectory );
-        const size_t l_pathLength = __builtin_strlen( _path );
+        char* l_path = duplicateString( _path );
 
-        // 1 for /
-        // 1 for /
-        // 1 for NUL
-        char* l_path = ( char* )mi_malloc(
-            ( l_assetsDirectoryLength + 1 + l_pathLength + 1 + 1 ) *
-            sizeof( char ) );
-
-        {
-            size_t l_index = 0;
-
-            __builtin_memcpy( ( l_path + l_index ), g_assetsDirectory,
-                              l_assetsDirectoryLength );
-            l_index += l_assetsDirectoryLength;
-
-            l_path[ l_index ] = '/';
-            l_index += 1;
-
-            __builtin_memcpy( ( l_path + l_index ), _path, l_pathLength );
-            l_index += l_pathLength;
-
-            l_path[ l_index ] = '/';
-            l_index += 1;
-
-            l_path[ l_index ] = '\0';
-        }
+        concatBeforeAndAfterString( &l_path, g_assetsDirectory, NULL );
 
         int l_fileDescriptor = open( l_path, O_RDONLY );
-
-        mi_free( l_path );
 
         if ( l_fileDescriptor == -1 ) {
             log$transaction$query$format( ( logLevel_t )error,
                                           "Opening asset: %s\n", l_path );
 
+            // TODO: Single free
+            mi_free( l_path );
+
             goto EXIT;
         }
+
+        // TODO: Single free
+        mi_free( l_path );
 
         {
             // Get file size
@@ -138,15 +115,6 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
 
             const ssize_t l_readenCount =
                 read( l_fileDescriptor, _asset->data, l_fileSize );
-
-            // TODO: Move mi_free to a single place
-            if ( !l_readenCount ) {
-                mi_free( _asset->data );
-
-                l_returnValue = false;
-
-                goto FILE_EXIT;
-            }
 
             l_returnValue = ( l_readenCount == l_fileSize );
 

@@ -1,8 +1,6 @@
 #include "log.h"
 
 #include <fcntl.h>
-#include <libgen.h>
-#include <limits.h>
 #include <mimalloc.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -113,58 +111,12 @@ bool log$init( const char* _fileName,
 
             // Prepend absolute path to executable directory
             {
-                char* l_executablePath =
-                    ( char* )mi_malloc( PATH_MAX * sizeof( char ) );
-
-                // Get executable path
-                {
-                    ssize_t l_executablePathLength = readlink(
-                        "/proc/self/exe", l_executablePath, ( PATH_MAX - 1 ) );
-
-                    if ( l_executablePathLength == -1 ) {
-                        log$transaction$query( ( logLevel_t )error,
-                                               "readlink\n" );
-
-                        mi_free( l_executablePath );
-
-                        goto EXIT_FILE_PATH;
-                    }
-
-                    l_executablePath[ l_executablePathLength ] = '\0';
-                }
-
-                char* l_directoryPath;
-
-                // Get directory path
-                {
-                    char* l_lastSlash =
-                        __builtin_strrchr( l_executablePath, '/' );
-
-                    if ( !l_lastSlash ) {
-                        log$transaction$query$format(
-                            ( logLevel_t )error, "Extracting directory: '%s'\n",
-                            l_executablePath );
-
-                        goto EXIT_FILE_PATH;
-                    }
-
-                    const ssize_t l_lastSlashIndex =
-                        ( l_lastSlash - l_executablePath );
-
-                    l_directoryPath = l_executablePath;
-
-                    // Do not move the beginning
-                    trim( &l_directoryPath, -1, l_lastSlashIndex );
-
-                    concatBeforeAndAfterString( &l_directoryPath, NULL, "/" );
-                }
+                char* l_directoryPath = getApplicationDirectoryAbsolutePath();
 
                 // Construct full file path
                 concatBeforeAndAfterString( &l_filePath, l_directoryPath, "" );
 
                 mi_free( l_directoryPath );
-
-            EXIT_FILE_PATH:
             }
 
             // 0 - No special bits

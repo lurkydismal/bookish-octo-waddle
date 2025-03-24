@@ -11,11 +11,14 @@
 
 #define ASSETS_DIRECTORY "assets"
 
+#define SETTINGS_FILE_NAME "settings"
+#define SETTINGS_FILE_EXTENSION "ini"
+
 #define WINDOW_WIDTH 640
 #define WINDOW_HEIGT 480
 #define WINDOW_NAME "Window name"
 
-// TODO: Load settings
+// TODO: Comment
 callbackResult_t init( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
@@ -24,12 +27,16 @@ callbackResult_t init( applicationState_t* _applicationState ) {
         {
             if ( !log$init( LOG_FILE_NAME_DEFAULT, LOG_FILE_EXTENSION_DEFAULT,
                             LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
+                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+
                 goto EXIT;
             }
 
 #if defined( DEBUG )
 
             if ( !log$level$set( ( logLevel_t )debug ) ) {
+                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+
                 goto EXIT;
             }
 
@@ -39,6 +46,8 @@ callbackResult_t init( applicationState_t* _applicationState ) {
         // Asset loader
         {
             if ( !asset_t$loader$init( ASSETS_DIRECTORY ) ) {
+                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+
                 goto EXIT;
             }
         }
@@ -48,9 +57,22 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             *_applicationState = applicationState_t$create();
         }
 
+        // Settings
+        {
+            if ( !settings_t$load( &( _applicationState->settings ),
+                                   SETTINGS_FILE_NAME,
+                                   SETTINGS_FILE_EXTENSION ) ) {
+                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+
+                goto EXIT;
+            }
+        }
+
         // GLFW
         {
             if ( !glfwInit() ) {
+                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+
                 goto EXIT;
             }
 
