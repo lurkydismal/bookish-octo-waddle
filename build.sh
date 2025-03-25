@@ -11,7 +11,7 @@ export TESTS_DIRECTORY="$SCRIPT_DIRECTORY/$TESTS_DIRECTORY_NAME"
 # 1 - Release
 # 2 - Profile
 # 3 - Tests
-export BUILD_TYPE=0
+export BUILD_TYPE=${BUILD_TYPE:-0}
 
 export BUILD_C_FLAGS="-flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
 export BUILD_C_FLAGS_DEBUG="-Og -g"
