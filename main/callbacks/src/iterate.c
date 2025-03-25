@@ -31,7 +31,7 @@ callbackResult_t iterate$limited( applicationState_t* _applicationState ) {
 
     const bool l_logTransactionResult = log$transaction$commit();
 
-    if ( !l_logTransactionResult ) {
+    if ( UNLIKELY( !l_logTransactionResult ) ) {
         l_returnValue = ( callbackResult_t )failure;
 
     } else {

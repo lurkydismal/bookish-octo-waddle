@@ -364,7 +364,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
             ssize_t l_executablePathLength = readlink(
                 "/proc/self/exe", l_executablePath, ( PATH_MAX - 1 ) );
 
-            if ( l_executablePathLength == -1 ) {
+            if ( UNLIKELY( l_executablePathLength == -1 ) ) {
                 log$transaction$query( ( logLevel_t )error, "readlink\n" );
 
                 mi_free( l_executablePath );
@@ -381,7 +381,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
         {
             char* l_lastSlash = __builtin_strrchr( l_executablePath, '/' );
 
-            if ( !l_lastSlash ) {
+            if ( UNLIKELY( !l_lastSlash ) ) {
                 log$transaction$query$format( ( logLevel_t )error,
                                               "Extracting directory: '%s'\n",
                                               l_executablePath );

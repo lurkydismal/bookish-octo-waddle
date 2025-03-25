@@ -25,17 +25,17 @@ callbackResult_t init( applicationState_t* _applicationState ) {
     {
         // Log
         {
-            if ( !log$init( LOG_FILE_NAME_DEFAULT, LOG_FILE_EXTENSION_DEFAULT,
-                            LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
-                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+            if ( UNLIKELY( !log$init( LOG_FILE_NAME_DEFAULT, LOG_FILE_EXTENSION_DEFAULT,
+                            LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) ) {
+                log$transaction$query( ( logLevel_t )error, "Initializing logging system\n" );
 
                 goto EXIT;
             }
 
 #if defined( DEBUG )
 
-            if ( !log$level$set( ( logLevel_t )debug ) ) {
-                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+            if ( UNLIKELY( !log$level$set( ( logLevel_t )debug ) ) ) {
+                log$transaction$query( ( logLevel_t )error, "Setting log level to DEBUG\n" );
 
                 goto EXIT;
             }
@@ -45,8 +45,8 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 
         // Asset loader
         {
-            if ( !asset_t$loader$init( ASSETS_DIRECTORY ) ) {
-                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+            if ( UNLIKELY( !asset_t$loader$init( ASSETS_DIRECTORY ) ) ) {
+                log$transaction$query( ( logLevel_t )error, "Initializing asset loader\n" );
 
                 goto EXIT;
             }
@@ -59,10 +59,10 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 
         // Settings
         {
-            if ( !settings_t$load( &( _applicationState->settings ),
+            if ( UNLIKELY( !settings_t$load( &( _applicationState->settings ),
                                    SETTINGS_FILE_NAME,
-                                   SETTINGS_FILE_EXTENSION ) ) {
-                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+                                   SETTINGS_FILE_EXTENSION ) ) ) {
+                log$transaction$query( ( logLevel_t )error, "Loading settings\n" );
 
                 goto EXIT;
             }
@@ -70,8 +70,8 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 
         // GLFW
         {
-            if ( !glfwInit() ) {
-                log$transaction$query( ( logLevel_t )error, "Comment\n" );
+            if ( UNLIKELY( !glfwInit() ) ) {
+                log$transaction$query( ( logLevel_t )error, "Initializing GLFW\n" );
 
                 goto EXIT;
             }
@@ -79,6 +79,12 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             // TODO: Change this
             _applicationState->window = glfwCreateWindow(
                 WINDOW_WIDTH, WINDOW_HEIGT, WINDOW_NAME, NULL, NULL );
+
+            if ( UNLIKELY( !_applicationState->window ) ) {
+                log$transaction$query( ( logLevel_t )error, "Creating application window\n" );
+
+                goto EXIT;
+            }
 
             glfwMakeContextCurrent( _applicationState->window );
         }
@@ -88,7 +94,7 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             _applicationState->version = gladLoadGL( glfwGetProcAddress );
 
             log$transaction$query$format(
-                ( logLevel_t )info, "GL: %d %d\n",
+                ( logLevel_t )info, "GL version: %d.%d\n",
                 GLAD_VERSION_MAJOR( _applicationState->version ),
                 GLAD_VERSION_MINOR( _applicationState->version ) );
         }

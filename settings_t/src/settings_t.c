@@ -13,14 +13,14 @@ settings_t settings_t$create( void ) {
 bool settings_t$destroy( settings_t* _settings ) {
     bool l_returnValue = false;
 
-    if ( !_settings ) {
+    if ( UNLIKELY( !_settings ) ) {
         goto EXIT;
     }
 
     {
         l_returnValue = window_t$destroy( &( _settings->window ) );
 
-        if ( !l_returnValue ) {
+        if ( UNLIKELY( !l_returnValue ) ) {
             goto EXIT;
         }
 
@@ -36,7 +36,7 @@ bool settings_t$load( settings_t* _settings,
                       const char* _fileExtension ) {
     bool l_returnValue = false;
 
-    if ( !_settings ) {
+    if ( UNLIKELY( !_settings ) ) {
         goto EXIT;
     }
 
@@ -59,7 +59,7 @@ bool settings_t$load( settings_t* _settings,
                 mi_free( l_filePath );
             }
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;
             }
 
@@ -73,13 +73,13 @@ bool settings_t$load( settings_t* _settings,
 
             l_returnValue = asset_t$unload( &l_settingsAsset );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;
             }
 
             l_returnValue = asset_t$destroy( &l_settingsAsset );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;
             }
         }
@@ -96,7 +96,7 @@ EXIT:
 bool settings_t$unload( settings_t* _settings ) {
     bool l_returnValue = false;
 
-    if ( !_settings ) {
+    if ( UNLIKELY( !_settings ) ) {
         goto EXIT;
     }
 

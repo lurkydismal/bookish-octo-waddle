@@ -376,7 +376,6 @@ TEST( splitStringIntoArray ) {
     }
 }
 
-// TODO: Fix
 TEST( splitStringIntoArrayBySymbol ) {
     char** l_result;
 
