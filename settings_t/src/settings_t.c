@@ -101,8 +101,6 @@ bool settings_t$unload( settings_t* _settings ) {
     }
 
     {
-        settings_t$destroy( _settings );
-
         l_returnValue = true;
     }
 

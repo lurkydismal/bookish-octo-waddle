@@ -92,18 +92,14 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
 
         int l_fileDescriptor = open( l_path, O_RDONLY );
 
+        mi_free( l_path );
+
         if ( l_fileDescriptor == -1 ) {
             log$transaction$query$format( ( logLevel_t )error,
-                                          "Opening asset: %s\n", l_path );
-
-            // TODO: Single free
-            mi_free( l_path );
+                                          "Opening asset: '%s'\n", _path );
 
             goto EXIT;
         }
-
-        // TODO: Single free
-        mi_free( l_path );
 
         {
             // Get file size

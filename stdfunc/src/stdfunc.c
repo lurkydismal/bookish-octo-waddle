@@ -267,42 +267,13 @@ EXIT:
     return ( l_returnValue );
 }
 
-// TODO: Fix
+// TODO: Implement
 char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol ) {
-    char** l_returnValue = ( char** )createArray( sizeof( char* ) );
+    char l_delimiter[ 2 ] = " ";
 
-    if ( UNLIKELY( !_string ) ) {
-        goto EXIT;
-    }
+    l_delimiter[ 0 ] = _symbol;
 
-    {
-        char* l_string = duplicateString( _string );
-        char* l_startIndex = l_string;
-        char* l_currentIndex = l_string;
-
-        while ( *l_currentIndex ) {
-            if ( *l_currentIndex == _symbol ) {
-                *l_currentIndex = '\0';
-
-                insertIntoArray( ( void*** )&l_returnValue,
-                                 duplicateString( l_startIndex ) );
-
-                l_startIndex = ( l_currentIndex + 1 );
-            }
-
-            l_currentIndex++;
-        }
-
-        if ( *l_startIndex ) {
-            insertIntoArray( ( void*** )&l_returnValue,
-                             duplicateString( l_startIndex ) );
-        }
-
-        mi_free( l_string );
-    }
-
-EXIT:
-    return ( l_returnValue );
+    return ( splitStringIntoArray( _string, l_delimiter ) );
 }
 
 ssize_t findStringInArray( const char** _array,
