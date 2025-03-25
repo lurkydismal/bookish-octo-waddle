@@ -39,7 +39,7 @@ static const char* log$level$convert$toString( logLevel_t _logLevel ) {
 }
 
 static logLevel_t log$level$convert$fromString( const char* _string ) {
-    if ( !_string ) {
+    if ( UNLIKELY( !_string ) ) {
         return ( logLevel_t )unknown;
     }
 
@@ -89,15 +89,15 @@ bool log$init( const char* _fileName,
                const size_t _maxTransactionSize ) {
     bool l_returnValue = false;
 
-    if ( !_fileName ) {
+    if ( UNLIKELY( !_fileName ) ) {
         goto EXIT;
     }
 
-    if ( !_fileExtension ) {
+    if ( UNLIKELY( !_fileExtension ) ) {
         goto EXIT;
     }
 
-    if ( !_maxTransactionSize ) {
+    if ( UNLIKELY( !_maxTransactionSize ) ) {
         goto EXIT;
     }
 
@@ -127,7 +127,7 @@ bool log$init( const char* _fileName,
 
             mi_free( l_filePath );
 
-            if ( g_fileDescriptor == -1 ) {
+            if ( UNLIKELY( g_fileDescriptor == -1 ) ) {
                 goto EXIT;
             }
         }
@@ -136,7 +136,7 @@ bool log$init( const char* _fileName,
         {
             g_maxTransactionSize = _maxTransactionSize;
 
-            if ( !g_maxTransactionSize ) {
+            if ( UNLIKELY( !g_maxTransactionSize ) ) {
                 goto EXIT;
             }
         }
@@ -158,7 +158,7 @@ bool log$quit( void ) {
     bool l_returnValue = false;
 
     {
-        if ( close( g_fileDescriptor ) == -1 ) {
+        if ( UNLIKELY( close( g_fileDescriptor ) == -1 ) ) {
             goto EXIT;
         }
 
@@ -186,7 +186,7 @@ bool log$level$set( logLevel_t _logLevel ) {
 bool log$level$set$string( const char* _string ) {
     bool l_returnValue = false;
 
-    if ( !_string ) {
+    if ( UNLIKELY( !_string ) ) {
         goto EXIT;
     }
 
@@ -211,7 +211,7 @@ const char* log$level$get$string( void ) {
 bool log$transaction$query( const logLevel_t _logLevel, const char* _string ) {
     bool l_returnValue = false;
 
-    if ( !_string ) {
+    if ( UNLIKELY( !_string ) ) {
         goto EXIT;
     }
 
@@ -250,7 +250,7 @@ bool log$transaction$query$format( const logLevel_t _logLevel,
                                    ... ) {
     bool l_returnValue = false;
 
-    if ( !_format ) {
+    if ( UNLIKELY( !_format ) ) {
         goto EXIT;
     }
 
@@ -268,7 +268,7 @@ bool log$transaction$query$format( const logLevel_t _logLevel,
 
         va_end( l_arguments );
 
-        if ( !l_writtenCount ) {
+        if ( UNLIKELY( !l_writtenCount ) ) {
             goto EXIT;
         }
 
@@ -292,7 +292,7 @@ bool log$transaction$commit( void ) {
 
             l_returnValue = ( l_writtenCount == g_transactionSize );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;
             }
 
@@ -331,7 +331,7 @@ bool log$transaction$commit( void ) {
             const ssize_t l_writtenCount =
                 write( STDOUT_FILENO, l_buffer, __builtin_strlen( l_buffer ) );
 
-            if ( !l_writtenCount ) {
+            if ( UNLIKELY( !l_writtenCount ) ) {
                 mi_free( l_buffer );
 
                 l_returnValue = false;
@@ -344,7 +344,7 @@ bool log$transaction$commit( void ) {
 
             mi_free( l_buffer );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;
             }
 

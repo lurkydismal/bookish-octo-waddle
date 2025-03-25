@@ -16,7 +16,7 @@ static char* g_assetsDirectory;
 bool asset_t$loader$init( const char* _assetsDirectory ) {
     bool l_returnValue = false;
 
-    if ( !_assetsDirectory ) {
+    if ( UNLIKELY( !_assetsDirectory ) ) {
         goto EXIT;
     }
 
@@ -62,7 +62,7 @@ asset_t asset_t$create( void ) {
 bool asset_t$destroy( asset_t* _asset ) {
     bool l_returnValue = false;
 
-    if ( !_asset ) {
+    if ( UNLIKELY( !_asset ) ) {
         goto EXIT;
     }
 
@@ -77,11 +77,11 @@ EXIT:
 bool asset_t$load( asset_t* _asset, const char* _path ) {
     bool l_returnValue = false;
 
-    if ( !_asset ) {
+    if ( UNLIKELY( !_asset ) ) {
         goto EXIT;
     }
 
-    if ( !_path ) {
+    if ( UNLIKELY( !_path ) ) {
         goto EXIT;
     }
 
@@ -94,7 +94,7 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
 
         mi_free( l_path );
 
-        if ( l_fileDescriptor == -1 ) {
+        if ( UNLIKELY( l_fileDescriptor == -1 ) ) {
             log$transaction$query$format( ( logLevel_t )error,
                                           "Opening asset: '%s'\n", _path );
 
@@ -114,7 +114,7 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
 
             l_returnValue = ( l_readenCount == l_fileSize );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 mi_free( _asset->data );
 
                 goto FILE_EXIT;
@@ -132,7 +132,7 @@ EXIT:
 bool asset_t$unload( asset_t* _asset ) {
     bool l_returnValue = false;
 
-    if ( !_asset ) {
+    if ( UNLIKELY( !_asset ) ) {
         goto EXIT;
     }
 

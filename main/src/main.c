@@ -82,8 +82,8 @@ int main( void ) {
         pthread_t l_limitedIterateThread;
 
         // Limited iteration
-        if ( pthread_create( &l_limitedIterateThread, NULL, limitedIterate,
-                             NULL ) ) {
+        if ( UNLIKELY( pthread_create( &l_limitedIterateThread, NULL, limitedIterate,
+                             NULL ) ) ) {
             errorCallback( 11,
                            "Insufficient resources to create another thread, "
                            "or a system-imposed limit on the number of threads "

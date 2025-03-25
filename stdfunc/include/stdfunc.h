@@ -57,11 +57,11 @@
 static FORCE_INLINE void trim( char** _string,
                                const ssize_t _from,
                                const ssize_t _to ) {
-    if ( _from >= 0 ) {
+    if ( UNLIKELY( _from >= 0 ) ) {
         ( *_string ) += _from;
     }
 
-    if ( _to >= 0 ) {
+    if ( UNLIKELY( _to >= 0 ) ) {
         ( *_string )[ _to ] = '\0';
     }
 }
@@ -88,7 +88,7 @@ static FORCE_INLINE size_t power( size_t _base, uint8_t _exponent ) {
 
         _exponent >>= 1;
 
-        if ( !_exponent ) {
+        if ( UNLIKELY( !_exponent ) ) {
             break;
         }
 
