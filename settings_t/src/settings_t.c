@@ -1,5 +1,7 @@
 #include "settings_t.h"
 
+#include <stdlib.h>
+
 #include "asset_t.h"
 #include "log.h"
 #include "stdfunc.h"
@@ -69,6 +71,52 @@ bool settings_t$load( settings_t* _settings,
 
             // TODO: Parse settings
             {
+                char** l_lines = splitStringIntoArrayBySymbol(
+                    ( char* )( l_settingsAsset.data ), '\n' );
+
+                FOR_ARRAY( char* const*, l_lines ) {
+                    const char* l_line = sanitizeString( *_element );
+
+                    if ( l_line ) {
+                        log$transaction$query$format( ( logLevel_t )debug,
+                                                      "%s\n", l_line );
+
+                        char** l_keyAndValue =
+                            splitStringIntoArrayBySymbol( l_line, '=' );
+
+                        if ( arrayLength( l_keyAndValue ) != 2 ) {
+                            log$transaction$query$format(
+                                ( logLevel_t )error, "Settings line '%s'\n",
+                                l_line );
+
+                            goto LOOP_CONTINUE;
+                        }
+
+                        const char* l_key = l_keyAndValue[ 1 ];
+                        const char* l_value = l_keyAndValue[ 2 ];
+
+                        if ( __builtin_strcmp( l_key, "window_width" ) == 0 ) {
+                            l_settings.window.width = atoi( l_value );
+
+                        } else if ( __builtin_strcmp( l_key,
+                                                      "window_height" ) == 0 ) {
+                            l_settings.window.height = atoi( l_value );
+
+                        } else if ( __builtin_strcmp(
+                                        l_key, "window_desired_FPS" ) == 0 ) {
+                            l_settings.window.desiredFPS = atoi( l_value );
+
+                        } else if ( __builtin_strcmp( l_key, "window_vsync" ) ==
+                                    0 ) {
+                            l_settings.window.vsync = stringToBool( l_value );
+                        }
+
+                    LOOP_CONTINUE:
+                        FREE_ARRAY( char**, l_keyAndValue );
+                    }
+                }
+
+                FREE_ARRAY( char**, l_lines );
             }
 
             l_returnValue = asset_t$unload( &l_settingsAsset );
