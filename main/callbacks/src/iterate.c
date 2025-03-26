@@ -2,6 +2,7 @@
 
 #include "callbacks.h"
 #include "log.h"
+#include "stdfunc.h"
 
 callbackResult_t iterate$unlimited( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;

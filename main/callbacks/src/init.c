@@ -1,9 +1,9 @@
 #include <glad/gl.h>
-#include <stdio.h>
 
 #include "asset_t.h"
 #include "callbacks.h"
 #include "log.h"
+#include "stdfunc.h"
 
 #define LOG_FILE_NAME_DEFAULT "log"
 #define LOG_FILE_EXTENSION_DEFAULT "txt"
@@ -14,9 +14,7 @@
 #define SETTINGS_FILE_NAME "settings"
 #define SETTINGS_FILE_EXTENSION "ini"
 
-#define WINDOW_WIDTH 640
-#define WINDOW_HEIGT 480
-#define WINDOW_NAME "Window name"
+#define WINDOW_NAME "Gamuingu"
 
 // TODO: Comment
 callbackResult_t init( applicationState_t* _applicationState ) {
@@ -25,9 +23,11 @@ callbackResult_t init( applicationState_t* _applicationState ) {
     {
         // Log
         {
-            if ( UNLIKELY( !log$init( LOG_FILE_NAME_DEFAULT, LOG_FILE_EXTENSION_DEFAULT,
-                            LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) ) {
-                log$transaction$query( ( logLevel_t )error, "Initializing logging system\n" );
+            if ( UNLIKELY( !log$init( LOG_FILE_NAME_DEFAULT,
+                                      LOG_FILE_EXTENSION_DEFAULT,
+                                      LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing logging system\n" );
 
                 goto EXIT;
             }
@@ -35,7 +35,8 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 #if defined( DEBUG )
 
             if ( UNLIKELY( !log$level$set( ( logLevel_t )debug ) ) ) {
-                log$transaction$query( ( logLevel_t )error, "Setting log level to DEBUG\n" );
+                log$transaction$query( ( logLevel_t )error,
+                                       "Setting log level to DEBUG\n" );
 
                 goto EXIT;
             }
@@ -46,7 +47,8 @@ callbackResult_t init( applicationState_t* _applicationState ) {
         // Asset loader
         {
             if ( UNLIKELY( !asset_t$loader$init( ASSETS_DIRECTORY ) ) ) {
-                log$transaction$query( ( logLevel_t )error, "Initializing asset loader\n" );
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing asset loader\n" );
 
                 goto EXIT;
             }
@@ -60,9 +62,10 @@ callbackResult_t init( applicationState_t* _applicationState ) {
         // Settings
         {
             if ( UNLIKELY( !settings_t$load( &( _applicationState->settings ),
-                                   SETTINGS_FILE_NAME,
-                                   SETTINGS_FILE_EXTENSION ) ) ) {
-                log$transaction$query( ( logLevel_t )error, "Loading settings\n" );
+                                             SETTINGS_FILE_NAME,
+                                             SETTINGS_FILE_EXTENSION ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Loading settings\n" );
 
                 goto EXIT;
             }
@@ -71,17 +74,21 @@ callbackResult_t init( applicationState_t* _applicationState ) {
         // GLFW
         {
             if ( UNLIKELY( !glfwInit() ) ) {
-                log$transaction$query( ( logLevel_t )error, "Initializing GLFW\n" );
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing GLFW\n" );
 
                 goto EXIT;
             }
 
             // TODO: Change this
-            _applicationState->window = glfwCreateWindow(
-                WINDOW_WIDTH, WINDOW_HEIGT, WINDOW_NAME, NULL, NULL );
+            _applicationState->window =
+                glfwCreateWindow( _applicationState->settings.window.width,
+                                  _applicationState->settings.window.height,
+                                  WINDOW_NAME, NULL, NULL );
 
             if ( UNLIKELY( !_applicationState->window ) ) {
-                log$transaction$query( ( logLevel_t )error, "Creating application window\n" );
+                log$transaction$query( ( logLevel_t )error,
+                                       "Creating application window\n" );
 
                 goto EXIT;
             }

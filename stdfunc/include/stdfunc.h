@@ -54,6 +54,15 @@
     } while ( 0 )
 
 // Utility functions ( no side-effects )
+static FORCE_INLINE bool stringToBool( const char* _string ) {
+    if ( __builtin_strcmp( _string, "true" ) == 0 ) {
+        return ( true );
+
+    } else {
+        return ( false );
+    }
+}
+
 static FORCE_INLINE void trim( char** _string,
                                const ssize_t _from,
                                const ssize_t _to ) {

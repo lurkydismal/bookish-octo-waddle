@@ -14,8 +14,6 @@
 #include "log.h"
 #include "stdfunc.h"
 
-#define DESIRED_FPS 60
-
 applicationState_t g_applicationState;
 
 static void errorCallback( int _code, const char* _description ) {
@@ -47,8 +45,9 @@ void* limitedIterate( void* _data ) {
     struct timespec l_sleepTime;
 
     l_sleepTime.tv_sec = 0;
-    l_sleepTime.tv_nsec =
-        MILLISECONDS_TO_NANOSECONDS( ONE_SECOND_IN_MILLISECONDS / DESIRED_FPS );
+    l_sleepTime.tv_nsec = MILLISECONDS_TO_NANOSECONDS(
+        ONE_SECOND_IN_MILLISECONDS /
+        g_applicationState.settings.window.desiredFPS );
 
     while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
         clock_nanosleep( CLOCK_MONOTONIC, 0, &l_sleepTime, NULL );
@@ -82,8 +81,8 @@ int main( void ) {
         pthread_t l_limitedIterateThread;
 
         // Limited iteration
-        if ( UNLIKELY( pthread_create( &l_limitedIterateThread, NULL, limitedIterate,
-                             NULL ) ) ) {
+        if ( UNLIKELY( pthread_create( &l_limitedIterateThread, NULL,
+                                       limitedIterate, NULL ) ) ) {
             errorCallback( 11,
                            "Insufficient resources to create another thread, "
                            "or a system-imposed limit on the number of threads "
