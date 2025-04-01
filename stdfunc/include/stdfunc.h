@@ -44,6 +44,10 @@
     for ( _type _element = arrayFirstElementPointer( _array ); \
           _element != ( arrayLastElementPointer( _array ) + 1 ); _element++ )
 
+// Range iteration FOR
+#define FOR_RANGE( _type, _start, _end ) \
+    for ( _type _index = _start; _index < _end; _index++ )
+
 // Non-native array free every element
 #define FREE_ARRAY( _type, _array )  \
     do {                             \
