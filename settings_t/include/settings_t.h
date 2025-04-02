@@ -4,11 +4,12 @@
 
 #include "window_t.h"
 
-#define DEFAULT_SETTINGS { DEFAULT_WINDOW }
+#define DEFAULT_SETTINGS { DEFAULT_WINDOW, 60 }
 
 // All available customization
 typedef struct {
     window_t window;
+    size_t limitedLoopDesiredFPS;
 } settings_t;
 
 settings_t settings_t$create( void );

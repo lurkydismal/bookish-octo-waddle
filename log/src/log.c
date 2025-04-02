@@ -245,9 +245,9 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool log$transaction$query$format( const logLevel_t _logLevel,
-                                   const char* _format,
-                                   ... ) {
+bool _log$transaction$query$format( const logLevel_t _logLevel,
+                                    const char* _format,
+                                    ... ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_format ) ) {

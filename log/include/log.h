@@ -27,6 +27,23 @@
 
 #define LOG_LEVEL_DEFAULT ( ( logLevel_t )warn )
 
+#if defined( DEBUG )
+
+#define DEBUG_INFORMATION_FORMAT \
+    "File '%s': line %u in function '%s' | Message: "
+#define DEBUG_INFORMATION_TO_PRINT __FILE__, __LINE__, __func__
+
+#define log$transaction$query$format( _logLevel, _format, ... )      \
+    _log$transaction$query$format( _logLevel,                        \
+                                   DEBUG_INFORMATION_FORMAT _format, \
+                                   DEBUG_INFORMATION_TO_PRINT, ##__VA_ARGS__ )
+
+#else
+
+#define log$transaction$query$format _log$transaction$query$format
+
+#endif
+
 typedef enum { debug, info, warn, error, unknown } logLevel_t;
 
 bool log$init( const char* _fileName,
@@ -41,7 +58,7 @@ logLevel_t log$level$get( void );
 const char* log$level$get$string( void );
 
 bool log$transaction$query( const logLevel_t _logLevel, const char* _string );
-bool log$transaction$query$format( const logLevel_t _logLevel,
-                                   const char* _format,
-                                   ... );
+bool _log$transaction$query$format( const logLevel_t _logLevel,
+                                    const char* _format,
+                                    ... );
 bool log$transaction$commit( void );

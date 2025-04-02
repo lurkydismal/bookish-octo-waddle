@@ -36,6 +36,7 @@ export declare BUILD_DEFINES_PROFILE=(
 
 export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
+    "gameState_t/include"
     "settings_t/include"
     "window_t/include"
     "asset_t/include"
@@ -91,6 +92,9 @@ clear
 source './config.sh' && {
 
 mkdir -p "$BUILD_DIRECTORY"
+
+# Remove all object files
+fd -I '\.o$' -x rm {}
 
 if [ $BUILD_TYPE -eq 0 ]; then
     echo -e "$BUILD_TYPE_COLOR"'Debug build'"$RESET_COLOR"

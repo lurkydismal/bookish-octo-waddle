@@ -2,6 +2,7 @@
 #define GLAD_GL_IMPLEMENTATION
 
 #include <GLFW/glfw3.h>
+#include <errno.h>
 #include <glad/gl.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -14,18 +15,18 @@
 #include "log.h"
 #include "stdfunc.h"
 
-applicationState_t g_applicationState;
+static applicationState_t g_applicationState;
 
-static void errorCallback( int _code, const char* _description ) {
+static FORCE_INLINE void errorCallback( int _code, const char* _description ) {
     log$transaction$query$format( ( logLevel_t )error, "%d: %s\n", _code,
                                   _description );
 }
 
-static void keyCallback( GLFWwindow* _window,
-                         int _key,
-                         int _scancode,
-                         int _action,
-                         int _modifiers ) {
+static FORCE_INLINE void keyCallback( GLFWwindow* _window,
+                                      int _key,
+                                      int _scancode,
+                                      int _action,
+                                      int _modifiers ) {
     ( void )( sizeof( _scancode ) );
     ( void )( sizeof( _action ) );
 
@@ -42,17 +43,39 @@ void* limitedIterate( void* _data ) {
 
     callbackResult_t l_callbackResult = ( callbackResult_t )success;
 
-    struct timespec l_sleepTime;
+    struct timespec l_sleepTime, l_startTime, l_endTime, l_adjustedSleepTime;
 
     l_sleepTime.tv_sec = 0;
     l_sleepTime.tv_nsec = MILLISECONDS_TO_NANOSECONDS(
         ONE_SECOND_IN_MILLISECONDS /
-        g_applicationState.settings.window.desiredFPS );
+        g_applicationState.settings.limitedLoopDesiredFPS );
 
-    while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
-        clock_nanosleep( CLOCK_MONOTONIC, 0, &l_sleepTime, NULL );
+    while ( UNLIKELY( !glfwWindowShouldClose( g_applicationState.window ) ) ) {
+        {
+            clock_gettime( CLOCK_MONOTONIC, &l_startTime );
 
-        l_callbackResult = iterate$limited( &g_applicationState );
+            l_callbackResult = iterate$limited( &g_applicationState );
+
+            clock_gettime( CLOCK_MONOTONIC, &l_endTime );
+        }
+
+        {
+            const size_t l_iterationTimeNano =
+                ( ( l_endTime.tv_sec - l_startTime.tv_sec ) *
+                      ( ONE_SECOND_IN_MILLISECONDS *
+                        ONE_MILLISECOND_IN_NANOSECONDS ) +
+                  ( l_endTime.tv_nsec - l_startTime.tv_nsec ) );
+
+            long long l_adjustedSleepNano =
+                ( l_sleepTime.tv_nsec - l_iterationTimeNano );
+
+            l_adjustedSleepNano &= -( l_adjustedSleepNano > 0 );
+
+            l_adjustedSleepTime.tv_sec = 0;
+            l_adjustedSleepTime.tv_nsec = l_adjustedSleepNano;
+        }
+
+        clock_nanosleep( CLOCK_MONOTONIC, 0, &l_adjustedSleepTime, NULL );
 
         if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
             break;
@@ -83,7 +106,7 @@ int main( void ) {
         // Limited iteration
         if ( UNLIKELY( pthread_create( &l_limitedIterateThread, NULL,
                                        limitedIterate, NULL ) ) ) {
-            errorCallback( 11,
+            errorCallback( EAGAIN,
                            "Insufficient resources to create another thread, "
                            "or a system-imposed limit on the number of threads "
                            "was encountered" );
@@ -94,7 +117,8 @@ int main( void ) {
         }
 
         // Not limited iteration
-        while ( !glfwWindowShouldClose( g_applicationState.window ) ) {
+        while (
+            UNLIKELY( !glfwWindowShouldClose( g_applicationState.window ) ) ) {
             l_callbackResult = iterate$unlimited( &g_applicationState );
 
             if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {

@@ -109,6 +109,11 @@ bool settings_t$load( settings_t* _settings,
                         } else if ( __builtin_strcmp( l_key, "window_vsync" ) ==
                                     0 ) {
                             l_settings.window.vsync = stringToBool( l_value );
+
+                        } else if ( __builtin_strcmp(
+                                        l_key, "limited_loop_desired_FPS" ) ==
+                                    0 ) {
+                            l_settings.limitedLoopDesiredFPS = atoi( l_value );
                         }
 
                     LOOP_CONTINUE:
