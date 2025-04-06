@@ -9,6 +9,12 @@
 #define LOG_FILE_EXTENSION_DEFAULT "txt"
 #define LOG_MAX_TRANSACTION_SIZE_DEFAULT ( 1024 * sizeof( char ) )
 
+#if defined( DEBUG )
+
+#define LOG_MAX_TRANSACTION_SIZE_DEFAULT ( LOG_MAX_TRANSACTION_SIZE_DEFAULT * 10 )
+
+#endif
+
 #define ASSETS_DIRECTORY "assets"
 
 #define SETTINGS_FILE_NAME "settings"

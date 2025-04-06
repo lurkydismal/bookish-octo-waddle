@@ -116,10 +116,42 @@ int main( void ) {
             goto EXIT_THREADS;
         }
 
-        // Not limited iteration
+        // Unlimited iteration
+        struct timespec l_sleepTime, l_startTime, l_endTime,
+            l_adjustedSleepTime;
+
+        l_sleepTime.tv_sec = 0;
+        l_sleepTime.tv_nsec = MILLISECONDS_TO_NANOSECONDS(
+            ONE_SECOND_IN_MILLISECONDS /
+            g_applicationState.settings.window.desiredFPS );
+
         while (
             UNLIKELY( !glfwWindowShouldClose( g_applicationState.window ) ) ) {
-            l_callbackResult = iterate$unlimited( &g_applicationState );
+            {
+                clock_gettime( CLOCK_MONOTONIC, &l_startTime );
+
+                l_callbackResult = iterate$unlimited( &g_applicationState );
+
+                clock_gettime( CLOCK_MONOTONIC, &l_endTime );
+            }
+
+            {
+                const size_t l_iterationTimeNano =
+                    ( ( l_endTime.tv_sec - l_startTime.tv_sec ) *
+                          ( ONE_SECOND_IN_MILLISECONDS *
+                            ONE_MILLISECOND_IN_NANOSECONDS ) +
+                      ( l_endTime.tv_nsec - l_startTime.tv_nsec ) );
+
+                long long l_adjustedSleepNano =
+                    ( l_sleepTime.tv_nsec - l_iterationTimeNano );
+
+                l_adjustedSleepNano &= -( l_adjustedSleepNano > 0 );
+
+                l_adjustedSleepTime.tv_sec = 0;
+                l_adjustedSleepTime.tv_nsec = l_adjustedSleepNano;
+            }
+
+            clock_nanosleep( CLOCK_MONOTONIC, 0, &l_adjustedSleepTime, NULL );
 
             if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
                 break;

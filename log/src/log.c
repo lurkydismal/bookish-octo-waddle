@@ -1,9 +1,9 @@
 #include "log.h"
 
 #include <fcntl.h>
-#include <mimalloc.h>
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "stdfunc.h"
@@ -116,7 +116,7 @@ bool log$init( const char* _fileName,
                 // Construct full file path
                 concatBeforeAndAfterString( &l_filePath, l_directoryPath, "" );
 
-                mi_free( l_directoryPath );
+                free( l_directoryPath );
             }
 
             // 0 - No special bits
@@ -125,7 +125,7 @@ bool log$init( const char* _fileName,
             // 4 - Read for others
             g_fileDescriptor = open( l_filePath, O_WRONLY | O_CREAT, 0644 );
 
-            mi_free( l_filePath );
+            free( l_filePath );
 
             if ( UNLIKELY( g_fileDescriptor == -1 ) ) {
                 goto EXIT;
@@ -144,7 +144,7 @@ bool log$init( const char* _fileName,
         // Allocate transaction string
         {
             g_transactionString =
-                ( char* )mi_malloc( g_maxTransactionSize * sizeof( char ) );
+                ( char* )malloc( g_maxTransactionSize * sizeof( char ) );
         }
 
         l_returnValue = true;
@@ -162,7 +162,7 @@ bool log$quit( void ) {
             goto EXIT;
         }
 
-        mi_free( g_transactionString );
+        free( g_transactionString );
 
         l_returnValue = true;
     }
@@ -277,6 +277,12 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
         l_returnValue = true;
     }
 
+#if defined( DEBUG )
+
+    log$transaction$commit();
+
+#endif
+
 EXIT:
     return ( l_returnValue );
 }
@@ -314,8 +320,7 @@ bool log$transaction$commit( void ) {
                   arrayLengthNative( l_logSignature ) + g_transactionSize + 1 );
 
             // TODO: Limit scope for allocated variable
-            char* l_buffer =
-                ( char* )mi_malloc( l_bufferLength * sizeof( char ) );
+            char* l_buffer = ( char* )malloc( l_bufferLength * sizeof( char ) );
 
             {
                 const char* l_logLevelColor =
@@ -332,7 +337,7 @@ bool log$transaction$commit( void ) {
                 write( STDOUT_FILENO, l_buffer, __builtin_strlen( l_buffer ) );
 
             if ( UNLIKELY( !l_writtenCount ) ) {
-                mi_free( l_buffer );
+                free( l_buffer );
 
                 l_returnValue = false;
 
@@ -342,7 +347,7 @@ bool log$transaction$commit( void ) {
             l_returnValue =
                 ( ( size_t )l_writtenCount == __builtin_strlen( l_buffer ) );
 
-            mi_free( l_buffer );
+            free( l_buffer );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;

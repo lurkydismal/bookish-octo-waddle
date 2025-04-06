@@ -58,7 +58,7 @@ bool settings_t$load( settings_t* _settings,
 
                 l_returnValue = asset_t$load( &l_settingsAsset, l_filePath );
 
-                mi_free( l_filePath );
+                free( l_filePath );
             }
 
             if ( UNLIKELY( !l_returnValue ) ) {
@@ -69,7 +69,6 @@ bool settings_t$load( settings_t* _settings,
                 ( logLevel_t )debug, "Settings:\nData: {%s}\nSize: %lu\n",
                 l_settingsAsset.data, l_settingsAsset.size );
 
-            // TODO: Parse settings
             {
                 char** l_lines = splitStringIntoArrayBySymbol(
                     ( char* )( l_settingsAsset.data ), '\n' );

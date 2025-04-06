@@ -98,7 +98,7 @@ TEST( convertNumberToString ) {
     do {                                                              \
         l_result = convertNumberToString( _number );                  \
         ASSERT_EQ( "%d", __builtin_strcmp( l_result, #_number ), 0 ); \
-        mi_free( l_result );                                          \
+        free( l_result );                                          \
     } while ( 0 )
 
     char* l_result;
@@ -126,7 +126,7 @@ TEST( convertNumberToString ) {
         // Ensure it does not crash
         ASSERT_EQ( "%d", ( __builtin_strlen( l_result ) > 0 ), 1 );
 
-        mi_free( l_result );
+        free( l_result );
     }
 
 #undef convertNumberToStringTest
@@ -154,7 +154,7 @@ TEST( duplicateString ) {
     do {                                                             \
         l_result = duplicateString( _string );                       \
         ASSERT_EQ( "%d", __builtin_strcmp( l_result, _string ), 0 ); \
-        mi_free( l_result );                                         \
+        free( l_result );                                         \
     } while ( 0 )
 
     char* l_result;
@@ -230,7 +230,7 @@ TEST( concatBeforeAndAfterString ) {
 #define concatBeforeAndAfterStringTest( _string, _beforeString, _afterString ) \
     do {                                                                       \
         l_string =                                                             \
-            ( char* )mi_malloc( ( sizeof( _string ) * sizeof( char ) ) );      \
+            ( char* )malloc( ( sizeof( _string ) * sizeof( char ) ) );      \
         __builtin_strcpy( l_string, _string );                                 \
         ASSERT_EQ(                                                             \
             "%lu",                                                             \
@@ -244,7 +244,7 @@ TEST( concatBeforeAndAfterString ) {
                    __builtin_strcmp( l_string,                                 \
                                      ( _beforeString _string _afterString ) ), \
                    0 );                                                        \
-        mi_free( l_string );                                                   \
+        free( l_string );                                                   \
     } while ( 0 )
 
     char* l_string;
@@ -280,7 +280,7 @@ TEST( sanitizeString ) {
     do {                                                                     \
         l_result = sanitizeString( _string );                                \
         ASSERT_EQ( "%d", __builtin_strcmp( l_result, _expectedString ), 0 ); \
-        mi_free( l_result );                                                 \
+        free( l_result );                                                 \
     } while ( 0 )
 
     char* l_result;

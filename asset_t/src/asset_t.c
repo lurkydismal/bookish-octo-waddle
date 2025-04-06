@@ -1,8 +1,8 @@
 #include "asset_t.h"
 
 #include <fcntl.h>
-#include <mimalloc.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 
 #include "log.h"
@@ -29,7 +29,7 @@ bool asset_t$loader$init( const char* _assetsDirectory ) {
             concatBeforeAndAfterString( &l_assetsDirectory, l_directoryPath,
                                         "/" );
 
-            mi_free( l_directoryPath );
+            free( l_directoryPath );
         }
 
         g_assetsDirectory = l_assetsDirectory;
@@ -45,7 +45,7 @@ bool asset_t$loader$quit( void ) {
     bool l_returnValue = false;
 
     {
-        mi_free( g_assetsDirectory );
+        free( g_assetsDirectory );
 
         l_returnValue = true;
     }
@@ -92,7 +92,7 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
 
         int l_fileDescriptor = open( l_path, O_RDONLY );
 
-        mi_free( l_path );
+        free( l_path );
 
         if ( UNLIKELY( l_fileDescriptor == -1 ) ) {
             log$transaction$query$format( ( logLevel_t )error,
@@ -106,7 +106,7 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
             off_t l_fileSize = lseek( l_fileDescriptor, 0, SEEK_END );
             lseek( l_fileDescriptor, 0, SEEK_SET );
 
-            _asset->data = ( uint8_t* )mi_malloc( l_fileSize );
+            _asset->data = ( uint8_t* )malloc( l_fileSize );
             _asset->size = l_fileSize;
 
             const ssize_t l_readenCount =
@@ -115,7 +115,7 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
             l_returnValue = ( l_readenCount == l_fileSize );
 
             if ( UNLIKELY( !l_returnValue ) ) {
-                mi_free( _asset->data );
+                free( _asset->data );
 
                 goto FILE_EXIT;
             }
@@ -137,7 +137,7 @@ bool asset_t$unload( asset_t* _asset ) {
     }
 
     {
-        mi_free( _asset->data );
+        free( _asset->data );
 
         _asset->size = 0;
 

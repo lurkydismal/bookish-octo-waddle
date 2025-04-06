@@ -1,10 +1,10 @@
 #pragma once
 
-#include <mimalloc.h>
 #include <omp.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdlib.h>
 #include <sys/types.h>
 
 // Function attributes
@@ -52,9 +52,9 @@
 #define FREE_ARRAY( _type, _array )  \
     do {                             \
         FOR_ARRAY( _type, _array ) { \
-            mi_free( *_element );    \
+            free( *_element );       \
         }                            \
-        mi_free( _array );           \
+        free( _array );              \
     } while ( 0 )
 
 // Utility functions ( no side-effects )
@@ -124,7 +124,7 @@ char** splitStringIntoArray( const char* _string, const char* _delimiter );
 char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol );
 
 static FORCE_INLINE void** createArray( const size_t _elementSize ) {
-    void** l_array = ( void** )mi_malloc( 1 * _elementSize );
+    void** l_array = ( void** )malloc( 1 * _elementSize );
 
     *arrayLengthPointer( l_array ) = ( size_t )( 1 );
 
@@ -143,8 +143,8 @@ static FORCE_INLINE void preallocateArray( void*** _array,
 
     const size_t l_currentArrayLength = arrayLength( *_array );
 
-    *_array = ( void** )mi_realloc( *_array,
-                                    ( ( l_currentArrayLength + _length + 1 ) *
+    *_array =
+        ( void** )realloc( *_array, ( ( l_currentArrayLength + _length + 1 ) *
                                       sizeof( ( *_array )[ 0 ] ) ) );
 
     *arrayLengthPointer( *_array ) =
@@ -166,7 +166,7 @@ static FORCE_INLINE ssize_t insertIntoArray( void*** _array, void* _value ) {
         const size_t l_arrayLength = arrayLength( *_array );
         const ssize_t l_index = ( 1 + l_arrayLength );
 
-        *_array = ( void** )mi_realloc(
+        *_array = ( void** )realloc(
             *_array, ( l_index + 1 ) * sizeof( ( *_array )[ 0 ] ) );
 
         ( *_array )[ l_index ] = _value;

@@ -58,7 +58,6 @@ export LINK_FLAGS_TESTS="$LINK_FLAGS_DEBUG -Wl,--whole-archive"
 export declare LIBRARIES_TO_LINK=(
     "glfw"
     "dl"
-    "mimalloc"
 )
 export LINKER="ccache gcc"
 export EXECUTABLE_NAME="main.out"

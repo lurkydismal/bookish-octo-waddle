@@ -15,7 +15,7 @@ char* convertNumberToString( size_t _number ) {
 
     {
         const size_t l_lengthOfNumber = lengthOfNumber( _number );
-        char* l_buffer = ( char* )mi_malloc( l_lengthOfNumber + 1 );
+        char* l_buffer = ( char* )malloc( l_lengthOfNumber + 1 );
 
 #pragma omp simd
         for ( ssize_t _characterIndex = ( l_lengthOfNumber - 1 );
@@ -65,8 +65,7 @@ char* duplicateString( const char* _string ) {
 
     const size_t l_stringLength = __builtin_strlen( _string );
 
-    l_returnValue =
-        ( char* )mi_malloc( ( l_stringLength + 1 ) * sizeof( char ) );
+    l_returnValue = ( char* )malloc( ( l_stringLength + 1 ) * sizeof( char ) );
 
     __builtin_memcpy( l_returnValue, _string, ( l_stringLength + 1 ) );
 
@@ -155,17 +154,16 @@ size_t concatBeforeAndAfterString( char** _string,
             char* l_buffer;
 
             if ( LIKELY( *_string ) ) {
-                l_buffer =
-                    ( char* )mi_malloc( l_stringLength * sizeof( char ) );
+                l_buffer = ( char* )malloc( l_stringLength * sizeof( char ) );
 
                 __builtin_memcpy( l_buffer, *_string, l_stringLength );
 
-                *_string = ( char* )mi_realloc(
+                *_string = ( char* )realloc(
                     *_string, ( l_totalLength + 1 ) * sizeof( char ) );
 
             } else {
-                *_string = ( char* )mi_malloc( ( l_totalLength + 1 ) *
-                                               sizeof( char ) );
+                *_string =
+                    ( char* )malloc( ( l_totalLength + 1 ) * sizeof( char ) );
             }
 
             if ( LIKELY( _beforeString ) ) {
@@ -177,7 +175,7 @@ size_t concatBeforeAndAfterString( char** _string,
                 __builtin_memcpy( ( l_beforeStringLength + *_string ), l_buffer,
                                   l_stringLength );
 
-                mi_free( l_buffer );
+                free( l_buffer );
             }
 
             if ( LIKELY( _afterString ) ) {
@@ -206,7 +204,7 @@ char* sanitizeString( const char* _string ) {
     {
         const size_t l_stringLength = __builtin_strlen( _string );
         char* l_buffer =
-            ( char* )mi_malloc( ( l_stringLength + 1 ) * sizeof( char ) );
+            ( char* )malloc( ( l_stringLength + 1 ) * sizeof( char ) );
         size_t l_bufferLength = 0;
 
 #define COMMENT_SYMBOL ( '#' )
@@ -229,7 +227,7 @@ char* sanitizeString( const char* _string ) {
         l_buffer[ l_bufferLength ] = '\0';
         l_bufferLength++;
 
-        l_buffer = ( char* )mi_realloc( l_buffer, l_bufferLength );
+        l_buffer = ( char* )realloc( l_buffer, l_bufferLength );
 
         l_returnValue = l_buffer;
     }
@@ -260,7 +258,7 @@ char** splitStringIntoArray( const char* _string, const char* _delimiter ) {
             l_splitted = strtok( NULL, _delimiter );
         }
 
-        mi_free( l_string );
+        free( l_string );
     }
 
 EXIT:
@@ -356,8 +354,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
     char* l_returnValue = NULL;
 
     {
-        char* l_executablePath =
-            ( char* )mi_malloc( PATH_MAX * sizeof( char ) );
+        char* l_executablePath = ( char* )malloc( PATH_MAX * sizeof( char ) );
 
         // Get executable path
         {
@@ -367,7 +364,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
             if ( UNLIKELY( l_executablePathLength == -1 ) ) {
                 log$transaction$query( ( logLevel_t )error, "readlink\n" );
 
-                mi_free( l_executablePath );
+                free( l_executablePath );
 
                 goto EXIT_FILE_PATH;
             }
@@ -410,17 +407,17 @@ char* getApplicationDirectoryAbsolutePath( void ) {
 #if 0
 enum SETTINGS_ITEM_TYPE { KEY, VALUE };
 
-void mi_freeSettingsContent( char*** _content ) {
+void freeSettingsContent( char*** _content ) {
 #pragma omp simd
     FOR_ARRAY( char***, _content ) {
-        mi_free( ( *_element )[ 0 ] );
+        free( ( *_element )[ 0 ] );
 
-        mi_free( ( *_element )[ 1 ] );
+        free( ( *_element )[ 1 ] );
 
-        mi_free( ( *_element ) );
+        free( ( *_element ) );
     }
 
-    mi_free( _content );
+    free( _content );
 }
 
 static FORCE_INLINE ssize_t findInSettings( char** const* _settings,
