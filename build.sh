@@ -39,6 +39,8 @@ export declare BUILD_INCLUDES=(
     "gameState_t/include"
     "settings_t/include"
     "window_t/include"
+    "vsync/include"
+    "FPS/include"
     "asset_t/include"
     "log/include"
     "stdfunc/include"
@@ -58,6 +60,7 @@ export LINK_FLAGS_TESTS="$LINK_FLAGS_DEBUG -Wl,--whole-archive"
 export declare LIBRARIES_TO_LINK=(
     "glfw"
     "dl"
+    "mimalloc"
 )
 export LINKER="ccache gcc"
 export EXECUTABLE_NAME="main.out"

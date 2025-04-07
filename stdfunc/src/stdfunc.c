@@ -10,47 +10,31 @@
 #include "_useCallback.h"
 #endif
 
-char* convertNumberToString( size_t _number ) {
-    char* l_returnValue = NULL;
+#define COMPILATION_TIME_AS_SEED                                      \
+    ( __TIME__[ 0 ] + __TIME__[ 1 ] + __TIME__[ 3 ] + __TIME__[ 4 ] + \
+      __TIME__[ 6 ] + __TIME__[ 7 ] )
 
-    {
-        const size_t l_lengthOfNumber = lengthOfNumber( _number );
-        char* l_buffer = ( char* )malloc( l_lengthOfNumber + 1 );
+static size_t g_seed = COMPILATION_TIME_AS_SEED;
 
-#pragma omp simd
-        for ( ssize_t _characterIndex = ( l_lengthOfNumber - 1 );
-              _characterIndex >= 0; _characterIndex-- ) {
-            l_buffer[ _characterIndex ] = ( '0' + ( _number % 10 ) );
+#undef COMPILATION_TIME_AS_SEED
 
-            _number /= 10;
-        }
-
-        l_buffer[ l_lengthOfNumber ] = '\0';
-
-        l_returnValue = l_buffer;
-    }
-
-    return ( l_returnValue );
+void randomNumber$seed$set( const size_t _seed ) {
+    g_seed = _seed;
 }
 
-// TODO: Make seed changeable
+size_t randomNumber$seed$get( void ) {
+    return ( g_seed );
+}
+
 size_t randomNumber( void ) {
     size_t l_returnValue = 0;
 
     {
-#define COMPILATION_TIME_AS_SEED                                      \
-    ( __TIME__[ 0 ] + __TIME__[ 1 ] + __TIME__[ 2 ] + __TIME__[ 3 ] + \
-      __TIME__[ 4 ] + __TIME__[ 5 ] )
+        g_seed ^= ( g_seed << 13 );
+        g_seed ^= ( g_seed >> 17 );
+        g_seed ^= ( g_seed << 5 );
 
-        static uint32_t l_seed = COMPILATION_TIME_AS_SEED;
-
-        l_seed ^= ( l_seed << 13 );
-        l_seed ^= ( l_seed >> 17 );
-        l_seed ^= ( l_seed << 5 );
-
-        l_returnValue = l_seed;
-
-#undef COMPILATION_TIME_AS_SEED
+        l_returnValue = g_seed;
     }
 
     return ( l_returnValue );
@@ -403,93 +387,3 @@ char* getApplicationDirectoryAbsolutePath( void ) {
 
     return ( l_returnValue );
 }
-
-#if 0
-enum SETTINGS_ITEM_TYPE { KEY, VALUE };
-
-void freeSettingsContent( char*** _content ) {
-#pragma omp simd
-    FOR_ARRAY( char***, _content ) {
-        free( ( *_element )[ 0 ] );
-
-        free( ( *_element )[ 1 ] );
-
-        free( ( *_element ) );
-    }
-
-    free( _content );
-}
-
-static FORCE_INLINE ssize_t findInSettings( char** const* _settings,
-                                      const char* _string,
-                                      const enum SETTINGS_ITEM_TYPE _type ) {
-    ssize_t l_index = -1;
-
-    FOR_ARRAY( char** const*, _settings ) {
-        const char* l_string = ( *_element )[ _type ];
-
-        if ( strcmp( l_string, _string ) == 0 ) {
-            l_index = ( _element - arrayFirstElementPointer( _settings ) + 1 );
-
-            break;
-        }
-    }
-
-    return ( l_index );
-}
-
-FORCE_INLINE ssize_t findKeyInSettings( char*** _settings, const char* _key ) {
-    return ( findInSettings( _settings, _key, KEY ) );
-}
-
-FORCE_INLINE ssize_t findValueInSettings( char*** _settings, const char* _value ) {
-    return ( findInSettings( _settings, _value, VALUE ) );
-}
-
-FORCE_INLINE bool containsKeyInSettings( char*** _settings, const char* _value ) {
-    return ( findKeyInSettings( _settings, _value ) >= 0 );
-}
-
-char*** getLabelFromSettingsOrDefault( const char* _label,
-                                       const char* _default ) {
-    char*** l_returnValue = NULL;
-
-    if ( LIKELY(_useCallback( "core$getSettingsContentByLabel", &l_returnValue,
-                       _label ) != 0 )) {
-        _useCallback( "core$readSettingsFromString", _default );
-
-        _useCallback( "core$getSettingsContentByLabel", &l_returnValue,
-                      _label );
-    }
-
-    return ( l_returnValue );
-}
-
-char* getKeyFromSettingsOrDefault( const char* _label,
-                                   const char* _key,
-                                   const char* _default ) {
-    char* l_returnValue = NULL;
-    char*** l_settings;
-
-    if ( LIKELY(_useCallback( "core$getSettingsContentByLabel", &l_settings,
-                       _label ) == 0 )) {
-        const ssize_t l_settingIndex = findKeyInSettings( l_settings, _key );
-
-        // Has such key
-        if ( l_settingIndex >= 0 ) {
-            l_returnValue = duplicateString( l_settings[ l_settingIndex ][ 1 ] );
-
-            freeSettingsContent( l_settings );
-
-        } else {
-            // Add key
-            _useCallback( "core$changeSettingsKeyByLabel", _key, _label,
-                          _default );
-
-            l_returnValue = duplicateString( _default );
-        }
-    }
-
-    return ( l_returnValue );
-}
-#endif

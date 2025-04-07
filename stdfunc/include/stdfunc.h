@@ -49,12 +49,12 @@
     for ( _type _index = _start; _index < _end; _index++ )
 
 // Non-native array free every element
-#define FREE_ARRAY( _type, _array )  \
-    do {                             \
-        FOR_ARRAY( _type, _array ) { \
-            free( *_element );       \
-        }                            \
-        free( _array );              \
+#define FREE_ARRAY( _array )                    \
+    do {                                        \
+        FOR_ARRAY( typeof( _array ), _array ) { \
+            free( *_element );                  \
+        }                                       \
+        free( _array );                         \
     } while ( 0 )
 
 // Utility functions ( no side-effects )
@@ -91,27 +91,8 @@ static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
     return ( l_length );
 }
 
-static FORCE_INLINE size_t power( size_t _base, uint8_t _exponent ) {
-    size_t l_returnValue = 1;
-
-    for ( ;; ) {
-        if ( _exponent & 1 ) {
-            l_returnValue *= _base;
-        }
-
-        _exponent >>= 1;
-
-        if ( UNLIKELY( !_exponent ) ) {
-            break;
-        }
-
-        _base *= _base;
-    }
-
-    return ( l_returnValue );
-}
-
-char* convertNumberToString( size_t _number );
+void randomNumber$seed$set( const size_t _seed );
+size_t randomNumber$seed$get( void );
 size_t randomNumber( void );
 char* duplicateString( const char* _string );
 ssize_t findSymbolInString( const char* _string, const char _symbol );
@@ -236,14 +217,3 @@ static FORCE_INLINE bool _contains( const size_t* _array,
 
 // Utility OS specific functions ( no side-effects )
 char* getApplicationDirectoryAbsolutePath( void );
-
-#if 0
-void freeSettingsContent( char*** _content );
-ssize_t findKeyInSettings( char*** _settings, const char* _key );
-ssize_t findValueInSettings( char*** _settings, const char* _value );
-char*** getLabelFromSettingsOrDefault( const char* _label,
-                                       const char* _default );
-char* getKeyFromSettingsOrDefault( const char* _label,
-                                   const char* _key,
-                                   const char* _default );
-#endif

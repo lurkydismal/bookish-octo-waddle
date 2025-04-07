@@ -1,5 +1,6 @@
 #include <glad/gl.h>
 
+#include "FPS.h"
 #include "asset_t.h"
 #include "callbacks.h"
 #include "log.h"
@@ -13,8 +14,6 @@
 
 #define SETTINGS_FILE_NAME "settings"
 #define SETTINGS_FILE_EXTENSION "ini"
-
-#define WINDOW_NAME "Gamuingu"
 
 // TODO: Comment
 callbackResult_t init( applicationState_t* _applicationState ) {
@@ -67,7 +66,10 @@ callbackResult_t init( applicationState_t* _applicationState ) {
                 log$transaction$query( ( logLevel_t )error,
                                        "Loading settings\n" );
 
-                goto EXIT;
+                log$transaction$query( ( logLevel_t )info,
+                                       "Loading default settings\n" );
+
+                _applicationState->settings = settings_t$create();
             }
         }
 
@@ -80,11 +82,10 @@ callbackResult_t init( applicationState_t* _applicationState ) {
                 goto EXIT;
             }
 
-            // TODO: Change this
-            _applicationState->window =
-                glfwCreateWindow( _applicationState->settings.window.width,
-                                  _applicationState->settings.window.height,
-                                  WINDOW_NAME, NULL, NULL );
+            _applicationState->window = glfwCreateWindow(
+                _applicationState->settings.window.width,
+                _applicationState->settings.window.height,
+                _applicationState->settings.window.name, NULL, NULL );
 
             if ( UNLIKELY( !_applicationState->window ) ) {
                 log$transaction$query( ( logLevel_t )error,
@@ -106,9 +107,28 @@ callbackResult_t init( applicationState_t* _applicationState ) {
                 GLAD_VERSION_MINOR( _applicationState->version ) );
         }
 
-        // TODO: Change this
-        // Turn on Vsync
-        glfwSwapInterval( 1 );
+        // Vsync
+        {
+            if ( UNLIKELY( !vsync$init(
+                     _applicationState->settings.window.vsync,
+                     _applicationState->settings.window.desiredFPS ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing Vsync\n" );
+
+                goto EXIT;
+            }
+        }
+
+        // FPS
+        {
+            if ( UNLIKELY( !FPS$init(
+                     &( _applicationState->totalFramesRendered ) ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing FPS\n" );
+
+                goto EXIT;
+            }
+        }
 
         l_returnValue = ( callbackResult_t )remain;
     }

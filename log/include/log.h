@@ -1,5 +1,6 @@
 #pragma once
 
+#include <pthread.h>
 #include <stdbool.h>
 #include <stddef.h>
 
@@ -30,8 +31,8 @@
 #if defined( DEBUG )
 
 #define DEBUG_INFORMATION_FORMAT \
-    "File '%s': line %u in function '%s' | Message: "
-#define DEBUG_INFORMATION_TO_PRINT __FILE__, __LINE__, __func__
+    "Thread %lu: File '%s': line %u in function '%s' | Message: "
+#define DEBUG_INFORMATION_TO_PRINT pthread_self(), __FILE__, __LINE__, __func__
 
 #define log$transaction$query$format( _logLevel, _format, ... )      \
     _log$transaction$query$format( _logLevel,                        \
@@ -44,14 +45,14 @@
 
 #endif
 
-typedef enum { debug, info, warn, error, unknown } logLevel_t;
+typedef enum { debug, info, warn, error, unknownLogLevel } logLevel_t;
 
 bool log$init( const char* _fileName,
                const char* _fileExtension,
                const size_t _maxTransactionSize );
 bool log$quit( void );
 
-bool log$level$set( logLevel_t _logLevel );
+bool log$level$set( const logLevel_t _logLevel );
 bool log$level$set$string( const char* _string );
 
 logLevel_t log$level$get( void );

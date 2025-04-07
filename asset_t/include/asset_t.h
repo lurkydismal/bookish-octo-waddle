@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#define DEFAULT_ASSET { NULL, 0 }
+#define DEFAULT_ASSET { .data = NULL, .size = 0 }
 
 typedef struct {
     uint8_t* data;

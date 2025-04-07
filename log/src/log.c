@@ -1,6 +1,7 @@
 #include "log.h"
 
 #include <fcntl.h>
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,13 +9,16 @@
 
 #include "stdfunc.h"
 
+// TODO: Store debug level for each query and log it
+
+static pthread_mutex_t g_transactionMutex = PTHREAD_MUTEX_INITIALIZER;
 static int g_fileDescriptor;
 static char* g_transactionString;
 static ssize_t g_transactionSize = 0;
 static size_t g_maxTransactionSize;
 static logLevel_t g_currentLogLevel = LOG_LEVEL_DEFAULT;
 
-static const char* log$level$convert$toString( logLevel_t _logLevel ) {
+static const char* log$level$convert$toString( const logLevel_t _logLevel ) {
     switch ( _logLevel ) {
         case ( logLevel_t )debug: {
             return ( LOG_LEVEL_AS_STRING_DEBUG );
@@ -40,7 +44,7 @@ static const char* log$level$convert$toString( logLevel_t _logLevel ) {
 
 static logLevel_t log$level$convert$fromString( const char* _string ) {
     if ( UNLIKELY( !_string ) ) {
-        return ( logLevel_t )unknown;
+        return ( logLevel_t )unknownLogLevel;
     }
 
     if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_DEBUG ) == 0 ) {
@@ -56,11 +60,11 @@ static logLevel_t log$level$convert$fromString( const char* _string ) {
         return ( ( logLevel_t )error );
 
     } else {
-        return ( ( logLevel_t )unknown );
+        return ( ( logLevel_t )unknownLogLevel );
     }
 }
 
-static const char* log$level$convert$toColor( logLevel_t _logLevel ) {
+static const char* log$level$convert$toColor( const logLevel_t _logLevel ) {
     switch ( _logLevel ) {
         case ( logLevel_t )debug: {
             return ( LOG_COLOR_DEBUG );
@@ -123,7 +127,8 @@ bool log$init( const char* _fileName,
             // 6 - Read & Write for owner
             // 4 - Read for group members
             // 4 - Read for others
-            g_fileDescriptor = open( l_filePath, O_WRONLY | O_CREAT, 0644 );
+            g_fileDescriptor =
+                open( l_filePath, O_WRONLY | O_TRUNC | O_CREAT, 0644 );
 
             free( l_filePath );
 
@@ -158,11 +163,13 @@ bool log$quit( void ) {
     bool l_returnValue = false;
 
     {
+        free( g_transactionString );
+
+        pthread_mutex_destroy( &g_transactionMutex );
+
         if ( UNLIKELY( close( g_fileDescriptor ) == -1 ) ) {
             goto EXIT;
         }
-
-        free( g_transactionString );
 
         l_returnValue = true;
     }
@@ -171,7 +178,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool log$level$set( logLevel_t _logLevel ) {
+bool log$level$set( const logLevel_t _logLevel ) {
     bool l_returnValue = false;
 
     {
@@ -219,11 +226,17 @@ bool log$transaction$query( const logLevel_t _logLevel, const char* _string ) {
         goto EXIT;
     }
 
-    const size_t l_stringLength = __builtin_strlen( _string );
+    size_t l_stringLength = __builtin_strlen( _string );
 
     if ( UNLIKELY( ( g_transactionSize + l_stringLength ) >
                    g_maxTransactionSize ) ) {
-        goto EXIT;
+        l_stringLength = ( g_maxTransactionSize - g_transactionSize );
+
+#if defined( DEBUG )
+
+        l_stringLength--;
+
+#endif
     }
 
     {
@@ -232,12 +245,24 @@ bool log$transaction$query( const logLevel_t _logLevel, const char* _string ) {
 
         g_transactionSize += l_stringLength;
 
+#if defined( DEBUG )
+
+        g_transactionString[ g_transactionSize ] = '\0';
+
+#endif
+
         l_returnValue = true;
     }
 
 #if defined( DEBUG )
 
     log$transaction$commit();
+
+#else
+
+    if ( _logLevel == ( logLevel_t )error ) {
+        log$transaction$commit();
+    }
 
 #endif
 
@@ -263,8 +288,10 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
 
         va_start( l_arguments, _format );
 
-        const ssize_t l_writtenCount = vsprintf(
-            ( g_transactionString + g_transactionSize ), _format, l_arguments );
+        const ssize_t l_writtenCount =
+            vsnprintf( ( g_transactionString + g_transactionSize ),
+                       ( g_maxTransactionSize - g_transactionSize ), _format,
+                       l_arguments );
 
         va_end( l_arguments );
 
@@ -280,6 +307,12 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
 #if defined( DEBUG )
 
     log$transaction$commit();
+
+#else
+
+    if ( _logLevel == ( logLevel_t )error ) {
+        log$transaction$commit();
+    }
 
 #endif
 
@@ -319,7 +352,7 @@ bool log$transaction$commit( void ) {
                   1 + __builtin_strlen( COLOR_RESET ) * sizeof( char ) + 1 +
                   arrayLengthNative( l_logSignature ) + g_transactionSize + 1 );
 
-            // TODO: Limit scope for allocated variable
+            // TODO: Reduce free() count to 1 for this variable
             char* l_buffer = ( char* )malloc( l_bufferLength * sizeof( char ) );
 
             {
@@ -358,8 +391,8 @@ bool log$transaction$commit( void ) {
 #endif
     }
 
-EXIT:
     g_transactionSize = 0;
 
+EXIT:
     return ( l_returnValue );
 }

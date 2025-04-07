@@ -9,6 +9,10 @@
 settings_t settings_t$create( void ) {
     settings_t l_returnValue = DEFAULT_SETTINGS;
 
+    {
+        l_returnValue.window = window_t$create();
+    }
+
     return ( l_returnValue );
 }
 
@@ -94,7 +98,13 @@ bool settings_t$load( settings_t* _settings,
                         const char* l_key = l_keyAndValue[ 1 ];
                         const char* l_value = l_keyAndValue[ 2 ];
 
-                        if ( __builtin_strcmp( l_key, "window_width" ) == 0 ) {
+                        if ( __builtin_strcmp( l_key, "window_name" ) == 0 ) {
+                            free( l_settings.window.name );
+
+                            l_settings.window.name = duplicateString( l_value );
+
+                        } else if ( __builtin_strcmp( l_key, "window_width" ) ==
+                                    0 ) {
                             l_settings.window.width = atoi( l_value );
 
                         } else if ( __builtin_strcmp( l_key,
@@ -116,11 +126,11 @@ bool settings_t$load( settings_t* _settings,
                         }
 
                     LOOP_CONTINUE:
-                        FREE_ARRAY( char**, l_keyAndValue );
+                        FREE_ARRAY( l_keyAndValue );
                     }
                 }
 
-                FREE_ARRAY( char**, l_lines );
+                FREE_ARRAY( l_lines );
             }
 
             l_returnValue = asset_t$unload( &l_settingsAsset );
@@ -153,6 +163,10 @@ bool settings_t$unload( settings_t* _settings ) {
     }
 
     {
+        if ( !window_t$destroy( &( _settings->window ) ) ) {
+            goto EXIT;
+        }
+
         l_returnValue = true;
     }
 

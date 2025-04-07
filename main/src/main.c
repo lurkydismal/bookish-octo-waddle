@@ -50,7 +50,7 @@ void* limitedIterate( void* _data ) {
         ONE_SECOND_IN_MILLISECONDS /
         g_applicationState.settings.limitedLoopDesiredFPS );
 
-    while ( UNLIKELY( !glfwWindowShouldClose( g_applicationState.window ) ) ) {
+    while ( LIKELY( !glfwWindowShouldClose( g_applicationState.window ) ) ) {
         {
             clock_gettime( CLOCK_MONOTONIC, &l_startTime );
 
@@ -117,47 +117,31 @@ int main( void ) {
         }
 
         // Unlimited iteration
-        struct timespec l_sleepTime, l_startTime, l_endTime,
-            l_adjustedSleepTime;
+        {
+            while ( LIKELY(
+                !glfwWindowShouldClose( g_applicationState.window ) ) ) {
+                if ( !vsync$begin() ) {
+                    l_callbackResult = ( callbackResult_t )failure;
 
-        l_sleepTime.tv_sec = 0;
-        l_sleepTime.tv_nsec = MILLISECONDS_TO_NANOSECONDS(
-            ONE_SECOND_IN_MILLISECONDS /
-            g_applicationState.settings.window.desiredFPS );
-
-        while (
-            UNLIKELY( !glfwWindowShouldClose( g_applicationState.window ) ) ) {
-            {
-                clock_gettime( CLOCK_MONOTONIC, &l_startTime );
+                    goto LOOP_CONTINUE;
+                }
 
                 l_callbackResult = iterate$unlimited( &g_applicationState );
 
-                clock_gettime( CLOCK_MONOTONIC, &l_endTime );
+                if ( !vsync$end() ) {
+                    l_callbackResult = ( callbackResult_t )failure;
+
+                    goto LOOP_CONTINUE;
+                }
+
+            LOOP_CONTINUE:
+                if ( UNLIKELY( l_callbackResult !=
+                               ( callbackResult_t )remain ) ) {
+                    break;
+                }
+
+                glfwPollEvents();
             }
-
-            {
-                const size_t l_iterationTimeNano =
-                    ( ( l_endTime.tv_sec - l_startTime.tv_sec ) *
-                          ( ONE_SECOND_IN_MILLISECONDS *
-                            ONE_MILLISECOND_IN_NANOSECONDS ) +
-                      ( l_endTime.tv_nsec - l_startTime.tv_nsec ) );
-
-                long long l_adjustedSleepNano =
-                    ( l_sleepTime.tv_nsec - l_iterationTimeNano );
-
-                l_adjustedSleepNano &= -( l_adjustedSleepNano > 0 );
-
-                l_adjustedSleepTime.tv_sec = 0;
-                l_adjustedSleepTime.tv_nsec = l_adjustedSleepNano;
-            }
-
-            clock_nanosleep( CLOCK_MONOTONIC, 0, &l_adjustedSleepTime, NULL );
-
-            if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
-                break;
-            }
-
-            glfwPollEvents();
         }
 
     EXIT_THREADS:

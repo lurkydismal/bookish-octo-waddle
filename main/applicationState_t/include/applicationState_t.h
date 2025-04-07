@@ -7,7 +7,11 @@
 
 #include "settings_t.h"
 
-#define DEFAULT_APPLICATION_STATE { NULL, DEFAULT_SETTINGS, 0, 60 }
+#define DEFAULT_APPLICATION_STATE   \
+    { .window = NULL,               \
+      .settings = DEFAULT_SETTINGS, \
+      .version = 0,                 \
+      .totalFramesRendered = 0 }
 
 typedef struct {
     GLFWwindow* window;

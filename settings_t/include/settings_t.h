@@ -4,7 +4,8 @@
 
 #include "window_t.h"
 
-#define DEFAULT_SETTINGS { DEFAULT_WINDOW, 60 }
+#define DEFAULT_SETTINGS \
+    { .window = DEFAULT_WINDOW, .limitedLoopDesiredFPS = 60 }
 
 // All available customization
 typedef struct {
