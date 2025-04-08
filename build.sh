@@ -62,6 +62,9 @@ export declare LIBRARIES_TO_LINK=(
     "dl"
     "mimalloc"
 )
+export declare LIBRARIES_TO_LINK_TESTS=(
+    "m"
+)
 export C_COMPILER="ccache gcc"
 export EXECUTABLE_NAME="main.out"
 export EXECUTABLE_NAME_TESTS="$EXECUTABLE_NAME"'_test'
@@ -236,7 +239,12 @@ if [ $BUILD_TYPE -eq 3 ]; then
             echo  -e "$PARTS_TO_BUILD_COLOR""$testsToBuildAsString""$RESET_COLOR"
         fi
 
-        $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
+        if [ ${#LIBRARIES_TO_LINK_TESTS[@]} -ne 0 ]; then
+            printf -v testsLibrariesToLinkAgainst -- "-l%s " "${LIBRARIES_TO_LINK_TESTS[@]}"
+            echo  -e "$LIBRARIES_COLOR""$testsLibrariesToLinkAgainst""$RESET_COLOR"
+        fi
+
+        $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAgainst $testsLibrariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then

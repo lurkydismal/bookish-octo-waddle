@@ -12,6 +12,7 @@ source "$SCRIPT_DIRECTORY/config.sh" && \
         "INCLUDES=$4" \
         "FILES_TO_INCLUDE=$INCLUDE_PATHS" \
         "FILES_TO_COMPILE=$COMPILE_PATHS" \
+        "C_COMPILER=$C_COMPILER" \
     && \
     mv "$OUTPUT_FILE" "$BUILD_DIRECTORY" && \
     cd $TARGET_DIRECTORY && \

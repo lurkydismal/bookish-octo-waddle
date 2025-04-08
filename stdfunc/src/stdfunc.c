@@ -130,9 +130,8 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
             goto EXIT;
         }
 
-        // If NULL is passed, only the total length is calculated and returned
-        if ( UNLIKELY( !*_string ) ) {
-            goto EXIT_SET_RETURN_VALUE_TO_TOTAL_LENGTH;
+        if ( UNLIKELY( !_string ) ) {
+            goto EXIT;
         }
 
         {
@@ -172,7 +171,6 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
             ( *_string )[ l_totalLength ] = '\0';
         }
 
-    EXIT_SET_RETURN_VALUE_TO_TOTAL_LENGTH:
         l_returnValue = l_totalLength;
     }
 

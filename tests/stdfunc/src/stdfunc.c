@@ -1,5 +1,6 @@
 #include "stdfunc.h"
 
+#include <math.h>
 #include <omp.h>
 
 #include "test.h"
@@ -47,35 +48,22 @@ TEST( trim ) {
 TEST( lengthOfNumber ) {
 #define MAX_NUMBER 1000000000
 
+    size_t l_actualLengthFailed = 0;
+    size_t l_expectedLengthFailed = 0;
+
+#pragma omp parallel for shared( l_actualLengthFailed, l_expectedLengthFailed )
     for ( size_t _number = 0; _number < MAX_NUMBER; _number++ ) {
-        if ( _number < 10 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )1 );
+        const size_t l_actualLength = lengthOfNumber( _number );
+        const size_t l_expectedLength =
+            ( ( _number == 0 ) ? ( 1 ) : ( log10( _number ) + 1 ) );
 
-        } else if ( _number < 100 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )2 );
-
-        } else if ( _number < 1000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )3 );
-
-        } else if ( _number < 10000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )4 );
-
-        } else if ( _number < 100000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )5 );
-
-        } else if ( _number < 1000000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )6 );
-
-        } else if ( _number < 10000000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )7 );
-
-        } else if ( _number < 100000000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )8 );
-
-        } else if ( _number < 1000000000 ) {
-            ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )9 );
+        if ( l_actualLength != l_expectedLength ) {
+            l_actualLengthFailed = l_actualLength;
+            l_expectedLengthFailed = l_expectedLength;
         }
     }
+
+    ASSERT_EQ( "%lu", l_actualLengthFailed, l_expectedLengthFailed );
 
 #undef MAX_NUMBER
 }
