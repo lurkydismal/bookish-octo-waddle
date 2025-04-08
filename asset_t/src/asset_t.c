@@ -8,9 +8,6 @@
 #include "log.h"
 #include "stdfunc.h"
 
-// Max number of concurrent I/O operations
-#define QUEUE_DEPTH 8
-
 static char* g_assetsDirectory;
 
 bool asset_t$loader$init( const char* restrict _assetsDirectory ) {
@@ -110,6 +107,8 @@ bool asset_t$load( asset_t* restrict _asset, const char* restrict _path ) {
         }
 
         if ( UNLIKELY( l_fileDescriptor == -1 ) ) {
+            l_returnValue = false;
+
             log$transaction$query$format( ( logLevel_t )error,
                                           "Opening asset: '%s'\n", _path );
 
