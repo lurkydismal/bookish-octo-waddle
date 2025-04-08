@@ -40,7 +40,7 @@ size_t randomNumber( void ) {
     return ( l_returnValue );
 }
 
-char* duplicateString( const char* _string ) {
+char* duplicateString( const char* restrict _string ) {
     char* l_returnValue = NULL;
 
     if ( UNLIKELY( !_string ) ) {
@@ -57,7 +57,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-ssize_t findSymbolInString( const char* _string, const char _symbol ) {
+ssize_t findSymbolInString( const char* restrict _string, const char _symbol ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_string ) ) {
@@ -78,7 +78,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-ssize_t findLastSymbolInString( const char* _string, const char _symbol ) {
+ssize_t findLastSymbolInString( const char* restrict _string, const char _symbol ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_string ) ) {
@@ -97,17 +97,16 @@ EXIT:
     return ( l_returnValue );
 }
 
-size_t concatBeforeAndAfterString( char** _string,
-                                   const char* _beforeString,
-                                   const char* _afterString ) {
+size_t concatBeforeAndAfterString( char* restrict _string,
+                                   const char* restrict _beforeString,
+                                   const char* restrict _afterString ) {
     size_t l_returnValue = 0;
 
     {
         size_t l_stringLength = 0;
 
-        // TODO: Discover if _string check is reduntant by *_string
-        if ( LIKELY( _string ) && LIKELY( *_string ) ) {
-            l_stringLength = __builtin_strlen( *_string );
+        if ( LIKELY( _string ) ) {
+            l_stringLength = __builtin_strlen( _string );
         }
 
         size_t l_beforeStringLength = 0;
@@ -131,32 +130,32 @@ size_t concatBeforeAndAfterString( char** _string,
 
         // If NULL is passed, only the total length is calculated and returned
         if ( UNLIKELY( !_string ) ) {
-            goto EXIT;
+            goto EXIT_SET_RETURN_VALUE_TO_TOTAL_LENGTH;
         }
 
         {
             char* l_buffer;
 
-            if ( LIKELY( *_string ) ) {
+            if ( LIKELY( _string ) ) {
                 l_buffer = ( char* )malloc( l_stringLength * sizeof( char ) );
 
-                __builtin_memcpy( l_buffer, *_string, l_stringLength );
+                __builtin_memcpy( l_buffer, _string, l_stringLength );
 
-                *_string = ( char* )realloc(
-                    *_string, ( l_totalLength + 1 ) * sizeof( char ) );
+                _string = ( char* )realloc(
+                    _string, ( l_totalLength + 1 ) * sizeof( char ) );
 
             } else {
-                *_string =
+                _string =
                     ( char* )malloc( ( l_totalLength + 1 ) * sizeof( char ) );
             }
 
             if ( LIKELY( _beforeString ) ) {
-                __builtin_memcpy( *_string, _beforeString,
+                __builtin_memcpy( _string, _beforeString,
                                   l_beforeStringLength );
             }
 
-            if ( LIKELY( *_string ) ) {
-                __builtin_memcpy( ( l_beforeStringLength + *_string ), l_buffer,
+            if ( LIKELY( _string ) ) {
+                __builtin_memcpy( ( l_beforeStringLength + _string ), l_buffer,
                                   l_stringLength );
 
                 free( l_buffer );
@@ -164,13 +163,14 @@ size_t concatBeforeAndAfterString( char** _string,
 
             if ( LIKELY( _afterString ) ) {
                 __builtin_memcpy(
-                    ( l_beforeStringLength + l_stringLength + *_string ),
+                    ( l_beforeStringLength + l_stringLength + _string ),
                     _afterString, l_afterStringLegnth );
             }
 
-            ( *_string )[ l_totalLength ] = '\0';
+            ( _string )[ l_totalLength ] = '\0';
         }
 
+    EXIT_SET_RETURN_VALUE_TO_TOTAL_LENGTH:
         l_returnValue = l_totalLength;
     }
 
@@ -178,7 +178,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-char* sanitizeString( const char* _string ) {
+char* sanitizeString( const char* restrict _string ) {
     char* l_returnValue = NULL;
 
     if ( UNLIKELY( !_string ) ) {
@@ -220,7 +220,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-char** splitStringIntoArray( const char* _string, const char* _delimiter ) {
+char** splitStringIntoArray( const char* restrict _string, const char* restrict _delimiter ) {
     char** l_returnValue = ( char** )createArray( sizeof( char* ) );
 
     if ( UNLIKELY( !_string ) ) {
@@ -250,7 +250,7 @@ EXIT:
 }
 
 // TODO: Implement
-char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol ) {
+char** splitStringIntoArrayBySymbol( const char* restrict _string, const char _symbol ) {
     char l_delimiter[ 2 ] = " ";
 
     l_delimiter[ 0 ] = _symbol;
@@ -258,9 +258,9 @@ char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol ) {
     return ( splitStringIntoArray( _string, l_delimiter ) );
 }
 
-ssize_t findStringInArray( const char** _array,
+ssize_t findStringInArray( const char** restrict _array,
                            const size_t _arrayLength,
-                           const char* _value ) {
+                           const char* restrict _value ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_array ) ) {
@@ -278,7 +278,7 @@ ssize_t findStringInArray( const char** _array,
     {
         ssize_t l_index = -1;
 
-        for ( size_t _index = 0; _index < _arrayLength; _index++ ) {
+        FOR_RANGE( size_t, 0, _arrayLength ) {
             const char* l_value = _array[ _index ];
 
             if ( UNLIKELY( !l_value ) ) {
@@ -299,7 +299,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-ssize_t findInArray( const size_t* _array,
+ssize_t findInArray( const size_t* restrict _array,
                      const size_t _arrayLength,
                      const size_t _value ) {
     ssize_t l_returnValue = -1;
@@ -319,7 +319,7 @@ ssize_t findInArray( const size_t* _array,
     {
         ssize_t l_index = -1;
 
-        for ( size_t _index = 0; _index < _arrayLength; _index++ ) {
+        FOR_RANGE( size_t, 0, _arrayLength ) {
             if ( _array[ _index ] == _value ) {
                 l_index = _index;
 

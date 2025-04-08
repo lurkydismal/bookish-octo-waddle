@@ -33,9 +33,20 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 
 #if defined( DEBUG )
 
-            if ( UNLIKELY( !log$level$set( ( logLevel_t )debug ) ) ) {
-                log$transaction$query( ( logLevel_t )error,
-                                       "Setting log level to DEBUG\n" );
+            const logLevel_t l_logLevel = debug;
+
+#elif defined( PROFILE )
+
+            const logLevel_t l_logLevel = info;
+
+#endif
+
+#if ( defined( DEBUG ) || defined( PROFILE ) )
+
+            if ( UNLIKELY( !log$level$set( l_logLevel ) ) ) {
+                log$transaction$query$format(
+                    ( logLevel_t )error, "Setting log level to %s\n",
+                    log$level$convert$toString( l_logLevel ) );
 
                 goto EXIT;
             }

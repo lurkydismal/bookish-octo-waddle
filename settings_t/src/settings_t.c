@@ -37,9 +37,9 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool settings_t$load( settings_t* _settings,
-                      const char* _fileName,
-                      const char* _fileExtension ) {
+bool settings_t$load( settings_t* restrict _settings,
+                      const char* restrict _fileName,
+                      const char* restrict _fileExtension ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_settings ) ) {
@@ -57,11 +57,20 @@ bool settings_t$load( settings_t* _settings,
             {
                 char* l_filePath = duplicateString( "." );
 
-                concatBeforeAndAfterString( &l_filePath, _fileName,
-                                            _fileExtension );
+                l_returnValue = !!( concatBeforeAndAfterString(
+                    l_filePath, _fileName, _fileExtension ) );
+
+                if ( UNLIKELY( !l_returnValue ) ) {
+                    goto EXIT_FILE_PATH_CONCAT;
+                }
 
                 l_returnValue = asset_t$load( &l_settingsAsset, l_filePath );
 
+                if ( UNLIKELY( !l_returnValue ) ) {
+                    goto EXIT_FILE_PATH_CONCAT;
+                }
+
+            EXIT_FILE_PATH_CONCAT:
                 free( l_filePath );
             }
 

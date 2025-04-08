@@ -75,7 +75,7 @@ typedef enum {
     scroll_lock = GLFW_KEY_SCROLL_LOCK,
     num_lock = GLFW_KEY_NUM_LOCK,
     print_screen = GLFW_KEY_PRINT_SCREEN,
-    pause = GLFW_KEY_PAUSE,
+    pause_break = GLFW_KEY_PAUSE,
     f1 = GLFW_KEY_F1,
     f2 = GLFW_KEY_F2,
     f3 = GLFW_KEY_F3,

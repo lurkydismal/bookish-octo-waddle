@@ -13,7 +13,7 @@ export TESTS_DIRECTORY="$SCRIPT_DIRECTORY/$TESTS_DIRECTORY_NAME"
 # 3 - Tests
 export BUILD_TYPE=${BUILD_TYPE:-0}
 
-export BUILD_C_FLAGS="-flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
+export BUILD_C_FLAGS="-fopenmp -flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
 export BUILD_C_FLAGS_DEBUG="-Og -g"
 export BUILD_C_FLAGS_RELEASE="-Ofast -funroll-loops -fno-asynchronous-unwind-tables"
 export BUILD_C_FLAGS_PROFILE="$BUILD_C_FLAGS_RELEASE"
@@ -51,7 +51,7 @@ export declare BUILD_INCLUDES_TESTS=(
     "test/include"
 )
 
-export LINK_FLAGS="-flto -fPIC -fuse-ld=mold -Wl,-O1 -Wl,--gc-sections -Wl,--no-eh-frame-hdr"
+export LINK_FLAGS="-fopenmp -flto -fPIC -fuse-ld=mold -Wl,-O1 -Wl,--gc-sections -Wl,--no-eh-frame-hdr"
 export LINK_FLAGS_DEBUG="-g"
 export LINK_FLAGS_RELEASE="-s"
 export LINK_FLAGS_PROFILE="$LINK_FLAGS_DEBUG"

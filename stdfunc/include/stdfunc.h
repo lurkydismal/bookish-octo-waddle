@@ -58,7 +58,7 @@
     } while ( 0 )
 
 // Utility functions ( no side-effects )
-static FORCE_INLINE bool stringToBool( const char* _string ) {
+static FORCE_INLINE bool stringToBool( const char* restrict _string ) {
     if ( __builtin_strcmp( _string, "true" ) == 0 ) {
         return ( true );
 
@@ -67,7 +67,7 @@ static FORCE_INLINE bool stringToBool( const char* _string ) {
     }
 }
 
-static FORCE_INLINE void trim( char** _string,
+static FORCE_INLINE void trim( char** restrict _string,
                                const ssize_t _from,
                                const ssize_t _to ) {
     if ( UNLIKELY( _from >= 0 ) ) {
@@ -94,15 +94,15 @@ static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
 void randomNumber$seed$set( const size_t _seed );
 size_t randomNumber$seed$get( void );
 size_t randomNumber( void );
-char* duplicateString( const char* _string );
-ssize_t findSymbolInString( const char* _string, const char _symbol );
-ssize_t findLastSymbolInString( const char* _string, const char _symbol );
-size_t concatBeforeAndAfterString( char** _string,
-                                   const char* _beforeString,
-                                   const char* _afterString );
-char* sanitizeString( const char* _string );
-char** splitStringIntoArray( const char* _string, const char* _delimiter );
-char** splitStringIntoArrayBySymbol( const char* _string, const char _symbol );
+char* duplicateString( const char* restrict _string );
+ssize_t findSymbolInString( const char* restrict _string, const char _symbol );
+ssize_t findLastSymbolInString( const char* restrict _string, const char _symbol );
+size_t concatBeforeAndAfterString( char* restrict _string,
+                                   const char* restrict _beforeString,
+                                   const char* restrict _afterString );
+char* sanitizeString( const char* restrict _string );
+char** splitStringIntoArray( const char* restrict _string, const char* restrict _delimiter );
+char** splitStringIntoArrayBySymbol( const char* restrict _string, const char _symbol );
 
 static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     void** l_array = ( void** )malloc( 1 * _elementSize );
@@ -112,47 +112,39 @@ static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     return ( l_array );
 }
 
-static FORCE_INLINE void preallocateArray( void*** _array,
+static FORCE_INLINE void preallocateArray( void** restrict _array,
                                            const size_t _length ) {
     if ( UNLIKELY( !_array ) ) {
         return;
     }
 
-    if ( UNLIKELY( !*_array ) ) {
-        return;
-    }
+    const size_t l_currentArrayLength = arrayLength( _array );
 
-    const size_t l_currentArrayLength = arrayLength( *_array );
+    _array =
+        ( void** )realloc( _array, ( ( l_currentArrayLength + _length + 1 ) *
+                                      sizeof( ( _array )[ 0 ] ) ) );
 
-    *_array =
-        ( void** )realloc( *_array, ( ( l_currentArrayLength + _length + 1 ) *
-                                      sizeof( ( *_array )[ 0 ] ) ) );
-
-    *arrayLengthPointer( *_array ) =
+    *arrayLengthPointer( _array ) =
         ( size_t )( l_currentArrayLength + _length + 1 );
 }
 
-static FORCE_INLINE ssize_t insertIntoArray( void*** _array, void* _value ) {
+static FORCE_INLINE ssize_t insertIntoArray( void** restrict _array, void* restrict _value ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_array ) ) {
         goto EXIT;
     }
 
-    if ( UNLIKELY( !*_array ) ) {
-        goto EXIT;
-    }
-
     {
-        const size_t l_arrayLength = arrayLength( *_array );
+        const size_t l_arrayLength = arrayLength( _array );
         const ssize_t l_index = ( 1 + l_arrayLength );
 
-        *_array = ( void** )realloc(
-            *_array, ( l_index + 1 ) * sizeof( ( *_array )[ 0 ] ) );
+        _array = ( void** )realloc(
+            _array, ( l_index + 1 ) * sizeof( ( _array )[ 0 ] ) );
 
-        ( *_array )[ l_index ] = _value;
+        ( _array )[ l_index ] = _value;
 
-        ( *arrayLengthPointer( *_array ) )++;
+        ( *arrayLengthPointer( _array ) )++;
 
         l_returnValue = l_index;
     }
@@ -161,55 +153,55 @@ EXIT:
     return ( l_returnValue );
 }
 
-static FORCE_INLINE void insertIntoArrayByIndex( void*** _array,
+static FORCE_INLINE void insertIntoArrayByIndex( void** restrict _array,
                                                  const size_t _index,
-                                                 void* _value ) {
-    ( *_array )[ _index ] = _value;
+                                                 void* restrict _value ) {
+    _array[ _index ] = _value;
 }
 
-ssize_t findStringInArray( const char** _array,
+ssize_t findStringInArray( const char** restrict _array,
                            const size_t _arrayLength,
-                           const char* _value );
+                           const char* restrict _value );
 
-ssize_t findInArray( const size_t* _array,
+ssize_t findInArray( const size_t* restrict _array,
                      const size_t _arrayLength,
                      const size_t _value );
 
-static FORCE_INLINE bool containsString( const char** _array,
+static FORCE_INLINE bool containsString( const char** restrict _array,
                                          const size_t _arrayLength,
-                                         const char* _value ) {
+                                         const char* restrict _value ) {
     return ( findStringInArray( _array, _arrayLength, _value ) >= 0 );
 }
 
-static FORCE_INLINE bool contains( const size_t* _array,
+static FORCE_INLINE bool contains( const size_t* restrict _array,
                                    const size_t _arrayLength,
                                    const size_t _value ) {
     return ( findInArray( _array, _arrayLength, _value ) >= 0 );
 }
 
 // Utility functions ( no side-effects ) wrappers for non-naitve array
-static FORCE_INLINE ssize_t _findStringInArray( const char** _array,
-                                                const char* _value ) {
+static FORCE_INLINE ssize_t _findStringInArray( const char** restrict _array,
+                                                const char* restrict _value ) {
     return ( findStringInArray(
                  ( const char** )( arrayFirstElementPointer( _array ) ),
                  arrayLength( _array ), _value ) +
              1 );
 }
 
-static FORCE_INLINE ssize_t _findInArray( const size_t* _array,
+static FORCE_INLINE ssize_t _findInArray( const size_t* restrict _array,
                                           const size_t _value ) {
     return ( findInArray( arrayFirstElementPointer( _array ),
                           arrayLength( _array ), _value ) );
 }
 
-static FORCE_INLINE bool _containsString( const char** _array,
+static FORCE_INLINE bool _containsString( const char** restrict _array,
                                           const char* _value ) {
     return (
         containsString( ( const char** )( arrayFirstElementPointer( _array ) ),
                         arrayLength( _array ), _value ) );
 }
 
-static FORCE_INLINE bool _contains( const size_t* _array,
+static FORCE_INLINE bool _contains( const size_t* restrict _array,
                                     const size_t _value ) {
     return ( contains( arrayFirstElementPointer( _array ),
                        arrayLength( _array ), _value ) );

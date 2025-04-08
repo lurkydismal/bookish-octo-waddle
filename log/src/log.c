@@ -1,48 +1,20 @@
 #include "log.h"
 
 #include <fcntl.h>
-#include <pthread.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 
-#include "stdfunc.h"
-
 // TODO: Store debug level for each query and log it
 
-static pthread_mutex_t g_transactionMutex = PTHREAD_MUTEX_INITIALIZER;
 static int g_fileDescriptor;
 static char* g_transactionString;
 static ssize_t g_transactionSize = 0;
 static size_t g_maxTransactionSize;
 static logLevel_t g_currentLogLevel = LOG_LEVEL_DEFAULT;
 
-static const char* log$level$convert$toString( const logLevel_t _logLevel ) {
-    switch ( _logLevel ) {
-        case ( logLevel_t )debug: {
-            return ( LOG_LEVEL_AS_STRING_DEBUG );
-        }
-
-        case ( logLevel_t )info: {
-            return ( LOG_LEVEL_AS_STRING_INFO );
-        }
-
-        case ( logLevel_t )warn: {
-            return ( LOG_LEVEL_AS_STRING_WARN );
-        }
-
-        case ( logLevel_t )error: {
-            return ( LOG_LEVEL_AS_STRING_ERROR );
-        }
-
-        default: {
-            return ( LOG_LEVEL_AS_STRING_UNKNOWN );
-        }
-    }
-}
-
-static logLevel_t log$level$convert$fromString( const char* _string ) {
+static logLevel_t log$level$convert$fromString( const char* restrict _string ) {
     if ( UNLIKELY( !_string ) ) {
         return ( logLevel_t )unknownLogLevel;
     }
@@ -88,8 +60,69 @@ static const char* log$level$convert$toColor( const logLevel_t _logLevel ) {
     }
 }
 
-bool log$init( const char* _fileName,
-               const char* _fileExtension,
+static size_t log$level$prependToString( char* restrict _string,
+                                         const logLevel_t _logLevel ) {
+    size_t l_returnValue = 0;
+
+    {
+        // TODO: Discover if _string check is reduntant by *_string
+        if ( UNLIKELY( !_string ) ) {
+            goto EXIT;
+        }
+
+        {
+            char* l_logLevelWithBrackets =
+                duplicateString( log$level$convert$toString( _logLevel ) );
+
+            printf( "TEST1:%lu\n", __builtin_strlen( l_logLevelWithBrackets ) );
+            l_returnValue =
+                concatBeforeAndAfterString( &l_logLevelWithBrackets, "[", "]" );
+            printf( "TEST2:%lu %lu\n", l_returnValue,
+                    __builtin_strlen( l_logLevelWithBrackets ) );
+
+            if ( !l_returnValue ) {
+                goto EXIT_PREPENDING;
+            }
+
+            // Colored
+            l_returnValue = concatBeforeAndAfterString(
+                &l_logLevelWithBrackets,
+                log$level$convert$toColor( g_currentLogLevel ), COLOR_RESET );
+            printf( "TEST3:%lu %lu\n", l_returnValue,
+                    __builtin_strlen( l_logLevelWithBrackets ) );
+
+            if ( !l_returnValue ) {
+                goto EXIT_PREPENDING;
+            }
+
+            l_returnValue = concatBeforeAndAfterString( &_string, " ", "" );
+            printf( "TEST4:%lu %lu\n", l_returnValue,
+                    __builtin_strlen( _string ) );
+
+            if ( !l_returnValue ) {
+                goto EXIT_PREPENDING;
+            }
+
+            l_returnValue = concatBeforeAndAfterString(
+                &_string, l_logLevelWithBrackets, "" );
+            printf( "TEST5:%lu %lu\n", l_returnValue,
+                    __builtin_strlen( _string ) );
+
+            if ( !l_returnValue ) {
+                goto EXIT_PREPENDING;
+            }
+
+        EXIT_PREPENDING:
+            free( l_logLevelWithBrackets );
+        }
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool log$init( const char* restrict _fileName,
+               const char* restrict _fileExtension,
                const size_t _maxTransactionSize ) {
     bool l_returnValue = false;
 
@@ -165,8 +198,6 @@ bool log$quit( void ) {
     {
         free( g_transactionString );
 
-        pthread_mutex_destroy( &g_transactionMutex );
-
         if ( UNLIKELY( close( g_fileDescriptor ) == -1 ) ) {
             goto EXIT;
         }
@@ -190,7 +221,7 @@ bool log$level$set( const logLevel_t _logLevel ) {
     return ( l_returnValue );
 }
 
-bool log$level$set$string( const char* _string ) {
+bool log$level$set$string( const char* restrict _string ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_string ) ) {
@@ -215,7 +246,8 @@ const char* log$level$get$string( void ) {
     return ( log$level$convert$toString( g_currentLogLevel ) );
 }
 
-bool log$transaction$query( const logLevel_t _logLevel, const char* _string ) {
+bool log$transaction$query( const logLevel_t _logLevel,
+                            const char* restrict _string ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_string ) ) {
@@ -271,7 +303,7 @@ EXIT:
 }
 
 bool _log$transaction$query$format( const logLevel_t _logLevel,
-                                    const char* _format,
+                                    const char* restrict _format,
                                     ... ) {
     bool l_returnValue = false;
 
@@ -300,6 +332,9 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
         }
 
         g_transactionSize += l_writtenCount;
+
+        g_transactionSize += log$level$prependToString(
+            ( g_transactionString + g_transactionSize ), _logLevel );
 
         l_returnValue = true;
     }
@@ -340,47 +375,12 @@ bool log$transaction$commit( void ) {
 
         // Log to stdout
 #if defined( DEBUG )
+
         {
-            static const char l_logSignature[] = { 'L', 'O', 'G', ':' };
-
-            // 1 for [
-            // 1 for ]
-            // 1 for space
-            // 1 for new line
-            const ssize_t l_bufferLength =
-                ( LOG_COLOR_MAX_LENGTH + 1 + LOG_LEVEL_AS_STRING_MAX_LENGTH +
-                  1 + __builtin_strlen( COLOR_RESET ) * sizeof( char ) + 1 +
-                  arrayLengthNative( l_logSignature ) + g_transactionSize + 1 );
-
-            // TODO: Reduce free() count to 1 for this variable
-            char* l_buffer = ( char* )malloc( l_bufferLength * sizeof( char ) );
-
-            {
-                const char* l_logLevelColor =
-                    log$level$convert$toColor( g_currentLogLevel );
-                const char* l_logLevelAsString =
-                    log$level$convert$toString( g_currentLogLevel );
-
-                __builtin_snprintf( l_buffer, l_bufferLength, "%s[%s]%s %s",
-                                    l_logLevelColor, l_logLevelAsString,
-                                    COLOR_RESET, g_transactionString );
-            }
-
             const ssize_t l_writtenCount =
-                write( STDOUT_FILENO, l_buffer, __builtin_strlen( l_buffer ) );
+                write( STDOUT_FILENO, g_transactionString, g_transactionSize );
 
-            if ( UNLIKELY( !l_writtenCount ) ) {
-                free( l_buffer );
-
-                l_returnValue = false;
-
-                goto EXIT;
-            }
-
-            l_returnValue =
-                ( ( size_t )l_writtenCount == __builtin_strlen( l_buffer ) );
-
-            free( l_buffer );
+            l_returnValue = ( l_writtenCount == g_transactionSize );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;

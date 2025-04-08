@@ -13,7 +13,7 @@
 
 static char* g_assetsDirectory;
 
-bool asset_t$loader$init( const char* _assetsDirectory ) {
+bool asset_t$loader$init( const char* restrict _assetsDirectory ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_assetsDirectory ) ) {
@@ -26,9 +26,14 @@ bool asset_t$loader$init( const char* _assetsDirectory ) {
         {
             char* l_directoryPath = getApplicationDirectoryAbsolutePath();
 
-            concatBeforeAndAfterString( &l_assetsDirectory, l_directoryPath,
-                                        "/" );
+            l_returnValue = !!( concatBeforeAndAfterString(
+                l_assetsDirectory, l_directoryPath, "/" ) );
 
+            if ( !l_returnValue ) {
+                goto EXIT_DIRECTORY_PATH_CONCAT;
+            }
+
+        EXIT_DIRECTORY_PATH_CONCAT:
             free( l_directoryPath );
         }
 
@@ -59,7 +64,7 @@ asset_t asset_t$create( void ) {
     return ( l_returnValue );
 }
 
-bool asset_t$destroy( asset_t* _asset ) {
+bool asset_t$destroy( asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_asset ) ) {
@@ -74,7 +79,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool asset_t$load( asset_t* _asset, const char* _path ) {
+bool asset_t$load( asset_t* restrict _asset, const char* restrict _path ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_asset ) ) {
@@ -86,13 +91,23 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
     }
 
     {
-        char* l_path = duplicateString( _path );
+        int l_fileDescriptor = -1;
 
-        concatBeforeAndAfterString( &l_path, g_assetsDirectory, NULL );
+        {
+            char* l_path = duplicateString( _path );
 
-        int l_fileDescriptor = open( l_path, O_RDONLY );
+            l_returnValue = !!(
+                concatBeforeAndAfterString( l_path, g_assetsDirectory, NULL ) );
 
-        free( l_path );
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_ASSET_PATH_CONCAT;
+            }
+
+            l_fileDescriptor = open( l_path, O_RDONLY );
+
+        EXIT_ASSET_PATH_CONCAT:
+            free( l_path );
+        }
 
         if ( UNLIKELY( l_fileDescriptor == -1 ) ) {
             log$transaction$query$format( ( logLevel_t )error,
@@ -104,6 +119,7 @@ bool asset_t$load( asset_t* _asset, const char* _path ) {
         {
             // Get file size
             off_t l_fileSize = lseek( l_fileDescriptor, 0, SEEK_END );
+
             lseek( l_fileDescriptor, 0, SEEK_SET );
 
             _asset->data = ( uint8_t* )malloc( l_fileSize );
@@ -129,7 +145,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool asset_t$unload( asset_t* _asset ) {
+bool asset_t$unload( asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_asset ) ) {
