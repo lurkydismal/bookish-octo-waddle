@@ -60,7 +60,7 @@ static const char* log$level$convert$toColor( const logLevel_t _logLevel ) {
     }
 }
 
-static size_t log$level$prependToString( char* restrict _string,
+static size_t log$level$prependToString( char* restrict* restrict _string,
                                          const logLevel_t _logLevel ) {
     size_t l_returnValue = 0;
 
@@ -74,11 +74,8 @@ static size_t log$level$prependToString( char* restrict _string,
             char* l_logLevelWithBrackets =
                 duplicateString( log$level$convert$toString( _logLevel ) );
 
-            printf( "TEST1:%lu\n", __builtin_strlen( l_logLevelWithBrackets ) );
             l_returnValue =
                 concatBeforeAndAfterString( &l_logLevelWithBrackets, "[", "]" );
-            printf( "TEST2:%lu %lu\n", l_returnValue,
-                    __builtin_strlen( l_logLevelWithBrackets ) );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
@@ -88,25 +85,19 @@ static size_t log$level$prependToString( char* restrict _string,
             l_returnValue = concatBeforeAndAfterString(
                 &l_logLevelWithBrackets,
                 log$level$convert$toColor( g_currentLogLevel ), COLOR_RESET );
-            printf( "TEST3:%lu %lu\n", l_returnValue,
-                    __builtin_strlen( l_logLevelWithBrackets ) );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
             }
 
-            l_returnValue = concatBeforeAndAfterString( &_string, " ", "" );
-            printf( "TEST4:%lu %lu\n", l_returnValue,
-                    __builtin_strlen( _string ) );
+            l_returnValue = concatBeforeAndAfterString( _string, " ", "" );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
             }
 
             l_returnValue = concatBeforeAndAfterString(
-                &_string, l_logLevelWithBrackets, "" );
-            printf( "TEST5:%lu %lu\n", l_returnValue,
-                    __builtin_strlen( _string ) );
+                _string, l_logLevelWithBrackets, "" );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
@@ -278,13 +269,18 @@ bool log$transaction$query( const logLevel_t _logLevel,
 
 #if defined( DEBUG )
 
+        // '\0'
         l_stringLength--;
 
 #endif
     }
 
     {
-        __builtin_memcpy( ( g_transactionString + g_transactionSize ), _string,
+        char* l_string = duplicateString( _string );
+
+        l_stringLength = log$level$prependToString( &l_string, _logLevel );
+
+        __builtin_memcpy( ( g_transactionString + g_transactionSize ), l_string,
                           l_stringLength );
 
         g_transactionSize += l_stringLength;
@@ -294,6 +290,8 @@ bool log$transaction$query( const logLevel_t _logLevel,
         g_transactionString[ g_transactionSize ] = '\0';
 
 #endif
+
+        free( l_string );
 
         l_returnValue = true;
     }
@@ -345,8 +343,30 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
 
         g_transactionSize += l_writtenCount;
 
-        g_transactionSize += log$level$prependToString(
-            ( g_transactionString + g_transactionSize ), _logLevel );
+        // Now prepend the log level to the formatted string
+        char* l_logLevelString =
+            duplicateString( log$level$convert$toString( _logLevel ) );
+        size_t l_logLevelLength = __builtin_strlen( l_logLevelString );
+
+        // Prepend the log level to the formatted message
+        size_t l_newLength = l_logLevelLength + l_writtenCount;
+
+        if ( l_newLength <= g_maxTransactionSize ) {
+            // Move the formatted string to make space for the log level
+            __builtin_memmove(
+                g_transactionString + l_logLevelLength,
+                g_transactionString + g_transactionSize - l_writtenCount,
+                l_writtenCount );
+
+            // Copy the log level string to the start of the transaction string
+            __builtin_memcpy( g_transactionString, l_logLevelString,
+                              l_logLevelLength );
+
+            g_transactionSize = l_newLength;
+        }
+
+        // Free the memory used by the log level string
+        free( l_logLevelString );
 
         l_returnValue = true;
     }
