@@ -96,13 +96,16 @@ size_t randomNumber$seed$get( void );
 size_t randomNumber( void );
 char* duplicateString( const char* restrict _string );
 ssize_t findSymbolInString( const char* restrict _string, const char _symbol );
-ssize_t findLastSymbolInString( const char* restrict _string, const char _symbol );
-size_t concatBeforeAndAfterString( char* restrict _string,
+ssize_t findLastSymbolInString( const char* restrict _string,
+                                const char _symbol );
+size_t concatBeforeAndAfterString( char* restrict* restrict _string,
                                    const char* restrict _beforeString,
                                    const char* restrict _afterString );
 char* sanitizeString( const char* restrict _string );
-char** splitStringIntoArray( const char* restrict _string, const char* restrict _delimiter );
-char** splitStringIntoArrayBySymbol( const char* restrict _string, const char _symbol );
+char** splitStringIntoArray( const char* restrict _string,
+                             const char* restrict _delimiter );
+char** splitStringIntoArrayBySymbol( const char* restrict _string,
+                                     const char _symbol );
 
 static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     void** l_array = ( void** )malloc( 1 * _elementSize );
@@ -112,51 +115,54 @@ static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     return ( l_array );
 }
 
-static FORCE_INLINE void preallocateArray( void** restrict _array,
+static FORCE_INLINE void preallocateArray( void*** restrict _array,
                                            const size_t _length ) {
     if ( UNLIKELY( !_array ) ) {
         return;
     }
 
-    const size_t l_currentArrayLength = arrayLength( _array );
+    if ( UNLIKELY( !*_array ) ) {
+        return;
+    }
 
-    _array =
-        ( void** )realloc( _array, ( ( l_currentArrayLength + _length + 1 ) *
-                                      sizeof( ( _array )[ 0 ] ) ) );
+    const size_t l_currentArrayLength = arrayLength( *_array );
 
-    *arrayLengthPointer( _array ) =
+    *_array =
+        ( void** )realloc( *_array, ( ( l_currentArrayLength + _length + 1 ) *
+                                      sizeof( ( *_array )[ 0 ] ) ) );
+
+    *arrayLengthPointer( *_array ) =
         ( size_t )( l_currentArrayLength + _length + 1 );
 }
 
-static FORCE_INLINE ssize_t insertIntoArray( void** restrict _array, void* restrict _value ) {
+static FORCE_INLINE ssize_t insertIntoArray( void*** restrict _array,
+                                             void* restrict _value ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_array ) ) {
         goto EXIT;
     }
 
+    if ( UNLIKELY( !*_array ) ) {
+        goto EXIT;
+    }
+
     {
-        const size_t l_arrayLength = arrayLength( _array );
+        const size_t l_arrayLength = arrayLength( *_array );
         const ssize_t l_index = ( 1 + l_arrayLength );
 
-        _array = ( void** )realloc(
-            _array, ( l_index + 1 ) * sizeof( ( _array )[ 0 ] ) );
+        *_array = ( void** )realloc(
+            *_array, ( l_index + 1 ) * sizeof( ( *_array )[ 0 ] ) );
 
-        ( _array )[ l_index ] = _value;
+        ( *_array )[ l_index ] = _value;
 
-        ( *arrayLengthPointer( _array ) )++;
+        ( *arrayLengthPointer( *_array ) )++;
 
         l_returnValue = l_index;
     }
 
 EXIT:
     return ( l_returnValue );
-}
-
-static FORCE_INLINE void insertIntoArrayByIndex( void** restrict _array,
-                                                 const size_t _index,
-                                                 void* restrict _value ) {
-    _array[ _index ] = _value;
 }
 
 ssize_t findStringInArray( const char** restrict _array,
@@ -195,7 +201,7 @@ static FORCE_INLINE ssize_t _findInArray( const size_t* restrict _array,
 }
 
 static FORCE_INLINE bool _containsString( const char** restrict _array,
-                                          const char* _value ) {
+                                          const char* restrict _value ) {
     return (
         containsString( ( const char** )( arrayFirstElementPointer( _array ) ),
                         arrayLength( _array ), _value ) );

@@ -58,7 +58,7 @@ bool settings_t$load( settings_t* restrict _settings,
                 char* l_filePath = duplicateString( "." );
 
                 l_returnValue = !!( concatBeforeAndAfterString(
-                    l_filePath, _fileName, _fileExtension ) );
+                    &l_filePath, _fileName, _fileExtension ) );
 
                 if ( UNLIKELY( !l_returnValue ) ) {
                     goto EXIT_FILE_PATH_CONCAT;

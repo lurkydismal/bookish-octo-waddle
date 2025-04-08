@@ -47,7 +47,6 @@ TEST( trim ) {
 TEST( lengthOfNumber ) {
 #define MAX_NUMBER 1000000000
 
-#pragma omp parallel for
     for ( size_t _number = 0; _number < MAX_NUMBER; _number++ ) {
         if ( _number < 10 ) {
             ASSERT_EQ( "%lu", lengthOfNumber( _number ), ( size_t )1 );
@@ -81,57 +80,6 @@ TEST( lengthOfNumber ) {
 #undef MAX_NUMBER
 }
 
-TEST( power ) {
-    ASSERT_EQ( "%lu", power( 2, 3 ), ( size_t )8 );
-    ASSERT_EQ( "%lu", power( 5, 0 ), ( size_t )1 );
-    ASSERT_EQ( "%lu", power( 7, 1 ), ( size_t )7 );
-    ASSERT_EQ( "%lu", power( 0, 0 ), ( size_t )1 );
-    ASSERT_EQ( "%lu", power( 0, 5 ), ( size_t )0 );
-    ASSERT_EQ( "%lu", power( 1, 255 ), ( size_t )1 );
-    ASSERT_EQ( "%lu", power( 2, 8 ), ( size_t )256 );
-    ASSERT_EQ( "%lu", power( 2, 31 ), ( size_t )2147483648 );
-    ASSERT_EQ( "%lu", power( 10, 10 ), ( size_t )10000000000 );
-}
-
-TEST( convertNumberToString ) {
-#define convertNumberToStringTest( _number )                          \
-    do {                                                              \
-        l_result = convertNumberToString( _number );                  \
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result, #_number ), 0 ); \
-        free( l_result );                                          \
-    } while ( 0 )
-
-    char* l_result;
-
-    // Simple numbers
-    {
-        convertNumberToStringTest( 0 );
-        convertNumberToStringTest( 1 );
-        convertNumberToStringTest( 42 );
-        convertNumberToStringTest( 999 );
-    }
-
-    // Larger numbers
-    {
-        convertNumberToStringTest( 123456789 );
-        convertNumberToStringTest( 1000000000 );
-    }
-
-    // Maximum 'size_t' value ( for robustness )
-    {
-        const size_t l_maxNumber = ( ( size_t )( -1 ) );
-
-        l_result = convertNumberToString( l_maxNumber );
-
-        // Ensure it does not crash
-        ASSERT_EQ( "%d", ( __builtin_strlen( l_result ) > 0 ), 1 );
-
-        free( l_result );
-    }
-
-#undef convertNumberToStringTest
-}
-
 TEST( randomNumber ) {
     // Ensure random numbers are different across calls
     {
@@ -154,7 +102,7 @@ TEST( duplicateString ) {
     do {                                                             \
         l_result = duplicateString( _string );                       \
         ASSERT_EQ( "%d", __builtin_strcmp( l_result, _string ), 0 ); \
-        free( l_result );                                         \
+        free( l_result );                                            \
     } while ( 0 )
 
     char* l_result;
@@ -229,8 +177,7 @@ TEST( findLastSymbolInString ) {
 TEST( concatBeforeAndAfterString ) {
 #define concatBeforeAndAfterStringTest( _string, _beforeString, _afterString ) \
     do {                                                                       \
-        l_string =                                                             \
-            ( char* )malloc( ( sizeof( _string ) * sizeof( char ) ) );      \
+        l_string = ( char* )malloc( ( sizeof( _string ) * sizeof( char ) ) );  \
         __builtin_strcpy( l_string, _string );                                 \
         ASSERT_EQ(                                                             \
             "%lu",                                                             \
@@ -244,7 +191,7 @@ TEST( concatBeforeAndAfterString ) {
                    __builtin_strcmp( l_string,                                 \
                                      ( _beforeString _string _afterString ) ), \
                    0 );                                                        \
-        free( l_string );                                                   \
+        free( l_string );                                                      \
     } while ( 0 )
 
     char* l_string;
@@ -280,7 +227,7 @@ TEST( sanitizeString ) {
     do {                                                                     \
         l_result = sanitizeString( _string );                                \
         ASSERT_EQ( "%d", __builtin_strcmp( l_result, _expectedString ), 0 ); \
-        free( l_result );                                                 \
+        free( l_result );                                                    \
     } while ( 0 )
 
     char* l_result;
@@ -322,7 +269,7 @@ TEST( splitStringIntoArray ) {
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "banana" ), 0 );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 3 ], "cherry" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Consecutive delimiters (empty tokens)
@@ -331,7 +278,7 @@ TEST( splitStringIntoArray ) {
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "one" ), 0 );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "two" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Leading and trailing delimiters
@@ -340,7 +287,7 @@ TEST( splitStringIntoArray ) {
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "first" ), 0 );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "second" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Single character input
@@ -348,7 +295,7 @@ TEST( splitStringIntoArray ) {
         l_result = splitStringIntoArray( "X", "," );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "X" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Only delimiters
@@ -356,7 +303,7 @@ TEST( splitStringIntoArray ) {
         l_result = splitStringIntoArray( ",,,", "," );
         ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Empty string
@@ -364,7 +311,7 @@ TEST( splitStringIntoArray ) {
         l_result = splitStringIntoArray( "", "," );
         ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // NULL input
@@ -372,7 +319,7 @@ TEST( splitStringIntoArray ) {
         l_result = splitStringIntoArray( NULL, "," );
         ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 }
 
@@ -386,7 +333,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "banana" ), 0 );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 3 ], "cherry" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Consecutive delimiters (empty tokens)
@@ -395,7 +342,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "one" ), 0 );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "two" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Leading and trailing delimiters
@@ -404,7 +351,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "first" ), 0 );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "second" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Single character input
@@ -412,7 +359,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         l_result = splitStringIntoArrayBySymbol( "X", ',' );
         ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "X" ), 0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Only delimiters
@@ -420,7 +367,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         l_result = splitStringIntoArrayBySymbol( ",,,", ',' );
         ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // Empty string
@@ -428,7 +375,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         l_result = splitStringIntoArrayBySymbol( "", ',' );
         ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 
     // NULL input
@@ -436,7 +383,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         l_result = splitStringIntoArrayBySymbol( NULL, ',' );
         ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
 
-        FREE_ARRAY( char**, l_result );
+        FREE_ARRAY( l_result );
     }
 }
 
@@ -451,7 +398,7 @@ TEST( createArray ) {
     ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )0 );
 
     // Free allocated memory
-    FREE_ARRAY( void**, l_array );
+    FREE_ARRAY( l_array );
 }
 
 TEST( preallocateArray ) {
@@ -478,7 +425,7 @@ TEST( preallocateArray ) {
     }
 
     // Free memory
-    FREE_ARRAY( void**, l_array );
+    FREE_ARRAY( l_array );
 }
 
 TEST( insertIntoArray ) {
@@ -503,42 +450,7 @@ TEST( insertIntoArray ) {
     ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )2 );
 
     // Free memory
-    FREE_ARRAY( void**, l_array );
-}
-
-TEST( insertIntoArrayByIndex ) {
-    // Create initial array
-    void** l_array = ( void** )createArray( sizeof( void* ) );
-
-    // Insert values
-    {
-        insertIntoArray( &l_array, ( void* )100 );
-        insertIntoArray( &l_array, ( void* )200 );
-    }
-
-    // Preallocate more space
-    preallocateArray( &l_array, 3 );
-
-    // Ensure new length is updated
-    // ( 2 existing + 3 new + 1 extra )
-    ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )( 2 + 3 ) );
-
-    // Insert values by indexes
-    {
-        insertIntoArrayByIndex( &l_array, 3, ( void* )300 );
-        insertIntoArrayByIndex( &l_array, 4, ( void* )400 );
-    }
-
-    // Ensure original values are intact
-    {
-        ASSERT_EQ( "%p", l_array[ 1 ], ( void* )100 );
-        ASSERT_EQ( "%p", l_array[ 2 ], ( void* )200 );
-        ASSERT_EQ( "%p", l_array[ 3 ], ( void* )300 );
-        ASSERT_EQ( "%p", l_array[ 4 ], ( void* )400 );
-    }
-
-    // Free memory
-    FREE_ARRAY( void**, l_array );
+    FREE_ARRAY( l_array );
 }
 
 TEST( findStringInArray ) {

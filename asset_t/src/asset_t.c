@@ -27,7 +27,7 @@ bool asset_t$loader$init( const char* restrict _assetsDirectory ) {
             char* l_directoryPath = getApplicationDirectoryAbsolutePath();
 
             l_returnValue = !!( concatBeforeAndAfterString(
-                l_assetsDirectory, l_directoryPath, "/" ) );
+                &l_assetsDirectory, l_directoryPath, "/" ) );
 
             if ( !l_returnValue ) {
                 goto EXIT_DIRECTORY_PATH_CONCAT;
@@ -96,8 +96,8 @@ bool asset_t$load( asset_t* restrict _asset, const char* restrict _path ) {
         {
             char* l_path = duplicateString( _path );
 
-            l_returnValue = !!(
-                concatBeforeAndAfterString( l_path, g_assetsDirectory, NULL ) );
+            l_returnValue = !!( concatBeforeAndAfterString(
+                &l_path, g_assetsDirectory, NULL ) );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_ASSET_PATH_CONCAT;

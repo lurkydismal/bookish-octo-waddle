@@ -78,7 +78,8 @@ EXIT:
     return ( l_returnValue );
 }
 
-ssize_t findLastSymbolInString( const char* restrict _string, const char _symbol ) {
+ssize_t findLastSymbolInString( const char* restrict _string,
+                                const char _symbol ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_string ) ) {
@@ -97,7 +98,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-size_t concatBeforeAndAfterString( char* restrict _string,
+size_t concatBeforeAndAfterString( char* restrict* restrict _string,
                                    const char* restrict _beforeString,
                                    const char* restrict _afterString ) {
     size_t l_returnValue = 0;
@@ -105,8 +106,9 @@ size_t concatBeforeAndAfterString( char* restrict _string,
     {
         size_t l_stringLength = 0;
 
-        if ( LIKELY( _string ) ) {
-            l_stringLength = __builtin_strlen( _string );
+        // TODO: Discover if _string check is reduntant by *_string
+        if ( LIKELY( _string ) && LIKELY( *_string ) ) {
+            l_stringLength = __builtin_strlen( *_string );
         }
 
         size_t l_beforeStringLength = 0;
@@ -129,33 +131,33 @@ size_t concatBeforeAndAfterString( char* restrict _string,
         }
 
         // If NULL is passed, only the total length is calculated and returned
-        if ( UNLIKELY( !_string ) ) {
+        if ( UNLIKELY( !*_string ) ) {
             goto EXIT_SET_RETURN_VALUE_TO_TOTAL_LENGTH;
         }
 
         {
             char* l_buffer;
 
-            if ( LIKELY( _string ) ) {
+            if ( LIKELY( *_string ) ) {
                 l_buffer = ( char* )malloc( l_stringLength * sizeof( char ) );
 
-                __builtin_memcpy( l_buffer, _string, l_stringLength );
+                __builtin_memcpy( l_buffer, *_string, l_stringLength );
 
-                _string = ( char* )realloc(
-                    _string, ( l_totalLength + 1 ) * sizeof( char ) );
+                *_string = ( char* )realloc(
+                    *_string, ( l_totalLength + 1 ) * sizeof( char ) );
 
             } else {
-                _string =
+                *_string =
                     ( char* )malloc( ( l_totalLength + 1 ) * sizeof( char ) );
             }
 
             if ( LIKELY( _beforeString ) ) {
-                __builtin_memcpy( _string, _beforeString,
+                __builtin_memcpy( *_string, _beforeString,
                                   l_beforeStringLength );
             }
 
-            if ( LIKELY( _string ) ) {
-                __builtin_memcpy( ( l_beforeStringLength + _string ), l_buffer,
+            if ( LIKELY( *_string ) ) {
+                __builtin_memcpy( ( l_beforeStringLength + *_string ), l_buffer,
                                   l_stringLength );
 
                 free( l_buffer );
@@ -163,11 +165,11 @@ size_t concatBeforeAndAfterString( char* restrict _string,
 
             if ( LIKELY( _afterString ) ) {
                 __builtin_memcpy(
-                    ( l_beforeStringLength + l_stringLength + _string ),
+                    ( l_beforeStringLength + l_stringLength + *_string ),
                     _afterString, l_afterStringLegnth );
             }
 
-            ( _string )[ l_totalLength ] = '\0';
+            ( *_string )[ l_totalLength ] = '\0';
         }
 
     EXIT_SET_RETURN_VALUE_TO_TOTAL_LENGTH:
@@ -220,7 +222,8 @@ EXIT:
     return ( l_returnValue );
 }
 
-char** splitStringIntoArray( const char* restrict _string, const char* restrict _delimiter ) {
+char** splitStringIntoArray( const char* restrict _string,
+                             const char* restrict _delimiter ) {
     char** l_returnValue = ( char** )createArray( sizeof( char* ) );
 
     if ( UNLIKELY( !_string ) ) {
@@ -236,7 +239,7 @@ char** splitStringIntoArray( const char* restrict _string, const char* restrict 
         char* l_splitted = strtok( l_string, _delimiter );
 
         while ( l_splitted ) {
-            insertIntoArray( ( void*** )&l_returnValue,
+            insertIntoArray( ( void*** )( &l_returnValue ),
                              duplicateString( l_splitted ) );
 
             l_splitted = strtok( NULL, _delimiter );
@@ -250,7 +253,8 @@ EXIT:
 }
 
 // TODO: Implement
-char** splitStringIntoArrayBySymbol( const char* restrict _string, const char _symbol ) {
+char** splitStringIntoArrayBySymbol( const char* restrict _string,
+                                     const char _symbol ) {
     char l_delimiter[ 2 ] = " ";
 
     l_delimiter[ 0 ] = _symbol;
@@ -350,7 +354,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
 
                 free( l_executablePath );
 
-                goto EXIT_FILE_PATH;
+                goto EXIT_EXECUTABLE_PATH;
             }
 
             l_executablePath[ l_executablePathLength ] = '\0';
@@ -367,7 +371,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
                                               "Extracting directory: '%s'\n",
                                               l_executablePath );
 
-                goto EXIT_FILE_PATH;
+                goto EXIT_EXECUTABLE_PATH;
             }
 
             const ssize_t l_lastSlashIndex = ( l_lastSlash - l_executablePath );
@@ -377,12 +381,17 @@ char* getApplicationDirectoryAbsolutePath( void ) {
             // Do not move the beginning
             trim( &l_directoryPath, -1, l_lastSlashIndex );
 
-            concatBeforeAndAfterString( &l_directoryPath, NULL, "/" );
+            if ( UNLIKELY( !concatBeforeAndAfterString( &l_directoryPath, NULL,
+                                                        "/" ) ) ) {
+                free( l_directoryPath );
+
+                goto EXIT_EXECUTABLE_PATH;
+            }
         }
 
         l_returnValue = l_directoryPath;
 
-    EXIT_FILE_PATH:
+    EXIT_EXECUTABLE_PATH:
     }
 
     return ( l_returnValue );

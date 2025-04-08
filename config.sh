@@ -1,6 +1,5 @@
 #!/bin/bash
 declare -a partsToBuild=(
-    "main"
     "gameState_t"
     "settings_t"
     "window_t"
@@ -15,4 +14,5 @@ declare -a testsToBuild=(
     "stdfunc"
 )
 
+export executableMainPackage='main'
 export testsMainPackage='test'

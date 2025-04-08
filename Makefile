@@ -48,7 +48,7 @@ RC_SRCS               = $(libfile_a_RC_SRCS)
 
 ### Tools
 
-CC = ccache gcc
+CC = $(C_COMPILER)
 CXX = ccache g++
 RC = rcc
 AR = gcc-ar

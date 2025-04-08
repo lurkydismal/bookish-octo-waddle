@@ -8,7 +8,7 @@
 
 // TODO: Store debug level for each query and log it
 
-static int g_fileDescriptor;
+static int g_fileDescriptor = -1;
 static char* g_transactionString;
 static ssize_t g_transactionSize = 0;
 static size_t g_maxTransactionSize;
@@ -66,7 +66,7 @@ static size_t log$level$prependToString( char* restrict _string,
 
     {
         // TODO: Discover if _string check is reduntant by *_string
-        if ( UNLIKELY( !_string ) ) {
+        if ( UNLIKELY( !_string ) || UNLIKELY( !*_string ) ) {
             goto EXIT;
         }
 
@@ -80,7 +80,7 @@ static size_t log$level$prependToString( char* restrict _string,
             printf( "TEST2:%lu %lu\n", l_returnValue,
                     __builtin_strlen( l_logLevelWithBrackets ) );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
             }
 
@@ -91,7 +91,7 @@ static size_t log$level$prependToString( char* restrict _string,
             printf( "TEST3:%lu %lu\n", l_returnValue,
                     __builtin_strlen( l_logLevelWithBrackets ) );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
             }
 
@@ -99,7 +99,7 @@ static size_t log$level$prependToString( char* restrict _string,
             printf( "TEST4:%lu %lu\n", l_returnValue,
                     __builtin_strlen( _string ) );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
             }
 
@@ -108,7 +108,7 @@ static size_t log$level$prependToString( char* restrict _string,
             printf( "TEST5:%lu %lu\n", l_returnValue,
                     __builtin_strlen( _string ) );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
             }
 
@@ -143,17 +143,26 @@ bool log$init( const char* restrict _fileName,
         {
             char* l_filePath = duplicateString( "." );
 
-            concatBeforeAndAfterString( &l_filePath, _fileName,
-                                        _fileExtension );
+            l_returnValue = !!( concatBeforeAndAfterString(
+                &l_filePath, _fileName, _fileExtension ) );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_FILE_PATH_CONCAT;
+            }
 
             // Prepend absolute path to executable directory
             {
                 char* l_directoryPath = getApplicationDirectoryAbsolutePath();
 
                 // Construct full file path
-                concatBeforeAndAfterString( &l_filePath, l_directoryPath, "" );
+                l_returnValue = !!( concatBeforeAndAfterString(
+                    &l_filePath, l_directoryPath, "" ) );
 
                 free( l_directoryPath );
+
+                if ( !l_returnValue ) {
+                    goto EXIT_FILE_PATH_CONCAT;
+                }
             }
 
             // 0 - No special bits
@@ -163,6 +172,7 @@ bool log$init( const char* restrict _fileName,
             g_fileDescriptor =
                 open( l_filePath, O_WRONLY | O_TRUNC | O_CREAT, 0644 );
 
+        EXIT_FILE_PATH_CONCAT:
             free( l_filePath );
 
             if ( UNLIKELY( g_fileDescriptor == -1 ) ) {
@@ -172,11 +182,13 @@ bool log$init( const char* restrict _fileName,
 
         // Set max transaction size
         {
-            g_maxTransactionSize = _maxTransactionSize;
+            if ( UNLIKELY( !_maxTransactionSize ) ) {
+                l_returnValue = false;
 
-            if ( UNLIKELY( !g_maxTransactionSize ) ) {
                 goto EXIT;
             }
+
+            g_maxTransactionSize = _maxTransactionSize;
         }
 
         // Allocate transaction string
