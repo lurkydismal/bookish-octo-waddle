@@ -257,6 +257,11 @@ bool log$transaction$query( const logLevel_t _logLevel,
 
             l_stringLength = log$level$prependToString( &l_string, _logLevel );
 
+            if ( UNLIKELY( ( g_transactionSize + l_stringLength ) >
+                           g_maxTransactionSize ) ) {
+                l_stringLength = ( g_maxTransactionSize - g_transactionSize );
+            }
+
             __builtin_memcpy( ( g_transactionString + g_transactionSize ),
                               l_string, l_stringLength );
 
@@ -318,6 +323,11 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
 
         {
             l_bufferSize = log$level$prependToString( &l_buffer, _logLevel );
+
+            if ( UNLIKELY( ( g_transactionSize + l_bufferSize ) >
+                           g_maxTransactionSize ) ) {
+                l_bufferSize = ( g_maxTransactionSize - g_transactionSize );
+            }
 
             __builtin_memcpy( ( g_transactionString + g_transactionSize ),
                               l_buffer, l_bufferSize );
