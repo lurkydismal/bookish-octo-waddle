@@ -18,7 +18,7 @@ bool window_t$destroy( window_t* _window ) {
     bool l_returnValue = false;
 
     {
-        if ( !( _window->name ) ) {
+        if ( UNLIKELY( !( _window->name ) ) ) {
             goto EXIT;
         }
 

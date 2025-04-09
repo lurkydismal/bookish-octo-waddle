@@ -10,10 +10,10 @@
 #define VSYNC_TYPE_AS_STRING_ADAPTIVE "ADAPTIVE"
 #define VSYNC_TYPE_AS_STRING_UNKNOWN "UNKNOWN"
 
-#define DEFAULT_VSYNC ( ( vsync_t )adaptive )
+#define DEFAULT_VSYNC ( ( vsync_t )off )
 #define VSYNC_LEVEL_DEFAULT DEFAULT_VSYNC
 
-typedef enum { off, normal, adaptive, unknownVsync } vsync_t;
+typedef enum { off = 0, normal, adaptive, unknownVsync } vsync_t;
 
 vsync_t vsync_t$fromString( const char* _string );
 

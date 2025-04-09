@@ -127,7 +127,7 @@ bool log$init( const char* restrict _fileName,
 
                 free( l_directoryPath );
 
-                if ( !l_returnValue ) {
+                if ( UNLIKELY( !l_returnValue ) ) {
                     goto EXIT_FILE_PATH_CONCAT;
                 }
             }
@@ -278,7 +278,7 @@ bool log$transaction$query( const logLevel_t _logLevel,
 
 #else
 
-        if ( _logLevel == ( logLevel_t )error ) {
+        if ( UNLIKELY( _logLevel == ( logLevel_t )error ) ) {
             log$transaction$commit();
         }
 

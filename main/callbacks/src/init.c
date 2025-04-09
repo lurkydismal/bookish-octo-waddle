@@ -8,14 +8,12 @@
 
 #define LOG_FILE_NAME_DEFAULT "log"
 #define LOG_FILE_EXTENSION_DEFAULT "txt"
-#define LOG_MAX_TRANSACTION_SIZE_DEFAULT ( ( 1024 * 10 ) * sizeof( char ) )
 
 #define ASSETS_DIRECTORY "assets"
 
 #define SETTINGS_FILE_NAME "settings"
 #define SETTINGS_FILE_EXTENSION "ini"
 
-// TODO: Comment
 callbackResult_t init( applicationState_t* _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 

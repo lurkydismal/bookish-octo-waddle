@@ -57,7 +57,7 @@ TEST( lengthOfNumber ) {
         const size_t l_expectedLength =
             ( ( _number == 0 ) ? ( 1 ) : ( log10( _number ) + 1 ) );
 
-        if ( l_actualLength != l_expectedLength ) {
+        if ( UNLIKELY( l_actualLength != l_expectedLength ) ) {
             l_actualLengthFailed = l_actualLength;
             l_expectedLengthFailed = l_expectedLength;
         }

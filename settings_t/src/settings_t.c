@@ -126,7 +126,8 @@ bool settings_t$load( settings_t* restrict _settings,
 
                         } else if ( __builtin_strcmp( l_key, "window_vsync" ) ==
                                     0 ) {
-                            l_settings.window.vsync = stringToBool( l_value );
+                            l_settings.window.vsync =
+                                vsync_t$fromString( l_value );
 
                         } else if ( __builtin_strcmp(
                                         l_key, "limited_loop_desired_FPS" ) ==
@@ -172,7 +173,7 @@ bool settings_t$unload( settings_t* _settings ) {
     }
 
     {
-        if ( !window_t$destroy( &( _settings->window ) ) ) {
+        if ( UNLIKELY( !window_t$destroy( &( _settings->window ) ) ) ) {
             goto EXIT;
         }
 

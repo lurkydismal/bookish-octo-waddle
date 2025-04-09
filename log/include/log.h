@@ -49,6 +49,8 @@
 
 #endif
 
+#define LOG_MAX_TRANSACTION_SIZE_DEFAULT ( ( 1024 * 10 ) * sizeof( char ) )
+
 typedef enum { debug, info, warn, error, unknownLogLevel } logLevel_t;
 
 static FORCE_INLINE const char* log$level$convert$toString(

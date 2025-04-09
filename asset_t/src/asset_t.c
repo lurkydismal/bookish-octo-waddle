@@ -26,7 +26,7 @@ bool asset_t$loader$init( const char* restrict _assetsDirectory ) {
             l_returnValue = !!( concatBeforeAndAfterString(
                 &l_assetsDirectory, l_directoryPath, "/" ) );
 
-            if ( !l_returnValue ) {
+            if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_DIRECTORY_PATH_CONCAT;
             }
 
@@ -118,6 +118,12 @@ bool asset_t$load( asset_t* restrict _asset, const char* restrict _path ) {
         {
             // Get file size
             off_t l_fileSize = lseek( l_fileDescriptor, 0, SEEK_END );
+
+            if ( UNLIKELY( !l_fileSize ) ) {
+                l_returnValue = false;
+
+                goto FILE_EXIT;
+            }
 
             lseek( l_fileDescriptor, 0, SEEK_SET );
 

@@ -120,7 +120,7 @@ int main( void ) {
         {
             while ( LIKELY(
                 !glfwWindowShouldClose( g_applicationState.window ) ) ) {
-                if ( !vsync$begin() ) {
+                if ( UNLIKELY( !vsync$begin() ) ) {
                     l_callbackResult = ( callbackResult_t )failure;
 
                     goto LOOP_CONTINUE;
@@ -128,7 +128,7 @@ int main( void ) {
 
                 l_callbackResult = iterate$unlimited( &g_applicationState );
 
-                if ( !vsync$end() ) {
+                if ( UNLIKELY( !vsync$end() ) ) {
                     l_callbackResult = ( callbackResult_t )failure;
 
                     goto LOOP_CONTINUE;
