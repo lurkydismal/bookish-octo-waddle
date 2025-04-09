@@ -90,7 +90,7 @@ bool settings_t$load( settings_t* restrict _settings,
                     const char* l_line = sanitizeString( *_element );
 
                     if ( l_line ) {
-                        log$transaction$query$format( ( logLevel_t )debug,
+                        log$transaction$query$format( ( logLevel_t )info,
                                                       "%s\n", l_line );
 
                         char** l_keyAndValue =

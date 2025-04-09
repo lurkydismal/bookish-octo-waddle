@@ -164,10 +164,7 @@ bool vsync$end( void ) {
 
             {
                 const size_t l_iterationTimeNano =
-                    ( ( g_endTime.tv_sec - g_startTime.tv_sec ) *
-                          ( ONE_SECOND_IN_MILLISECONDS *
-                            ONE_MILLISECOND_IN_NANOSECONDS ) +
-                      ( g_endTime.tv_nsec - g_startTime.tv_nsec ) );
+                    ( g_endTime.tv_nsec - g_startTime.tv_nsec );
 
                 long long l_adjustedSleepNano =
                     ( g_sleepTime.tv_nsec - l_iterationTimeNano );

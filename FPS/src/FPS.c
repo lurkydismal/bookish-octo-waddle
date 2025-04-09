@@ -23,7 +23,7 @@ static void* FPS$count( void* _data ) {
         g_currentFramesPerSecond =
             ( *g_totalFramesPassed - l_previousTotalFramesPerSecond );
 
-        log$transaction$query$format( ( logLevel_t )debug, "FPS: %d\n",
+        log$transaction$query$format( ( logLevel_t )info, "FPS: %d\n",
                                       g_currentFramesPerSecond );
 
         l_previousTotalFramesPerSecond = *g_totalFramesPassed;
