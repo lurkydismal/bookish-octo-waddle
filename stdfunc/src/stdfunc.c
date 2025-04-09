@@ -106,7 +106,6 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
     {
         size_t l_stringLength = 0;
 
-        // TODO: Discover if _string check is reduntant by *_string
         if ( LIKELY( _string ) && LIKELY( *_string ) ) {
             l_stringLength = __builtin_strlen( *_string );
         }
@@ -253,11 +252,51 @@ EXIT:
 // TODO: Implement
 char** splitStringIntoArrayBySymbol( const char* restrict _string,
                                      const char _symbol ) {
-    char l_delimiter[ 2 ] = " ";
+    char** l_returnValue = ( char** )createArray( sizeof( char* ) );
 
-    l_delimiter[ 0 ] = _symbol;
+    if ( UNLIKELY( !_string ) ) {
+        goto EXIT;
+    }
 
-    return ( splitStringIntoArray( _string, l_delimiter ) );
+    {
+        char* l_string = duplicateString( _string );
+
+        {
+            char* l_buffer = l_string;
+            char* l_previousSplitted = ( l_buffer - 1 );
+
+            while ( *l_buffer ) {
+                if ( *l_buffer == _symbol ) {
+                    *l_buffer = '\0';
+
+                    {
+                        if ( ( l_buffer - l_previousSplitted ) < ( 1 + 1 ) ) {
+                            goto LOOP_CONTINUE;
+                        }
+
+                        insertIntoArray(
+                            ( void*** )( &l_returnValue ),
+                            duplicateString( l_previousSplitted + 1 ) );
+                    }
+
+                LOOP_CONTINUE:
+                    l_previousSplitted = l_buffer;
+                }
+
+                l_buffer++;
+            }
+
+            if ( ( l_buffer - l_previousSplitted ) >= ( 1 + 1 ) ) {
+                insertIntoArray( ( void*** )( &l_returnValue ),
+                                 duplicateString( l_previousSplitted + 1 ) );
+            }
+        }
+
+        free( l_string );
+    }
+
+EXIT:
+    return ( l_returnValue );
 }
 
 ssize_t findStringInArray( const char** restrict _array,

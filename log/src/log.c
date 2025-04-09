@@ -41,7 +41,6 @@ static size_t log$level$prependToString( char* restrict* restrict _string,
     size_t l_returnValue = 0;
 
     {
-        // TODO: Discover if _string check is reduntant by *_string
         if ( UNLIKELY( !_string ) || UNLIKELY( !*_string ) ) {
             goto EXIT;
         }
