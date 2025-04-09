@@ -76,6 +76,29 @@ static FORCE_INLINE const char* log$level$convert$toString(
     }
 }
 
+static FORCE_INLINE logLevel_t
+log$level$convert$fromString( const char* restrict _string ) {
+    if ( UNLIKELY( !_string ) ) {
+        return ( logLevel_t )unknownLogLevel;
+    }
+
+    if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_DEBUG ) == 0 ) {
+        return ( ( logLevel_t )debug );
+
+    } else if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_INFO ) == 0 ) {
+        return ( ( logLevel_t )info );
+
+    } else if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_WARN ) == 0 ) {
+        return ( ( logLevel_t )warn );
+
+    } else if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_ERROR ) == 0 ) {
+        return ( ( logLevel_t )error );
+
+    } else {
+        return ( ( logLevel_t )unknownLogLevel );
+    }
+}
+
 bool log$init( const char* _fileName,
                const char* _fileExtension,
                const size_t _maxTransactionSize );

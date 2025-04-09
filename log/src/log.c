@@ -6,35 +6,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-// TODO: Store debug level for each query and log it
-
 static int g_fileDescriptor = -1;
 static char* g_transactionString;
 static ssize_t g_transactionSize = 0;
 static size_t g_maxTransactionSize;
 static logLevel_t g_currentLogLevel = LOG_LEVEL_DEFAULT;
-
-static logLevel_t log$level$convert$fromString( const char* restrict _string ) {
-    if ( UNLIKELY( !_string ) ) {
-        return ( logLevel_t )unknownLogLevel;
-    }
-
-    if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_DEBUG ) == 0 ) {
-        return ( ( logLevel_t )debug );
-
-    } else if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_INFO ) == 0 ) {
-        return ( ( logLevel_t )info );
-
-    } else if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_WARN ) == 0 ) {
-        return ( ( logLevel_t )warn );
-
-    } else if ( __builtin_strcmp( _string, LOG_LEVEL_AS_STRING_ERROR ) == 0 ) {
-        return ( ( logLevel_t )error );
-
-    } else {
-        return ( ( logLevel_t )unknownLogLevel );
-    }
-}
 
 static const char* log$level$convert$toColor( const logLevel_t _logLevel ) {
     switch ( _logLevel ) {
@@ -83,8 +59,8 @@ static size_t log$level$prependToString( char* restrict* restrict _string,
 
             // Colored
             l_returnValue = concatBeforeAndAfterString(
-                &l_logLevelWithBrackets,
-                log$level$convert$toColor( g_currentLogLevel ), COLOR_RESET );
+                &l_logLevelWithBrackets, log$level$convert$toColor( _logLevel ),
+                COLOR_RESET );
 
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT_PREPENDING;
@@ -276,37 +252,35 @@ bool log$transaction$query( const logLevel_t _logLevel,
     }
 
     {
-        char* l_string = duplicateString( _string );
+        {
+            char* l_string = duplicateString( _string );
 
-        l_stringLength = log$level$prependToString( &l_string, _logLevel );
+            l_stringLength = log$level$prependToString( &l_string, _logLevel );
 
-        __builtin_memcpy( ( g_transactionString + g_transactionSize ), l_string,
-                          l_stringLength );
+            __builtin_memcpy( ( g_transactionString + g_transactionSize ),
+                              l_string, l_stringLength );
 
-        g_transactionSize += l_stringLength;
+            g_transactionSize += l_stringLength;
+
+            free( l_string );
+        }
 
 #if defined( DEBUG )
 
         g_transactionString[ g_transactionSize ] = '\0';
 
-#endif
-
-        free( l_string );
-
-        l_returnValue = true;
-    }
-
-#if defined( DEBUG )
-
-    log$transaction$commit();
+        log$transaction$commit();
 
 #else
 
-    if ( _logLevel == ( logLevel_t )error ) {
-        log$transaction$commit();
-    }
+        if ( _logLevel == ( logLevel_t )error ) {
+            log$transaction$commit();
+        }
 
 #endif
+
+        l_returnValue = true;
+    }
 
 EXIT:
     return ( l_returnValue );
@@ -326,62 +300,54 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
     }
 
     {
+        size_t l_bufferSize = ( g_maxTransactionSize - g_transactionSize );
+        char* l_buffer = ( char* )malloc( l_bufferSize * sizeof( char ) );
+
         va_list l_arguments;
 
         va_start( l_arguments, _format );
 
         const ssize_t l_writtenCount =
-            vsnprintf( ( g_transactionString + g_transactionSize ),
-                       ( g_maxTransactionSize - g_transactionSize ), _format,
-                       l_arguments );
+            vsnprintf( l_buffer, l_bufferSize, _format, l_arguments );
 
         va_end( l_arguments );
 
         if ( UNLIKELY( !l_writtenCount ) ) {
-            goto EXIT;
+            goto EXIT_BUFFER_APPENDING;
         }
 
-        g_transactionSize += l_writtenCount;
+        {
+            l_bufferSize = log$level$prependToString( &l_buffer, _logLevel );
 
-        // Now prepend the log level to the formatted string
-        char* l_logLevelString =
-            duplicateString( log$level$convert$toString( _logLevel ) );
-        size_t l_logLevelLength = __builtin_strlen( l_logLevelString );
+            __builtin_memcpy( ( g_transactionString + g_transactionSize ),
+                              l_buffer, l_bufferSize );
 
-        // Prepend the log level to the formatted message
-        size_t l_newLength = l_logLevelLength + l_writtenCount;
-
-        if ( l_newLength <= g_maxTransactionSize ) {
-            // Move the formatted string to make space for the log level
-            __builtin_memmove(
-                g_transactionString + l_logLevelLength,
-                g_transactionString + g_transactionSize - l_writtenCount,
-                l_writtenCount );
-
-            // Copy the log level string to the start of the transaction string
-            __builtin_memcpy( g_transactionString, l_logLevelString,
-                              l_logLevelLength );
-
-            g_transactionSize = l_newLength;
-        }
-
-        // Free the memory used by the log level string
-        free( l_logLevelString );
-
-        l_returnValue = true;
-    }
+            g_transactionSize += l_bufferSize;
 
 #if defined( DEBUG )
 
-    log$transaction$commit();
+            g_transactionString[ g_transactionSize ] = '\0';
+
+#endif
+        }
+
+#if defined( DEBUG )
+
+        log$transaction$commit();
 
 #else
 
-    if ( _logLevel == ( logLevel_t )error ) {
-        log$transaction$commit();
-    }
+        if ( UNLIKELY( _logLevel == ( logLevel_t )error ) ) {
+            log$transaction$commit();
+        }
 
 #endif
+
+        l_returnValue = true;
+
+    EXIT_BUFFER_APPENDING:
+        free( l_buffer );
+    }
 
 EXIT:
     return ( l_returnValue );
