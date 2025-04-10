@@ -3,6 +3,7 @@
 #include "FPS.h"
 #include "asset_t.h"
 #include "callbacks.h"
+#include "image_t.h"
 #include "log.h"
 #include "stdfunc.h"
 
@@ -104,6 +105,17 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             }
 
             glfwMakeContextCurrent( _applicationState->window );
+        }
+
+        // image_t
+        {
+            if ( UNLIKELY( !image_t$loader$init(
+                     _applicationState->settings.window.name ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing image_t loader\n" );
+
+                goto EXIT;
+            }
         }
 
         // glad

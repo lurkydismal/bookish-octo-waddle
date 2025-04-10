@@ -37,6 +37,7 @@ export declare BUILD_DEFINES_PROFILE=(
 export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
     "gameState_t/include"
+    "image_t/include"
     "settings_t/include"
     "window_t/include"
     "vsync/include"
@@ -59,8 +60,10 @@ export LINK_FLAGS_TESTS="$LINK_FLAGS_DEBUG"
 
 export declare LIBRARIES_TO_LINK=(
     "glfw"
-    "dl"
     "mimalloc"
+)
+export declare EXTERNAL_LIBRARIES_TO_LINK=(
+    "vips"
 )
 export declare LIBRARIES_TO_LINK_TESTS=(
     "m"
@@ -89,6 +92,7 @@ export BUILD_TYPE_COLOR="$PURPLE_LIGHT_COLOR"
 export DEFINES_COLOR="$CYAN_LIGHT_COLOR"
 export INCLUDES_COLOR="$BLUE_LIGHT_COLOR"
 export LIBRARIES_COLOR="$BLUE_LIGHT_COLOR"
+export EXTERNAL_LIBRARIES_COLOR="$BLUE_LIGHT_COLOR"
 export PARTS_TO_BUILD_COLOR="$YELLOW_COLOR"
 export SKIPPING_PART_IN_BUILD_COLOR="$GREEN_LIGHT_COLOR"
 export SECTIONS_TO_STRIP_COLOR="$RED_LIGHT_COLOR"
@@ -101,11 +105,16 @@ mkdir -p "$BUILD_DIRECTORY"
 
 # Remove all object files
 {
-    printf -v staticPartsAsExcludeString -- "-E %s " "${staticParts[@]}"
+    if [ $BUILD_TYPE -eq 1 ]; then
+        fd -I '\.o$' -x rm {}
 
-    fd -I '\.o$' $staticPartsAsExcludeString -x rm {}
+    else
+        printf -v staticPartsAsExcludeString -- "-E %s " "${staticParts[@]}"
 
-    unset staticPartsAsExcludeString
+        fd -I '\.o$' $staticPartsAsExcludeString -x rm {}
+
+        unset staticPartsAsExcludeString
+    fi
 }
 
 if [ $BUILD_TYPE -eq 0 ]; then
@@ -147,6 +156,16 @@ if [ ${#BUILD_INCLUDES[@]} -ne 0 ]; then
     echo -e "$INCLUDES_COLOR""$includesAsString""$RESET_COLOR"
 fi
 
+if [ ${#EXTERNAL_LIBRARIES_TO_LINK[@]} -ne 0 ]; then
+    printf -v externalLibrariesAsString -- "%s " "${EXTERNAL_LIBRARIES_TO_LINK[@]}"
+    echo -e "$EXTERNAL_LIBRARIES_COLOR""$externalLibrariesAsString""$RESET_COLOR"
+    externalLibrariesBuildCFlagsAsString="$(pkg-config --static --cflags $externalLibrariesAsString)"' '
+    echo -e "$INCLUDES_COLOR""$externalLibrariesBuildCFlagsAsString""$RESET_COLOR"
+    externalLibrariesLinkFlagsAsString="$(pkg-config --static --libs $externalLibrariesAsString)"' '
+    echo -e "$LIBRARIES_COLOR""$externalLibrariesLinkFlagsAsString""$RESET_COLOR"
+    unset externalLibrariesAsString
+fi
+
 if [ ${#partsToBuild[@]} -ne 0 ]; then
     printf -v partsToBuildAsString -- "$BUILD_DIRECTORY/lib%s.a " "${partsToBuild[@]}"
     echo -e "$PARTS_TO_BUILD_COLOR""$partsToBuildAsString""$RESET_COLOR"
@@ -156,7 +175,7 @@ for partToBuild in "${partsToBuild[@]}"; do
     source "$partToBuild/config.sh" && {
         export OUTPUT_FILE='lib'"$partToBuild"'.a'
 
-        './build_general.sh' "$partToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+        './build_general.sh' "$partToBuild" "$BUILD_C_FLAGS $externalLibrariesBuildCFlagsAsString" "$definesAsString" "$includesAsString"
 
         BUILD_STATUS=$?
 
@@ -168,32 +187,36 @@ for partToBuild in "${partsToBuild[@]}"; do
     fi
 done
 
-if [ ${#staticParts[@]} -ne 0 ]; then
-    printf -v staticPartsAsString -- "$BUILD_DIRECTORY/lib%s.a " "${staticParts[@]}"
-    echo -e "$PARTS_TO_BUILD_COLOR""$staticPartsAsString""$RESET_COLOR"
-fi
+if [ $BUILD_STATUS -eq 0 ]; then
+    if [ ${#staticParts[@]} -ne 0 ]; then
+        printf -v staticPartsAsString -- "$BUILD_DIRECTORY/lib%s.a " "${staticParts[@]}"
+        echo -e "$PARTS_TO_BUILD_COLOR""$staticPartsAsString""$RESET_COLOR"
+    fi
 
-for staticPart in "${staticParts[@]}"; do
-    source "$staticPart/config.sh" && {
-        export OUTPUT_FILE='lib'"$staticPart"'.a'
+    for staticPart in "${staticParts[@]}"; do
+        source "$staticPart/config.sh" && {
+            export OUTPUT_FILE='lib'"$staticPart"'.a'
 
-        if [ -f "$BUILD_DIRECTORY/$OUTPUT_FILE" ]; then
-            echo -e "$SKIPPING_PART_IN_BUILD_COLOR""Skipping '$staticPart' — '$OUTPUT_FILE' already exists.""$RESET_COLOR"
+            if [ -z "${NEED_REBUILD_STATIC_PARTS+x}" ]; then
+                if [ -f "$BUILD_DIRECTORY/$OUTPUT_FILE" ]; then
+                    echo -e "$SKIPPING_PART_IN_BUILD_COLOR""Skipping static '$staticPart' — '$OUTPUT_FILE' already exists.""$RESET_COLOR"
 
-            continue
+                    continue
+                fi
+            fi
+
+            './build_general.sh' "$staticPart" "$BUILD_C_FLAGS $externalLibrariesBuildCFlagsAsString" "$definesAsString" "$includesAsString"
+
+            BUILD_STATUS=$?
+
+            unset FILES_TO_INCLUDE FILES_TO_COMPILE
+        }
+
+        if [ $BUILD_STATUS -ne 0 ]; then
+            break
         fi
-
-        './build_general.sh' "$staticPart" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
-
-        BUILD_STATUS=$?
-
-        unset FILES_TO_INCLUDE FILES_TO_COMPILE
-    }
-
-    if [ $BUILD_STATUS -ne 0 ]; then
-        break
-    fi
-done
+    done
+fi
 
 # Build main executable
 if [ $BUILD_STATUS -eq 0 ]; then
@@ -202,7 +225,7 @@ if [ $BUILD_STATUS -eq 0 ]; then
         source "$executableMainPackage/config.sh" && {
             export OUTPUT_FILE='lib'"$executableMainPackage"'.a'
 
-            './build_general.sh' "$executableMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+            './build_general.sh' "$executableMainPackage" "$BUILD_C_FLAGS $externalLibrariesBuildCFlagsAsString" "$definesAsString" "$includesAsString"
 
             BUILD_STATUS=$?
 
@@ -212,11 +235,11 @@ if [ $BUILD_STATUS -eq 0 ]; then
 
     if [ $BUILD_STATUS -eq 0 ]; then
         if [ ${#LIBRARIES_TO_LINK[@]} -ne 0 ]; then
-            printf -v librariesToLinkAgainst -- "-l%s " "${LIBRARIES_TO_LINK[@]}"
-            echo  -e "$LIBRARIES_COLOR""$librariesToLinkAgainst""$RESET_COLOR"
+            printf -v librariesToLinkAsString -- "-l%s " "${LIBRARIES_TO_LINK[@]}"
+            echo  -e "$LIBRARIES_COLOR""$librariesToLinkAsString""$RESET_COLOR"
         fi
 
-        $C_COMPILER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$executableMainPackage"'.a' $staticPartsAsString $partsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME"
+        $C_COMPILER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$executableMainPackage"'.a' $staticPartsAsString $partsToBuildAsString $librariesToLinkAsString $externalLibrariesLinkFlagsAsString -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
@@ -233,7 +256,7 @@ fi
 
 # Build tests
 if [ $BUILD_TYPE -eq 3 ]; then
-    if [ ${#BUILD_INCLUDES[@]} -ne 0 ]; then
+    if [ ${#BUILD_INCLUDES_TESTS[@]} -ne 0 ]; then
         printf -v testIncludesAsString -- "-I $SCRIPT_DIRECTORY/%s " "${BUILD_INCLUDES_TESTS[@]}"
         echo  -e "$INCLUDES_COLOR""$testIncludesAsString""$RESET_COLOR"
     fi
@@ -242,7 +265,7 @@ if [ $BUILD_TYPE -eq 3 ]; then
         source "$TESTS_DIRECTORY/$testToBuild/config.sh" && {
             export OUTPUT_FILE='lib'"$testToBuild"'_test.a'
 
-            './build_general.sh' "$TESTS_DIRECTORY/$testToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString""$testIncludesAsString"
+            './build_general.sh' "$TESTS_DIRECTORY/$testToBuild" "$BUILD_C_FLAGS $externalLibrariesBuildCFlagsAsString" "$definesAsString" "$includesAsString""$testIncludesAsString"
 
             BUILD_STATUS=$?
 
@@ -259,7 +282,7 @@ if [ $BUILD_TYPE -eq 3 ]; then
         source "$testsMainPackage/config.sh" && {
             export OUTPUT_FILE='lib'"$testsMainPackage"'.a'
 
-            './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString""$testIncludesAsString"
+            './build_general.sh' "$testsMainPackage" "$BUILD_C_FLAGS $externalLibrariesBuildCFlagsAsString" "$definesAsString" "$includesAsString""$testIncludesAsString"
 
             BUILD_STATUS=$?
 
@@ -274,11 +297,11 @@ if [ $BUILD_TYPE -eq 3 ]; then
         fi
 
         if [ ${#LIBRARIES_TO_LINK_TESTS[@]} -ne 0 ]; then
-            printf -v testsLibrariesToLinkAgainst -- "-l%s " "${LIBRARIES_TO_LINK_TESTS[@]}"
-            echo  -e "$LIBRARIES_COLOR""$testsLibrariesToLinkAgainst""$RESET_COLOR"
+            printf -v testsLibrariesToLinkAsString -- "-l%s " "${LIBRARIES_TO_LINK_TESTS[@]}"
+            echo  -e "$LIBRARIES_COLOR""$testsLibrariesToLinkAsString""$RESET_COLOR"
         fi
 
-        $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $staticPartsAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAgainst $testsLibrariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
+        $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $staticPartsAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAsString $externalLibrariesLinkFlagsAsString $testsLibrariesToLinkAsString -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then

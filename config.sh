@@ -1,6 +1,7 @@
 #!/bin/bash
 declare -a partsToBuild=(
     "gameState_t"
+    "image_t"
     "settings_t"
     "window_t"
     "vsync"
