@@ -49,18 +49,22 @@ bool image_t$destroy( void ) {
     return ( l_returnValue );
 }
 
-bool image_t$load( image_t* _image, uint8_t* _data ) {
+bool image_t$load( image_t* _image, asset_t* _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_image ) ) {
         goto EXIT;
     }
 
-    if ( UNLIKELY( !_data ) ) {
+    if ( UNLIKELY( !_asset ) ) {
         goto EXIT;
     }
 
     {
+        VipsImage* l_image = vips_image_new();
+
+        vips_jxlload_buffer( _asset->data, _asset->size, &l_image );
+
         l_returnValue = true;
     }
 

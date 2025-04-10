@@ -136,7 +136,7 @@ bool asset_t$load( asset_t* restrict _asset, const char* restrict _path ) {
             l_returnValue = ( l_readenCount == l_fileSize );
 
             if ( UNLIKELY( !l_returnValue ) ) {
-                free( _asset->data );
+                asset_t$unload( _asset );
 
                 goto FILE_EXIT;
             }
