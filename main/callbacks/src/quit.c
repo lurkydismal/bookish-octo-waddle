@@ -1,10 +1,23 @@
+#include "FPS.h"
 #include "asset_t.h"
 #include "callbacks.h"
 #include "log.h"
+#include "vsync.h"
 
+// TODO: Log errors
 callbackResult_t quit( applicationState_t* _applicationState,
                        callbackResult_t _exitCode ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
+
+    // FPS
+    {
+        FPS$quit();
+    }
+
+    // Vsync
+    {
+        vsync$quit();
+    }
 
     // GLFW
     {

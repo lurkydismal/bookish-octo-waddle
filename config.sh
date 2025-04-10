@@ -8,10 +8,12 @@ declare -a partsToBuild=(
     "asset_t"
     "log"
     "stdfunc"
-    "glad"
 )
 declare -a testsToBuild=(
     "stdfunc"
+)
+declare -a staticParts=(
+    "glad"
 )
 
 export executableMainPackage='main'

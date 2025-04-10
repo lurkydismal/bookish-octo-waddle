@@ -90,6 +90,7 @@ export DEFINES_COLOR="$CYAN_LIGHT_COLOR"
 export INCLUDES_COLOR="$BLUE_LIGHT_COLOR"
 export LIBRARIES_COLOR="$BLUE_LIGHT_COLOR"
 export PARTS_TO_BUILD_COLOR="$YELLOW_COLOR"
+export SKIPPING_PART_IN_BUILD_COLOR="$GREEN_LIGHT_COLOR"
 export SECTIONS_TO_STRIP_COLOR="$RED_LIGHT_COLOR"
 
 clear
@@ -99,7 +100,13 @@ source './config.sh' && {
 mkdir -p "$BUILD_DIRECTORY"
 
 # Remove all object files
-fd -I '\.o$' -x rm {}
+{
+    printf -v staticPartsAsExcludeString -- "-E %s " "${staticParts[@]}"
+
+    fd -I '\.o$' $staticPartsAsExcludeString -x rm {}
+
+    unset staticPartsAsExcludeString
+}
 
 if [ $BUILD_TYPE -eq 0 ]; then
     echo -e "$BUILD_TYPE_COLOR"'Debug build'"$RESET_COLOR"
@@ -140,11 +147,43 @@ if [ ${#BUILD_INCLUDES[@]} -ne 0 ]; then
     echo -e "$INCLUDES_COLOR""$includesAsString""$RESET_COLOR"
 fi
 
+if [ ${#partsToBuild[@]} -ne 0 ]; then
+    printf -v partsToBuildAsString -- "$BUILD_DIRECTORY/lib%s.a " "${partsToBuild[@]}"
+    echo -e "$PARTS_TO_BUILD_COLOR""$partsToBuildAsString""$RESET_COLOR"
+fi
+
 for partToBuild in "${partsToBuild[@]}"; do
     source "$partToBuild/config.sh" && {
         export OUTPUT_FILE='lib'"$partToBuild"'.a'
 
         './build_general.sh' "$partToBuild" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
+
+        BUILD_STATUS=$?
+
+        unset FILES_TO_INCLUDE FILES_TO_COMPILE
+    }
+
+    if [ $BUILD_STATUS -ne 0 ]; then
+        break
+    fi
+done
+
+if [ ${#staticParts[@]} -ne 0 ]; then
+    printf -v staticPartsAsString -- "$BUILD_DIRECTORY/lib%s.a " "${staticParts[@]}"
+    echo -e "$PARTS_TO_BUILD_COLOR""$staticPartsAsString""$RESET_COLOR"
+fi
+
+for staticPart in "${staticParts[@]}"; do
+    source "$staticPart/config.sh" && {
+        export OUTPUT_FILE='lib'"$staticPart"'.a'
+
+        if [ -f "$BUILD_DIRECTORY/$OUTPUT_FILE" ]; then
+            echo -e "$SKIPPING_PART_IN_BUILD_COLOR""Skipping '$staticPart' — '$OUTPUT_FILE' already exists.""$RESET_COLOR"
+
+            continue
+        fi
+
+        './build_general.sh' "$staticPart" "$BUILD_C_FLAGS" "$definesAsString" "$includesAsString"
 
         BUILD_STATUS=$?
 
@@ -172,17 +211,12 @@ if [ $BUILD_STATUS -eq 0 ]; then
     fi
 
     if [ $BUILD_STATUS -eq 0 ]; then
-        if [ ${#partsToBuild[@]} -ne 0 ]; then
-            printf -v partsToBuildAsString -- "$BUILD_DIRECTORY/lib%s.a " "${partsToBuild[@]}"
-            echo -e "$PARTS_TO_BUILD_COLOR""$partsToBuildAsString""$RESET_COLOR"
-        fi
-
         if [ ${#LIBRARIES_TO_LINK[@]} -ne 0 ]; then
             printf -v librariesToLinkAgainst -- "-l%s " "${LIBRARIES_TO_LINK[@]}"
             echo  -e "$LIBRARIES_COLOR""$librariesToLinkAgainst""$RESET_COLOR"
         fi
 
-        $C_COMPILER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$executableMainPackage"'.a' $partsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME"
+        $C_COMPILER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$executableMainPackage"'.a' $staticPartsAsString $partsToBuildAsString $librariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
@@ -244,7 +278,7 @@ if [ $BUILD_TYPE -eq 3 ]; then
             echo  -e "$LIBRARIES_COLOR""$testsLibrariesToLinkAgainst""$RESET_COLOR"
         fi
 
-        $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAgainst $testsLibrariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
+        $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $staticPartsAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAgainst $testsLibrariesToLinkAgainst -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then

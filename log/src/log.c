@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// TODO: Make each thread have its own transaction string and implement mutex
+// for commit
+
 static int g_fileDescriptor = -1;
 static char* g_transactionString;
 static ssize_t g_transactionSize = 0;

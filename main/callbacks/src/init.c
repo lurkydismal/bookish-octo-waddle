@@ -108,12 +108,12 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 
         // glad
         {
-            _applicationState->version = gladLoadGL( glfwGetProcAddress );
+            _applicationState->glVersion = gladLoadGL( glfwGetProcAddress );
 
             log$transaction$query$format(
                 ( logLevel_t )info, "GL version: %d.%d\n",
-                GLAD_VERSION_MAJOR( _applicationState->version ),
-                GLAD_VERSION_MINOR( _applicationState->version ) );
+                GLAD_VERSION_MAJOR( _applicationState->glVersion ),
+                GLAD_VERSION_MINOR( _applicationState->glVersion ) );
         }
 
         // Vsync

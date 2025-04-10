@@ -10,13 +10,13 @@
 #define DEFAULT_APPLICATION_STATE   \
     { .window = NULL,               \
       .settings = DEFAULT_SETTINGS, \
-      .version = 0,                 \
+      .glVersion = 0,               \
       .totalFramesRendered = 0 }
 
 typedef struct {
     GLFWwindow* window;
     settings_t settings;
-    int version;
+    int glVersion;
     size_t totalFramesRendered;
 } applicationState_t;
 
