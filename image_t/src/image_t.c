@@ -1,11 +1,11 @@
+#define STB_IMAGE_IMPLEMENTATION
+
 #include "image_t.h"
+
+#include <stb/stb_image.h>
 
 #include "log.h"
 #include "stdfunc.h"
-
-#include <jxl/decode.h>
-
-JxlDecoder* g_decoder = NULL;
 
 bool image_t$loader$init( const char* _applicationName ) {
     bool l_returnValue = false;
@@ -15,8 +15,6 @@ bool image_t$loader$init( const char* _applicationName ) {
     }
 
     {
-        g_decoder = JxlDecoderCreate( NULL );
-
         l_returnValue = true;
     }
 
@@ -28,8 +26,6 @@ bool image_t$loader$quit( void ) {
     bool l_returnValue = false;
 
     {
-        JxlDecoderDestroy(g_decoder);
-
         l_returnValue = true;
     }
 
@@ -71,45 +67,24 @@ bool image_t$load$fromAsset( image_t* _image, asset_t* _asset ) {
     }
 
     {
-        // Set up the decoder
-        JxlDecoderSetInput(g_decoder, _asset->data, _asset->size);
+        stbi_set_flip_vertically_on_load( 1 );
 
-        // Get image metadata (width, height, channels, etc.)
-        JxlDecoderStatus status;
-        JxlDecoderCloseInput(g_decoder);
+        _image->data = stbi_load_from_memory(
+            _asset->data, _asset->size, ( int* )( &( _image->width ) ),
+            ( int* )( &( _image->height ) ),
+            ( int* )( &( _image->channelCount ) ), 4 );
 
-        // Read the basic information about the image
-        JxlBasicInfo basic_info;
-        status = JxlDecoderGetBasicInfo(g_decoder, &basic_info);
+        if ( UNLIKELY( !( _image->data ) ) ) {
+            log$transaction$query( ( logLevel_t )error, "Loading image\n" );
 
-        if (status != JXL_DEC_SUCCESS) {
-            log$transaction$query$format((logLevel_t)debug, "Failed to get basic info: %u\n", (status));
-            goto EXIT;
-        }
+            l_returnValue = false;
 
-        _image->width = basic_info.xsize;
-        _image->height = basic_info.ysize;
-        size_t img_channels = basic_info.num_color_channels;
-
-        // Prepare the image buffer (RGBA)
-        _image->data = (uint8_t*)malloc(_image->width * _image->height * img_channels * sizeof(uint8_t));
-
-        if (!_image->data) {
-            log$transaction$query((logLevel_t)debug,"Failed to allocate memory for image data\n");
-            goto EXIT;
-        }
-
-        // Decode the image data
-        status = JxlDecoderDecodePixels(g_decoder, _image->data);
-
-        if (status != JXL_DEC_SUCCESS) {
-            log$transaction$query$format((logLevel_t)debug, "Failed to decode image: %u\n", (status));
             goto EXIT;
         }
 
         log$transaction$query$format( ( logLevel_t )debug,
-                "Image width: %d, height: %d\n",
-                _image->width, _image->height );
+                                      "Image width: %d, height: %d\n",
+                                      _image->width, _image->height );
 
         l_returnValue = true;
     }
