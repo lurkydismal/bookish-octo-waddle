@@ -38,6 +38,9 @@
 #define DEBUG_INFORMATION_TO_PRINT \
     syscall( SYS_gettid ), __FILE__, __LINE__, __func__
 
+#define log$transaction$query( _logLevel, _string ) \
+    log$transaction$query$format( _logLevel, _string )
+
 #define log$transaction$query$format( _logLevel, _format, ... )      \
     _log$transaction$query$format( _logLevel,                        \
                                    DEBUG_INFORMATION_FORMAT _format, \
@@ -45,6 +48,7 @@
 
 #else
 
+#define log$transaction$query _log$transaction$query
 #define log$transaction$query$format _log$transaction$query$format
 
 #endif
@@ -112,7 +116,7 @@ bool log$level$set$string( const char* _string );
 logLevel_t log$level$get( void );
 const char* log$level$get$string( void );
 
-bool log$transaction$query( const logLevel_t _logLevel, const char* _string );
+bool _log$transaction$query( const logLevel_t _logLevel, const char* _string );
 bool _log$transaction$query$format( const logLevel_t _logLevel,
                                     const char* _format,
                                     ... );

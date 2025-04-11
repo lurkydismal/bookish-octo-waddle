@@ -69,6 +69,8 @@ bool asset_t$destroy( asset_t* restrict _asset ) {
     }
 
     {
+        _asset->data = NULL;
+
         l_returnValue = true;
     }
 
