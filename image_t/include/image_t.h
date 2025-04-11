@@ -8,6 +8,8 @@
 #define DEFAULT_IMAGE \
     { .id = NULL, .width = 0, .height = 0, .data = NULL, .size = 0 }
 
+// TODO: Implement image_t
+
 typedef struct {
     void* id;
     size_t width;
