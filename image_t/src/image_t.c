@@ -3,6 +3,10 @@
 #include "log.h"
 #include "stdfunc.h"
 
+#include <jxl/decode.h>
+
+JxlDecoder* g_decoder = NULL;
+
 bool image_t$loader$init( const char* _applicationName ) {
     bool l_returnValue = false;
 
@@ -11,7 +15,7 @@ bool image_t$loader$init( const char* _applicationName ) {
     }
 
     {
-        VIPS_INIT( _applicationName );
+        g_decoder = JxlDecoderCreate( NULL );
 
         l_returnValue = true;
     }
@@ -24,7 +28,7 @@ bool image_t$loader$quit( void ) {
     bool l_returnValue = false;
 
     {
-        vips_shutdown();
+        JxlDecoderDestroy(g_decoder);
 
         l_returnValue = true;
     }
@@ -42,9 +46,11 @@ bool image_t$destroy( image_t* _image ) {
     bool l_returnValue = false;
 
     {
+        _image->id = NULL;
         _image->width = 0;
         _image->height = 0;
         _image->data = NULL;
+        _image->size = 0;
 
         l_returnValue = true;
     }
@@ -65,55 +71,45 @@ bool image_t$load$fromAsset( image_t* _image, asset_t* _asset ) {
     }
 
     {
-        _image->id = vips_image_new();
+        // Set up the decoder
+        JxlDecoderSetInput(g_decoder, _asset->data, _asset->size);
 
-        l_returnValue = ( vips_jxlload_buffer( _asset->data, _asset->size,
-                                               &( _image->id ), NULL ) != -1 );
+        // Get image metadata (width, height, channels, etc.)
+        JxlDecoderStatus status;
+        JxlDecoderCloseInput(g_decoder);
 
-        if ( !l_returnValue ) {
-            image_t$unload( _image );
+        // Read the basic information about the image
+        JxlBasicInfo basic_info;
+        status = JxlDecoderGetBasicInfo(g_decoder, &basic_info);
 
-            log$transaction$query$format( ( logLevel_t )info,
-                                          "TEST1: %p %u %p\n", _asset->data,
-                                          _asset->size, _image->id );
-
+        if (status != JXL_DEC_SUCCESS) {
+            log$transaction$query$format((logLevel_t)debug, "Failed to get basic info: %u\n", (status));
             goto EXIT;
         }
 
-        _image->width = vips_image_get_width( _image->id );
-        _image->height = vips_image_get_height( _image->id );
+        _image->width = basic_info.xsize;
+        _image->height = basic_info.ysize;
+        size_t img_channels = basic_info.num_color_channels;
 
-        VipsImage* rgba = NULL;
-        {
-            vips_colourspace( _image->id, &rgba, VIPS_INTERPRETATION_sRGB,
-                              NULL );
+        // Prepare the image buffer (RGBA)
+        _image->data = (uint8_t*)malloc(_image->width * _image->height * img_channels * sizeof(uint8_t));
 
-            // Ensure 4 channels ( RGBA )
-            vips_copy( rgba, &rgba, "bands", 4, NULL );
+        if (!_image->data) {
+            log$transaction$query((logLevel_t)debug,"Failed to allocate memory for image data\n");
+            goto EXIT;
+        }
 
-            // Ensure 8-bit
-            vips_cast( rgba, &rgba, VIPS_FORMAT_UCHAR, NULL );
+        // Decode the image data
+        status = JxlDecoderDecodePixels(g_decoder, _image->data);
 
-            _image->data =
-                vips_image_write_to_memory( rgba, &( _image->size ) );
-
-            l_returnValue = !!( _image->data );
-
-            if ( !l_returnValue ) {
-                image_t$unload( _image );
-
-                log$transaction$query$format( ( logLevel_t )info,
-                                              "TEST2: %p %u\n", _image->id,
-                                              _asset->size );
-                goto EXIT;
-            }
+        if (status != JXL_DEC_SUCCESS) {
+            log$transaction$query$format((logLevel_t)debug, "Failed to decode image: %u\n", (status));
+            goto EXIT;
         }
 
         log$transaction$query$format( ( logLevel_t )debug,
-                                      "Image width: %d, height: %d\n",
-                                      _image->width, _image->height );
-        log$transaction$query$format( ( logLevel_t )debug, "Image format: %d\n",
-                                      vips_image_get_format( rgba ) );
+                "Image width: %d, height: %d\n",
+                _image->width, _image->height );
 
         l_returnValue = true;
     }
@@ -172,12 +168,10 @@ bool image_t$unload( image_t* _image ) {
     bool l_returnValue = false;
 
     {
-#if 0
-        g_free( _image->data );
+        free( _image->data );
 
         // TODO: Find out if really is needed
-        g_object_unref( _image->id );
-#endif
+        free( _image->id );
 
         l_returnValue = true;
     }
