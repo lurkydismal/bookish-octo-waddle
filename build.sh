@@ -24,6 +24,7 @@ export declare BUILD_DEFINES=(
 
 export declare BUILD_DEFINES_DEBUG=(
     "DEBUG"
+    "VIPS_DEBUG"
 )
 
 export declare BUILD_DEFINES_RELEASE=(
@@ -63,7 +64,6 @@ export declare LIBRARIES_TO_LINK=(
     "mimalloc"
 )
 export declare EXTERNAL_LIBRARIES_TO_LINK=(
-    "vips"
 )
 export declare LIBRARIES_TO_LINK_TESTS=(
     "m"

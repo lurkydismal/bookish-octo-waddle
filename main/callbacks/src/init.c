@@ -107,7 +107,24 @@ callbackResult_t init( applicationState_t* _applicationState ) {
             glfwMakeContextCurrent( _applicationState->window );
         }
 
-        // image_t
+        // glad
+        {
+            _applicationState->glVersion = gladLoadGL( glfwGetProcAddress );
+
+            if ( UNLIKELY( !( _applicationState->glVersion ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing OpenGL with glad\n" );
+
+                goto EXIT;
+            }
+
+            log$transaction$query$format(
+                ( logLevel_t )info, "GL version: %d.%d\n",
+                GLAD_VERSION_MAJOR( _applicationState->glVersion ),
+                GLAD_VERSION_MINOR( _applicationState->glVersion ) );
+        }
+
+        // Image loader
         {
             if ( UNLIKELY( !image_t$loader$init(
                      _applicationState->settings.window.name ) ) ) {
@@ -116,16 +133,6 @@ callbackResult_t init( applicationState_t* _applicationState ) {
 
                 goto EXIT;
             }
-        }
-
-        // glad
-        {
-            _applicationState->glVersion = gladLoadGL( glfwGetProcAddress );
-
-            log$transaction$query$format(
-                ( logLevel_t )info, "GL version: %d.%d\n",
-                GLAD_VERSION_MAJOR( _applicationState->glVersion ),
-                GLAD_VERSION_MINOR( _applicationState->glVersion ) );
         }
 
         // Vsync

@@ -107,6 +107,7 @@ bool settings_t$load( settings_t* restrict _settings,
                         const char* l_key = l_keyAndValue[ 1 ];
                         const char* l_value = l_keyAndValue[ 2 ];
 
+                        // TODO: Implement something like settingsOption_t
                         if ( __builtin_strcmp( l_key, "window_name" ) == 0 ) {
                             free( l_settings.window.name );
 

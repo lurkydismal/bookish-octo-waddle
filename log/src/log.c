@@ -227,8 +227,9 @@ const char* log$level$get$string( void ) {
     return ( log$level$convert$toString( g_currentLogLevel ) );
 }
 
-bool log$transaction$query( const logLevel_t _logLevel,
-                            const char* restrict _string ) {
+// TODO: Decide on how this function works in DEBUG
+bool _log$transaction$query( const logLevel_t _logLevel,
+                             const char* restrict _string ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_string ) ) {
