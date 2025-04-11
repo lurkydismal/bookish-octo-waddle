@@ -12,6 +12,7 @@ typedef struct {
     void* id;
     size_t width;
     size_t height;
+    size_t channelCount;
     uint8_t* data;
     size_t size;
 } image_t;
