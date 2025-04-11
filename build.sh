@@ -95,6 +95,7 @@ export LIBRARIES_COLOR="$BLUE_LIGHT_COLOR"
 export EXTERNAL_LIBRARIES_COLOR="$BLUE_LIGHT_COLOR"
 export PARTS_TO_BUILD_COLOR="$YELLOW_COLOR"
 export SKIPPING_PART_IN_BUILD_COLOR="$GREEN_LIGHT_COLOR"
+export BUILT_EXECUTABLE_COLOR="$GREEN_LIGHT_COLOR"
 export SECTIONS_TO_STRIP_COLOR="$RED_LIGHT_COLOR"
 
 clear
@@ -240,6 +241,7 @@ if [ $BUILD_STATUS -eq 0 ]; then
         fi
 
         $C_COMPILER $LINK_FLAGS "$BUILD_DIRECTORY/"'lib'"$executableMainPackage"'.a' $staticPartsAsString $partsToBuildAsString $librariesToLinkAsString $externalLibrariesLinkFlagsAsString -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME"
+        echo  -e "$BUILT_EXECUTABLE_COLOR""$EXECUTABLE_NAME""$RESET_COLOR"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
@@ -302,6 +304,7 @@ if [ $BUILD_TYPE -eq 3 ]; then
         fi
 
         $C_COMPILER $LINK_FLAGS '-Wl,--whole-archive' "$BUILD_DIRECTORY/"'lib'"$testsMainPackage"'.a' $testsToBuildAsString $staticPartsAsString $partsToBuildAsString '-Wl,--no-whole-archive' $librariesToLinkAsString $externalLibrariesLinkFlagsAsString $testsLibrariesToLinkAsString -o "$BUILD_DIRECTORY/$EXECUTABLE_NAME_TESTS"
+        echo  -e "$BUILT_EXECUTABLE_COLOR""$EXECUTABLE_NAME_TESTS""$RESET_COLOR"
 
         if [ ! -z "${NEED_STRIP_EXECUTABLE+x}" ]; then
             if [ ${#EXECUTABLE_SECTIONS_TO_STRIP[@]} -ne 0 ]; then
