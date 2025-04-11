@@ -64,6 +64,7 @@ export declare LIBRARIES_TO_LINK=(
     "mimalloc"
 )
 export declare EXTERNAL_LIBRARIES_TO_LINK=(
+    "libjxl"
 )
 export declare LIBRARIES_TO_LINK_TESTS=(
     "m"

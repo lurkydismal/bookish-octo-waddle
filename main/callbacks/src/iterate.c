@@ -1,6 +1,5 @@
 #include <glad/gl.h>
 
-#include <stb_image.h>
 #include "callbacks.h"
 #include "image_t.h"
 #include "log.h"
@@ -32,8 +31,8 @@ callbackResult_t iterate$unlimited( applicationState_t* _applicationState ) {
         log$transaction$query$format( ( logLevel_t )info, "image: s %u\n",
                                       t.size );
 
-        FOR_RANGE( size_t, 0, t.size ) {
-            log$transaction$query$format( ( logLevel_t )info, "d %u\n",
+        FOR_RANGE( size_t, 0, 16 ) {
+            log$transaction$query$format( ( logLevel_t )info, "d %p\n",
                                           t.data[ _index ] );
         }
     }

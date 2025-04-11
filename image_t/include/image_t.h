@@ -5,12 +5,15 @@
 
 #include "asset_t.h"
 
-#define DEFAULT_IMAGE { .width = 0, .height = 0, .data = NULL }
+#define DEFAULT_IMAGE \
+    { .id = NULL, .width = 0, .height = 0, .data = NULL, .size = 0 }
 
 typedef struct {
+    void* id;
     size_t width;
     size_t height;
     uint8_t* data;
+    size_t size;
 } image_t;
 
 bool image_t$loader$init( const char* _applicationName );
