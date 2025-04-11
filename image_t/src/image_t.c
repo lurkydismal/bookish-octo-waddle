@@ -54,7 +54,6 @@ bool image_t$destroy( image_t* _image ) {
     return ( l_returnValue );
 }
 
-// TODO: Error handling
 bool image_t$load$fromAsset( image_t* _image, asset_t* _asset ) {
     bool l_returnValue = false;
 
