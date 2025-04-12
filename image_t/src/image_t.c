@@ -1,7 +1,5 @@
 #include "image_t.h"
 
-#include <simde/x86/sse2.h>
-
 #include "log.h"
 #include "stdfunc.h"
 
@@ -133,7 +131,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                 const size_t l_rowOffset = ( _index * l_rgbaRowSize );
                 uint8_t* l_rgbaRow = ( _image->data + l_rowOffset );
 
-#pragma omp simd
                 // Loop over each pixel in the row (x-axis) using FOR_RANGE
                 FOR_RANGE( size_t, 0, _image->width ) {
                     const size_t l_rgbaRowIndex = ( _index * RGBA_PIXEL_SIZE );
