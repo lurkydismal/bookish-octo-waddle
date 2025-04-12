@@ -5,21 +5,15 @@
 
 #include "asset_t.h"
 
-#define DEFAULT_IMAGE \
-    { .id = NULL, .width = 0, .height = 0, .data = NULL, .size = 0 }
-
-// TODO: Implement image_t
+#define DEFAULT_IMAGE { .width = 0, .height = 0, .data = NULL }
 
 typedef struct {
-    void* id;
     size_t width;
     size_t height;
-    size_t channelCount;
     uint8_t* data;
-    size_t size;
 } image_t;
 
-bool image_t$loader$init( const char* _applicationName );
+bool image_t$loader$init( void );
 bool image_t$loader$quit( void );
 
 image_t image_t$create( void );

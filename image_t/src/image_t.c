@@ -1,24 +1,163 @@
-#define STB_IMAGE_IMPLEMENTATION
-
 #include "image_t.h"
-
-#include <stb/stb_image.h>
 
 #include "log.h"
 #include "stdfunc.h"
 
-bool image_t$loader$init( const char* _applicationName ) {
+// Constants
+#define RGBA_PIXEL_SIZE ( 4 )
+
+#define BGR_PIXEL_SIZE ( 3 )
+#define BMP_DATA_START_VALUE_OFFsET ( 10 )
+#define BMP_WIDTH_OFFSET ( 18 )
+#define BMP_HEIGHT_OFFSET ( 22 )
+
+#define RGBA_ROW_SIZE( _width ) ( ( _width ) * RGBA_PIXEL_SIZE )
+
+// Computes total RGBA data size
+#define RGBA_DATA_SIZE( _image ) \
+    ( RGBA_ROW_SIZE( ( _image ).width ) * ( _image ).height )
+
+/**
+ * @brief Computes the size of a single row (scanline) in a BMP image, including
+ * padding.
+ *
+ * BMP images store pixel data in rows, where each row size must be **aligned to
+ * a multiple of 4 bytes**. This macro calculates the **padded row size** to
+ * meet that alignment requirement.
+ *
+ * Calculation:
+ * - `( _width * BGR_PIXEL_SIZE )` → Computes the actual number of bytes
+ * required for pixel data.
+ * - `+ BGR_PIXEL_SIZE` → Ensures that any remainder when divided by 4 is
+ * accounted for.
+ * - `& ~BGR_PIXEL_SIZE` → Applies bitwise alignment to the nearest multiple
+ * of 4.
+ *
+ * Padding is BMP Format Requirement
+ * - BMP rows must be aligned to 4-byte boundaries for proper memory access.
+ * - If a row's raw pixel data is not a multiple of 4, extra padding bytes
+ * (0x00) are added.
+ *
+ * @param _width The width of the image in pixels.
+ * @return The total row size in bytes, including padding.
+ */
+#define BMP_ROW_SIZE( _width ) \
+    ( ( ( _width * BGR_PIXEL_SIZE ) + BGR_PIXEL_SIZE ) & ~BGR_PIXEL_SIZE )
+
+// Computes total BMP data size (including padding)
+#define BMP_DATA_SIZE( _image )                                        \
+    ( size_t )( BMP_ROW_SIZE( ( _image ).width ) * ( _image ).height * \
+                sizeof( uint8_t ) )
+
+/**
+ * @brief Loads a 24-bit BMP image from a file.
+ *
+ * @param _image Pointer to the BMP image structure.
+ * @param _fileName Name of the BMP file.
+ * @return success if the image is loaded successfully, otherwise failure.
+ */
+static FORCE_INLINE bool BMP$load( image_t* _image, asset_t* _asset ) {
     bool l_returnValue = false;
 
-    if ( UNLIKELY( !_applicationName ) ) {
+    if ( UNLIKELY( !_image ) ) {
+        log$transaction$query( ( logLevel_t )error,
+                               "BMP load: Invalid storage\n" );
+
         goto EXIT;
     }
+
+    if ( UNLIKELY( !_asset ) ) {
+        log$transaction$query( ( logLevel_t )error,
+                               "BMP load: Invalid asset\n" );
+
+        goto EXIT;
+    }
+
+    {
+        if ( UNLIKELY( _asset->size < BMP_DATA_START_VALUE_OFFsET ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        const uint32_t l_headerSize =
+            _asset->data[ BMP_DATA_START_VALUE_OFFsET ];
+
+        if ( UNLIKELY( _asset->size < l_headerSize ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        uint8_t* l_header = ( uint8_t* )malloc( l_headerSize );
+
+        FOR_RANGE( size_t, 0, l_headerSize ) {
+            l_header[ _index ] = _asset->data[ _index ];
+        }
+
+        _image->width =
+            ( size_t )( *( ( int* )( &( l_header )[ BMP_WIDTH_OFFSET ] ) ) );
+        _image->height =
+            ( size_t )( *( ( int* )( &( l_header )[ BMP_HEIGHT_OFFSET ] ) ) );
+
+        {
+            const size_t l_dataSize = RGBA_DATA_SIZE( *_image );
+
+            if ( UNLIKELY( _asset->size < ( l_headerSize + l_dataSize ) ) ) {
+                l_returnValue = false;
+
+                goto EXIT_HEADER;
+            }
+
+            _image->data = ( uint8_t* )malloc( l_dataSize );
+
+            FOR_RANGE( size_t, 0, _image->height ) {
+                // Row index from the bottom of the image
+                const size_t l_reverseY = ( _image->height - _index - 1 );
+                const uint8_t* l_bgrRow =
+                    ( _asset->data +
+                      ( l_headerSize +
+                        ( l_reverseY * BMP_ROW_SIZE( _image->width ) ) ) );
+                const size_t l_rowOffset =
+                    ( _index * RGBA_ROW_SIZE( _image->width ) );
+                uint8_t* l_rgbaRow = ( _image->data + l_rowOffset );
+
+                const size_t l_outerIndex = _index;
+                const size_t xIndex = _index; // Row index
+
+                FOR_RANGE( size_t, 0, _image->width ) {
+                    const size_t pixelOffset =
+                        ( xIndex * RGBA_PIXEL_SIZE ) +
+                        ( _index * RGBA_ROW_SIZE( _image->width ) );
+
+                    l_rgbaRow[ pixelOffset + 0 ] =
+                        l_bgrRow[ _index * BGR_PIXEL_SIZE + 0 ]; // B
+                    l_rgbaRow[ pixelOffset + 1 ] =
+                        l_bgrRow[ _index * BGR_PIXEL_SIZE + 1 ]; // G
+                    l_rgbaRow[ pixelOffset + 2 ] =
+                        l_bgrRow[ _index * BGR_PIXEL_SIZE + 2 ]; // R
+                    l_rgbaRow[ pixelOffset + 3 ] = 0xCE;         // A
+                }
+            }
+        }
+
+        l_returnValue = true;
+
+    EXIT_HEADER:
+        free( l_header );
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool image_t$loader$init( void ) {
+    bool l_returnValue = false;
 
     {
         l_returnValue = true;
     }
 
-EXIT:
     return ( l_returnValue );
 }
 
@@ -42,11 +181,9 @@ bool image_t$destroy( image_t* _image ) {
     bool l_returnValue = false;
 
     {
-        _image->id = NULL;
         _image->width = 0;
         _image->height = 0;
         _image->data = NULL;
-        _image->size = 0;
 
         l_returnValue = true;
     }
@@ -66,18 +203,7 @@ bool image_t$load$fromAsset( image_t* _image, asset_t* _asset ) {
     }
 
     {
-        stbi_set_flip_vertically_on_load( 1 );
-
-        _image->data = stbi_load_from_memory(
-            _asset->data, _asset->size, ( int* )( &( _image->width ) ),
-            ( int* )( &( _image->height ) ),
-            ( int* )( &( _image->channelCount ) ), 4 );
-
-        if ( UNLIKELY( !( _image->data ) ) ) {
-            log$transaction$query( ( logLevel_t )error, "Loading image\n" );
-
-            l_returnValue = false;
-
+        if ( UNLIKELY( !BMP$load( _image, _asset ) ) ) {
             goto EXIT;
         }
 
@@ -143,9 +269,6 @@ bool image_t$unload( image_t* _image ) {
 
     {
         free( _image->data );
-
-        // TODO: Find out if really is needed
-        free( _image->id );
 
         l_returnValue = true;
     }
