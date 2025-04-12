@@ -1,12 +1,14 @@
 #include "image_t.h"
 
+#include <simde/x86/sse2.h>
+
 #include "log.h"
 #include "stdfunc.h"
 
 // Constants
 #define RGBA_PIXEL_SIZE ( 4 )
-
 #define BGR_PIXEL_SIZE ( 3 )
+
 #define BMP_DATA_START_VALUE_OFFsET ( 10 )
 #define BMP_WIDTH_OFFSET ( 18 )
 #define BMP_HEIGHT_OFFSET ( 22 )
@@ -41,12 +43,12 @@
  * @param _width The width of the image in pixels.
  * @return The total row size in bytes, including padding.
  */
-#define BMP_ROW_SIZE( _width ) \
+#define BGR_ROW_SIZE( _width ) \
     ( ( ( _width * BGR_PIXEL_SIZE ) + BGR_PIXEL_SIZE ) & ~BGR_PIXEL_SIZE )
 
 // Computes total BMP data size (including padding)
-#define BMP_DATA_SIZE( _image )                                        \
-    ( size_t )( BMP_ROW_SIZE( ( _image ).width ) * ( _image ).height * \
+#define BGR_DATA_SIZE( _image )                                        \
+    ( size_t )( BGR_ROW_SIZE( ( _image ).width ) * ( _image ).height * \
                 sizeof( uint8_t ) )
 
 /**
@@ -56,7 +58,8 @@
  * @param _fileName Name of the BMP file.
  * @return success if the image is loaded successfully, otherwise failure.
  */
-static FORCE_INLINE bool BMP$load( image_t* _image, asset_t* _asset ) {
+static FORCE_INLINE bool BMP$load( image_t* restrict _image,
+                                   asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_image ) ) {
@@ -91,19 +94,26 @@ static FORCE_INLINE bool BMP$load( image_t* _image, asset_t* _asset ) {
 
         uint8_t* l_header = ( uint8_t* )malloc( l_headerSize );
 
-        FOR_RANGE( size_t, 0, l_headerSize ) {
-            l_header[ _index ] = _asset->data[ _index ];
-        }
+        __builtin_memcpy( l_header, _asset->data, l_headerSize );
 
-        _image->width =
-            ( size_t )( *( ( int* )( &( l_header )[ BMP_WIDTH_OFFSET ] ) ) );
-        _image->height =
-            ( size_t )( *( ( int* )( &( l_header )[ BMP_HEIGHT_OFFSET ] ) ) );
+#if 0
+        _image->width = ( size_t )( *(
+            ( uint32_t* )( &( l_header )[ BMP_WIDTH_OFFSET ] ) ) );
+        _image->height = ( size_t )( *(
+            ( uint32_t* )( &( l_header )[ BMP_HEIGHT_OFFSET ] ) ) );
+#endif
+
+        // TODO: Decide on this
+        __builtin_memcpy( &( _image->width ), ( l_header + BMP_WIDTH_OFFSET ),
+                          sizeof( uint32_t ) );
+        __builtin_memcpy( &( _image->height ), ( l_header + BMP_HEIGHT_OFFSET ),
+                          sizeof( uint32_t ) );
 
         {
             const size_t l_dataSize = RGBA_DATA_SIZE( *_image );
 
-            if ( UNLIKELY( _asset->size < ( l_headerSize + l_dataSize ) ) ) {
+            if ( UNLIKELY( _asset->size <
+                           ( l_headerSize + BGR_DATA_SIZE( *_image ) ) ) ) {
                 l_returnValue = false;
 
                 goto EXIT_HEADER;
@@ -111,32 +121,31 @@ static FORCE_INLINE bool BMP$load( image_t* _image, asset_t* _asset ) {
 
             _image->data = ( uint8_t* )malloc( l_dataSize );
 
+            const size_t l_rgbaRowSize = RGBA_ROW_SIZE( _image->width );
+            const size_t l_bgrRowSize = BGR_ROW_SIZE( _image->width );
+
             FOR_RANGE( size_t, 0, _image->height ) {
                 // Row index from the bottom of the image
                 const size_t l_reverseY = ( _image->height - _index - 1 );
                 const uint8_t* l_bgrRow =
                     ( _asset->data +
-                      ( l_headerSize +
-                        ( l_reverseY * BMP_ROW_SIZE( _image->width ) ) ) );
-                const size_t l_rowOffset =
-                    ( _index * RGBA_ROW_SIZE( _image->width ) );
+                      ( l_headerSize + ( l_reverseY * l_bgrRowSize ) ) );
+                const size_t l_rowOffset = ( _index * l_rgbaRowSize );
                 uint8_t* l_rgbaRow = ( _image->data + l_rowOffset );
 
-                const size_t l_outerIndex = _index;
-                const size_t xIndex = _index; // Row index
-
+#pragma omp simd
+                // Loop over each pixel in the row (x-axis) using FOR_RANGE
                 FOR_RANGE( size_t, 0, _image->width ) {
-                    const size_t pixelOffset =
-                        ( xIndex * RGBA_PIXEL_SIZE ) +
-                        ( _index * RGBA_ROW_SIZE( _image->width ) );
+                    const size_t l_rgbaRowIndex = ( _index * RGBA_PIXEL_SIZE );
+                    const size_t l_bgrRowIndex = ( _index * BGR_PIXEL_SIZE );
 
-                    l_rgbaRow[ pixelOffset + 0 ] =
-                        l_bgrRow[ _index * BGR_PIXEL_SIZE + 0 ]; // B
-                    l_rgbaRow[ pixelOffset + 1 ] =
-                        l_bgrRow[ _index * BGR_PIXEL_SIZE + 1 ]; // G
-                    l_rgbaRow[ pixelOffset + 2 ] =
-                        l_bgrRow[ _index * BGR_PIXEL_SIZE + 2 ]; // R
-                    l_rgbaRow[ pixelOffset + 3 ] = 0xCE;         // A
+                    uint8_t* l_rgbaPixel = ( l_rgbaRow + l_rgbaRowIndex );
+                    const uint8_t* l_bgrPixel = ( l_bgrRow + l_bgrRowIndex );
+
+                    l_rgbaPixel[ 0 ] = l_bgrPixel[ 0 ]; // B
+                    l_rgbaPixel[ 1 ] = l_bgrPixel[ 1 ]; // G
+                    l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ]; // R
+                    l_rgbaPixel[ 3 ] = 0xCE;            // A
                 }
             }
         }
@@ -177,7 +186,7 @@ image_t image_t$create( void ) {
     return ( l_returnValue );
 }
 
-bool image_t$destroy( image_t* _image ) {
+bool image_t$destroy( image_t* restrict _image ) {
     bool l_returnValue = false;
 
     {
@@ -191,7 +200,8 @@ bool image_t$destroy( image_t* _image ) {
     return ( l_returnValue );
 }
 
-bool image_t$load$fromAsset( image_t* _image, asset_t* _asset ) {
+bool image_t$load$fromAsset( image_t* restrict _image,
+                             asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_image ) ) {
@@ -219,7 +229,8 @@ EXIT:
 }
 
 // TODO: Improve
-bool image_t$load$fromPath( image_t* _image, const char* _path ) {
+bool image_t$load$fromPath( image_t* restrict _image,
+                            const char* restrict _path ) {
     bool l_returnValue = false;
 
     {
@@ -264,7 +275,7 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool image_t$unload( image_t* _image ) {
+bool image_t$unload( image_t* restrict _image ) {
     bool l_returnValue = false;
 
     {
