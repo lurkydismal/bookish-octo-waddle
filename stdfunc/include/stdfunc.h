@@ -48,6 +48,9 @@
 #define FOR_RANGE( _type, _start, _end ) \
     for ( _type _index = _start; _index < _end; _index++ )
 
+#define FOR_RANGE_BY( _type, _start, _end, _amount ) \
+    for ( _type _index = _start; _index < _end; _index += _amount )
+
 // Non-native array free every element
 #define FREE_ARRAY( _array )                    \
     do {                                        \

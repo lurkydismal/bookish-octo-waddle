@@ -1,5 +1,7 @@
 #include "image_t.h"
 
+#include <simde/x86/sse2.h>
+
 #include "log.h"
 #include "stdfunc.h"
 
@@ -131,6 +133,66 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                 const size_t l_rowOffset = ( _index * l_rgbaRowSize );
                 uint8_t* l_rgbaRow = ( _image->data + l_rowOffset );
 
+#if 1
+                // TODO: Add 256 and 512 AVX support
+#ifdef __SSE2__
+
+                {
+#define SIMD_PIXELS ( 4 )
+
+                    // Number of pixels not aligned for SIMD
+                    const size_t l_noSIMDPixelsCount =
+                        ( _image->width % SIMD_PIXELS );
+                    size_t l_index = 0;
+
+                    FOR_RANGE_BY( size_t, 0,
+                                  ( _image->width - l_noSIMDPixelsCount ),
+                                  SIMD_PIXELS ) {
+                        // TODO: Improve l_tempBGR
+                        uint8_t l_tempBGR[ SIMD_PIXELS * BGR_PIXEL_SIZE ];
+                        __builtin_memcpy(
+                            l_tempBGR, ( l_bgrRow + l_index * BGR_PIXEL_SIZE ),
+                            ( SIMD_PIXELS * BGR_PIXEL_SIZE ) );
+
+                        uint8_t r[ SIMD_PIXELS ];
+                        uint8_t g[ SIMD_PIXELS ];
+                        uint8_t b[ SIMD_PIXELS ];
+
+                        FOR_RANGE( size_t, 0, SIMD_PIXELS ) {
+                            b[ _index ] = l_tempBGR[ _index * 3 + 0 ];
+                            g[ _index ] = l_tempBGR[ _index * 3 + 1 ];
+                            r[ _index ] = l_tempBGR[ _index * 3 + 2 ];
+                        }
+
+                        // clang-format off
+                        __m128i l_rgbaVector = simde_mm_setr_epi8(
+                            r[ 0 ], g[ 0 ], b[ 0 ], ( char )0xCE,
+                            r[ 1 ], g[ 1 ], b[ 1 ], ( char )0xCE,
+                            r[ 2 ], g[ 2 ], b[ 2 ], ( char )0xCE,
+                            r[ 3 ], g[ 3 ], b[ 3 ], ( char )0xCE );
+                        // clang-format on
+
+                        simde_mm_storeu_si128(
+                            ( __m128i* )( l_rgbaRow +
+                                          l_index * RGBA_PIXEL_SIZE ),
+                            l_rgbaVector );
+
+                        l_index = _index;
+                    }
+
+                    FOR_RANGE( size_t, l_index, _image->width ) {
+                        const size_t rgbaIndex = ( _index * RGBA_PIXEL_SIZE );
+                        const size_t bgrIndex = ( _index * BGR_PIXEL_SIZE );
+
+                        l_rgbaRow[ rgbaIndex + 0 ] = l_bgrRow[ bgrIndex + 0 ];
+                        l_rgbaRow[ rgbaIndex + 1 ] = l_bgrRow[ bgrIndex + 1 ];
+                        l_rgbaRow[ rgbaIndex + 2 ] = l_bgrRow[ bgrIndex + 2 ];
+                        l_rgbaRow[ rgbaIndex + 3 ] = 0xCE;
+                    }
+                }
+
+                // No vectorization
+#else
                 // Loop over each pixel in the row (x-axis) using FOR_RANGE
                 FOR_RANGE( size_t, 0, _image->width ) {
                     const size_t l_rgbaRowIndex = ( _index * RGBA_PIXEL_SIZE );
@@ -144,6 +206,8 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ]; // R
                     l_rgbaPixel[ 3 ] = 0xCE;            // A
                 }
+#endif
+#endif
             }
         }
 
