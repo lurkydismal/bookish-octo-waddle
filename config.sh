@@ -2,6 +2,7 @@
 declare -a partsToBuild=(
     "gameState_t"
     "image_t"
+    "font_t"
     "settings_t"
     "window_t"
     "vsync"

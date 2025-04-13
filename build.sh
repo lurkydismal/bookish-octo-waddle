@@ -39,6 +39,7 @@ export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
     "gameState_t/include"
     "image_t/include"
+    "font_t/include"
     "settings_t/include"
     "window_t/include"
     "vsync/include"
