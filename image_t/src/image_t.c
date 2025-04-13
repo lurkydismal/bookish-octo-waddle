@@ -165,16 +165,16 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                         }
 
                         // clang-format off
-                        __m128i l_rgbaVector = simde_mm_setr_epi8(
-                            r[ 0 ], g[ 0 ], b[ 0 ], ( char )0xCE,
-                            r[ 1 ], g[ 1 ], b[ 1 ], ( char )0xCE,
-                            r[ 2 ], g[ 2 ], b[ 2 ], ( char )0xCE,
-                            r[ 3 ], g[ 3 ], b[ 3 ], ( char )0xCE );
+    simde__m128i l_rgbaVector = simde_mm_setr_epi8(
+        r[ 0 ], g[ 0 ], b[ 0 ], ( char )0xFF,
+        r[ 1 ], g[ 1 ], b[ 1 ], ( char )0xFF,
+        r[ 2 ], g[ 2 ], b[ 2 ], ( char )0xFF,
+        r[ 3 ], g[ 3 ], b[ 3 ], ( char )0xFF );
                         // clang-format on
 
                         simde_mm_storeu_si128(
-                            ( __m128i* )( l_rgbaRow +
-                                          l_index * RGBA_PIXEL_SIZE ),
+                            ( simde__m128i* )( l_rgbaRow +
+                                               l_index * RGBA_PIXEL_SIZE ),
                             l_rgbaVector );
 
                         l_index = _index;
@@ -187,7 +187,7 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                         l_rgbaRow[ rgbaIndex + 0 ] = l_bgrRow[ bgrIndex + 0 ];
                         l_rgbaRow[ rgbaIndex + 1 ] = l_bgrRow[ bgrIndex + 1 ];
                         l_rgbaRow[ rgbaIndex + 2 ] = l_bgrRow[ bgrIndex + 2 ];
-                        l_rgbaRow[ rgbaIndex + 3 ] = 0xCE;
+                        l_rgbaRow[ rgbaIndex + 3 ] = 0xFF;
                     }
                 }
 
@@ -204,11 +204,13 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     l_rgbaPixel[ 0 ] = l_bgrPixel[ 0 ]; // B
                     l_rgbaPixel[ 1 ] = l_bgrPixel[ 1 ]; // G
                     l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ]; // R
-                    l_rgbaPixel[ 3 ] = 0xCE;            // A
+                    l_rgbaPixel[ 3 ] = 0xFF;            // A
                 }
 #endif
 #endif
             }
+
+            _image->size = l_dataSize;
         }
 
         l_returnValue = true;
@@ -218,26 +220,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
     }
 
 EXIT:
-    return ( l_returnValue );
-}
-
-bool image_t$loader$init( void ) {
-    bool l_returnValue = false;
-
-    {
-        l_returnValue = true;
-    }
-
-    return ( l_returnValue );
-}
-
-bool image_t$loader$quit( void ) {
-    bool l_returnValue = false;
-
-    {
-        l_returnValue = true;
-    }
-
     return ( l_returnValue );
 }
 
@@ -254,6 +236,7 @@ bool image_t$destroy( image_t* restrict _image ) {
         _image->width = 0;
         _image->height = 0;
         _image->data = NULL;
+        _image->size = 0;
 
         l_returnValue = true;
     }
@@ -281,6 +264,30 @@ bool image_t$load$fromAsset( image_t* restrict _image,
         log$transaction$query$format( ( logLevel_t )debug,
                                       "Image width: %d, height: %d\n",
                                       _image->width, _image->height );
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool image_t$load$fromAsset$compressed( image_t* restrict _image,
+                                        asset_t* restrict _asset ) {
+    bool l_returnValue = false;
+
+    {
+        if ( UNLIKELY( !image_t$load$fromAsset( _image, _asset ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        if ( UNLIKELY( image_t$compress( _image ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
 
         l_returnValue = true;
     }
@@ -336,14 +343,108 @@ EXIT:
     return ( l_returnValue );
 }
 
+bool image_t$load$fromPath$compressed( image_t* restrict _image,
+                                       const char* restrict _path ) {
+    bool l_returnValue = false;
+
+    {
+        if ( UNLIKELY( !image_t$load$fromPath( _image, _path ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        if ( UNLIKELY( image_t$compress( _image ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
 bool image_t$unload( image_t* restrict _image ) {
     bool l_returnValue = false;
 
     {
         free( _image->data );
 
+        _image->size = 0;
+
         l_returnValue = true;
     }
 
+    return ( l_returnValue );
+}
+
+bool image_t$compress( image_t* restrict _image ) {
+    bool l_returnValue = false;
+
+    {
+        asset_t l_compressedAsset = asset_t$create();
+
+        l_compressedAsset.data = _image->data;
+        l_compressedAsset.size = _image->size;
+
+        // TODO: Make only single destroy
+        if ( UNLIKELY( !asset_t$compress( &l_compressedAsset ) ) ) {
+            asset_t$destroy( &l_compressedAsset );
+
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        _image->data = l_compressedAsset.data;
+        _image->size = l_compressedAsset.size;
+
+        if ( UNLIKELY( !asset_t$destroy( &l_compressedAsset ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool image_t$uncompress( image_t* restrict _image ) {
+    bool l_returnValue = false;
+
+    {
+        asset_t l_uncompressedAsset = asset_t$create();
+
+        l_uncompressedAsset.data = _image->data;
+        l_uncompressedAsset.size = _image->size;
+
+        // TODO: Make only single destroy
+        if ( UNLIKELY( !asset_t$uncompress( &l_uncompressedAsset ) ) ) {
+            asset_t$destroy( &l_uncompressedAsset );
+
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        _image->data = l_uncompressedAsset.data;
+        _image->size = l_uncompressedAsset.size;
+
+        if ( UNLIKELY( !asset_t$destroy( &l_uncompressedAsset ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        l_returnValue = true;
+    }
+
+EXIT:
     return ( l_returnValue );
 }

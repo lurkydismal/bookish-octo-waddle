@@ -1,6 +1,7 @@
 #include "asset_t.h"
 
 #include <fcntl.h>
+#include <snappy-c.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -70,6 +71,7 @@ bool asset_t$destroy( asset_t* restrict _asset ) {
 
     {
         _asset->data = NULL;
+        _asset->size = 0;
 
         l_returnValue = true;
     }
@@ -152,6 +154,34 @@ EXIT:
     return ( l_returnValue );
 }
 
+bool asset_t$load$compressed( asset_t* restrict _asset,
+                              const char* restrict _path ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_asset ) ) {
+        goto EXIT;
+    }
+
+    {
+        if ( UNLIKELY( !asset_t$load( _asset, _path ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        if ( UNLIKELY( !asset_t$compress( _asset ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
 bool asset_t$unload( asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
@@ -163,6 +193,113 @@ bool asset_t$unload( asset_t* restrict _asset ) {
         free( _asset->data );
 
         _asset->size = 0;
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool asset_t$compress( asset_t* restrict _asset ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_asset ) ) {
+        goto EXIT;
+    }
+
+    {
+        size_t l_compressedLength =
+            snappy_max_compressed_length( _asset->size );
+
+        uint8_t* l_data =
+            ( uint8_t* )malloc( l_compressedLength * sizeof( uint8_t ) );
+
+        if ( UNLIKELY( snappy_compress( ( char* )( _asset->data ), _asset->size,
+                                        ( char* )( l_data ),
+                                        &l_compressedLength ) != SNAPPY_OK ) ) {
+            log$transaction$query( ( logLevel_t )error,
+                                   "Compression failed\n" );
+
+            free( l_data );
+
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        l_data = ( uint8_t* )realloc(
+            l_data, ( l_compressedLength * sizeof( uint8_t ) ) );
+
+        free( _asset->data );
+
+        _asset->data = l_data;
+        _asset->size = ( l_compressedLength * sizeof( uint8_t ) );
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool asset_t$uncompress( asset_t* restrict _asset ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_asset ) ) {
+        goto EXIT;
+    }
+
+    {
+        if ( UNLIKELY( snappy_validate_compressed_buffer(
+                           ( char* )( _asset->data ), _asset->size ) !=
+                       SNAPPY_OK ) ) {
+            log$transaction$query( ( logLevel_t )error,
+                                   "Decompression failed: data\n" );
+
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        size_t l_uncompressedLength;
+
+        if ( UNLIKELY( snappy_uncompressed_length(
+                           ( char* )( _asset->data ), _asset->size,
+                           &l_uncompressedLength ) != SNAPPY_OK ) ) {
+            log$transaction$query(
+                ( logLevel_t )error,
+                "Decompression failed: uncompressed length\n" );
+
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        uint8_t* l_data =
+            ( uint8_t* )malloc( l_uncompressedLength * sizeof( uint8_t ) );
+
+        if ( UNLIKELY( snappy_uncompress( ( char* )( _asset->data ),
+                                          _asset->size, ( char* )( l_data ),
+                                          &l_uncompressedLength ) !=
+                       SNAPPY_OK ) ) {
+            log$transaction$query( ( logLevel_t )error,
+                                   "Decompression failed: uncompress\n" );
+
+            free( l_data );
+
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
+        l_data = ( uint8_t* )realloc(
+            l_data, ( l_uncompressedLength * sizeof( uint8_t ) ) );
+
+        free( _asset->data );
+
+        _asset->data = l_data;
+        _asset->size = ( l_uncompressedLength * sizeof( uint8_t ) );
 
         l_returnValue = true;
     }
