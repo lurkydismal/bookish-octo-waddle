@@ -124,35 +124,6 @@ callbackResult_t init( applicationState_t* _applicationState ) {
                 GLAD_VERSION_MINOR( _applicationState->glVersion ) );
         }
 
-        // Image loader
-        {
-            if ( UNLIKELY( !image_t$loader$init() ) ) {
-                log$transaction$query( ( logLevel_t )error,
-                                       "Initializing image_t loader\n" );
-
-                goto EXIT;
-            }
-
-            image_t l_image = image_t$create();
-
-            if ( !image_t$load$fromPath( &l_image, "t.bmp" ) ) {
-                log$transaction$query( ( logLevel_t )error, "TEST2\n" );
-            }
-
-            FOR_RANGE( size_t, 0, 16 ) {
-                log$transaction$query$format( ( logLevel_t )debug, "d: %p\n",
-                                              l_image.data[ _index ] );
-            }
-
-            if ( !image_t$unload( &l_image ) ) {
-                log$transaction$query( ( logLevel_t )error, "TEST3\n" );
-            }
-
-            if ( !image_t$destroy( &l_image ) ) {
-                log$transaction$query( ( logLevel_t )error, "TEST4\n" );
-            }
-        }
-
         // Vsync
         {
             if ( UNLIKELY( !vsync$init(
