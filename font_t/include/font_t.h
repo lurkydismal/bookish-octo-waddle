@@ -1,29 +1,39 @@
 #pragma once
 
+#include <cglm/cglm.h>
+#include <glad/gl.h>
+#include <stb/stb_truetype.h>
 #include <stdbool.h>
 
 #include "asset_t.h"
 
-#define FONT_BITMAP_W 512
-#define FONT_BITMAP_H 512
+#define FONT_ATLAS_W 512
+#define FONT_ATLAS_H 512
 
-#define DEFAULT_FONT \
-    {                \
-    }
+#define ASCII_START ( 32 )
+#define ASCII_END ( 126 )
+#define CHARACTERS_COUNT ( ASCII_END - ( ASCII_START - 1 ) )
+
+#define DEFAULT_FONT { .texture = 0, .height = 0.0 }
 
 typedef struct {
-    unsigned char *g_fontBuffer;
-    stbtt_fontinfo g_font;
-    unsigned char l_bitmap[FONT_BITMAP_W * FONT_BITMAP_H];
-    stbtt_bakedchar g_cdata[96]; // ASCII 32..126
+    GLuint vbo;
+    GLuint ebo;
+
+    GLuint shader;
+    GLuint texture;
+    stbtt_bakedchar glyphs[ CHARACTERS_COUNT ];
+    stbtt_fontinfo info;
+    float height;
+    vec3 color;
 } font_t;
 
 font_t font_t$create( void );
-bool font_t$destroy( font_t* _font );
+bool font_t$destroy( font_t* restrict _font );
 
-bool font_t$load$fromAsset( font_t* _font, asset_t* _asset );
-bool font_t$load$fromPath( font_t* _font, const char* _path );
-bool font_t$unload( font_t* _font );
+bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset );
+bool font_t$load$fromPath( font_t* restrict _font, const char* restrict _path );
+bool font_t$unload( font_t* restrict _font );
 
 #if 0
 GLuint g_fontTex;

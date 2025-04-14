@@ -136,6 +136,7 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
 #if 1
                 // TODO: Add 256 and 512 AVX support
 #ifdef __SSE2__
+#pragma message( "image_t: SSE2" )
 
                 {
 #define SIMD_PIXELS ( 4 )
@@ -193,6 +194,8 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
 
                 // No vectorization
 #else
+#pragma message( "image_t: No vectorization" )
+
                 // Loop over each pixel in the row (x-axis) using FOR_RANGE
                 FOR_RANGE( size_t, 0, _image->width ) {
                     const size_t l_rgbaRowIndex = ( _index * RGBA_PIXEL_SIZE );
@@ -232,6 +235,10 @@ image_t image_t$create( void ) {
 bool image_t$destroy( image_t* restrict _image ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
+    }
+
     {
         _image->width = 0;
         _image->height = 0;
@@ -241,6 +248,7 @@ bool image_t$destroy( image_t* restrict _image ) {
         l_returnValue = true;
     }
 
+EXIT:
     return ( l_returnValue );
 }
 
@@ -257,7 +265,9 @@ bool image_t$load$fromAsset( image_t* restrict _image,
     }
 
     {
-        if ( UNLIKELY( !BMP$load( _image, _asset ) ) ) {
+        l_returnValue = BMP$load( _image, _asset );
+
+        if ( UNLIKELY( !l_returnValue ) ) {
             goto EXIT;
         }
 
@@ -276,61 +286,22 @@ bool image_t$load$fromAsset$compressed( image_t* restrict _image,
                                         asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
-    {
-        if ( UNLIKELY( !image_t$load$fromAsset( _image, _asset ) ) ) {
-            l_returnValue = false;
-
-            goto EXIT;
-        }
-
-        if ( UNLIKELY( image_t$compress( _image ) ) ) {
-            l_returnValue = false;
-
-            goto EXIT;
-        }
-
-        l_returnValue = true;
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
     }
 
-EXIT:
-    return ( l_returnValue );
-}
-
-// TODO: Improve
-bool image_t$load$fromPath( image_t* restrict _image,
-                            const char* restrict _path ) {
-    bool l_returnValue = false;
+    if ( UNLIKELY( !_asset ) ) {
+        goto EXIT;
+    }
 
     {
-        asset_t l_imageAsset = asset_t$create();
+        l_returnValue = image_t$load$fromAsset( _image, _asset );
 
-        {
-            l_returnValue = asset_t$load( &l_imageAsset, _path );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                asset_t$destroy( &l_imageAsset );
-
-                goto EXIT;
-            }
-
-            l_returnValue = image_t$load$fromAsset( _image, &l_imageAsset );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                asset_t$destroy( &l_imageAsset );
-
-                goto EXIT;
-            }
-
-            l_returnValue = asset_t$unload( &l_imageAsset );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                asset_t$destroy( &l_imageAsset );
-
-                goto EXIT;
-            }
+        if ( UNLIKELY( !l_returnValue ) ) {
+            goto EXIT;
         }
 
-        l_returnValue = asset_t$destroy( &l_imageAsset );
+        l_returnValue = image_t$compress( _image );
 
         if ( UNLIKELY( !l_returnValue ) ) {
             goto EXIT;
@@ -343,20 +314,77 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool image_t$load$fromPath$compressed( image_t* restrict _image,
-                                       const char* restrict _path ) {
+bool image_t$load$fromPath( image_t* restrict _image,
+                            const char* restrict _path ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_path ) ) {
+        goto EXIT;
+    }
+
     {
-        if ( UNLIKELY( !image_t$load$fromPath( _image, _path ) ) ) {
+        asset_t l_imageAsset = asset_t$create();
+
+        {
+            l_returnValue = asset_t$load( &l_imageAsset, _path );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_IMAGE_ASSET;
+            }
+
+            l_returnValue = image_t$load$fromAsset( _image, &l_imageAsset );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_IMAGE_ASSET;
+            }
+
+            l_returnValue = asset_t$unload( &l_imageAsset );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_IMAGE_ASSET;
+            }
+        }
+
+        l_returnValue = true;
+
+    EXIT_IMAGE_ASSET:
+        if ( UNLIKELY( !asset_t$destroy( &l_imageAsset ) ) ) {
             l_returnValue = false;
 
             goto EXIT;
         }
+    }
 
-        if ( UNLIKELY( image_t$compress( _image ) ) ) {
-            l_returnValue = false;
+EXIT:
+    return ( l_returnValue );
+}
 
+bool image_t$load$fromPath$compressed( image_t* restrict _image,
+                                       const char* restrict _path ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_path ) ) {
+        goto EXIT;
+    }
+
+    {
+        l_returnValue = image_t$load$fromPath( _image, _path );
+
+        if ( UNLIKELY( !l_returnValue ) ) {
+            goto EXIT;
+        }
+
+        l_returnValue = image_t$compress( _image );
+
+        if ( UNLIKELY( !l_returnValue ) ) {
             goto EXIT;
         }
 
@@ -370,6 +398,10 @@ EXIT:
 bool image_t$unload( image_t* restrict _image ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
+    }
+
     {
         free( _image->data );
 
@@ -378,11 +410,16 @@ bool image_t$unload( image_t* restrict _image ) {
         l_returnValue = true;
     }
 
+EXIT:
     return ( l_returnValue );
 }
 
 bool image_t$compress( image_t* restrict _image ) {
     bool l_returnValue = false;
+
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
+    }
 
     {
         asset_t l_compressedAsset = asset_t$create();
@@ -390,25 +427,23 @@ bool image_t$compress( image_t* restrict _image ) {
         l_compressedAsset.data = _image->data;
         l_compressedAsset.size = _image->size;
 
-        // TODO: Make only single destroy
-        if ( UNLIKELY( !asset_t$compress( &l_compressedAsset ) ) ) {
-            asset_t$destroy( &l_compressedAsset );
+        l_returnValue = asset_t$compress( &l_compressedAsset );
 
-            l_returnValue = false;
-
-            goto EXIT;
+        if ( UNLIKELY( !l_returnValue ) ) {
+            goto EXIT_COMPRESSED_ASSET;
         }
 
         _image->data = l_compressedAsset.data;
         _image->size = l_compressedAsset.size;
 
+        l_returnValue = true;
+
+    EXIT_COMPRESSED_ASSET:
         if ( UNLIKELY( !asset_t$destroy( &l_compressedAsset ) ) ) {
             l_returnValue = false;
 
             goto EXIT;
         }
-
-        l_returnValue = true;
     }
 
 EXIT:
@@ -418,31 +453,33 @@ EXIT:
 bool image_t$uncompress( image_t* restrict _image ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !_image ) ) {
+        goto EXIT;
+    }
+
     {
         asset_t l_uncompressedAsset = asset_t$create();
 
         l_uncompressedAsset.data = _image->data;
         l_uncompressedAsset.size = _image->size;
 
-        // TODO: Make only single destroy
-        if ( UNLIKELY( !asset_t$uncompress( &l_uncompressedAsset ) ) ) {
-            asset_t$destroy( &l_uncompressedAsset );
+        l_returnValue = asset_t$uncompress( &l_uncompressedAsset );
 
-            l_returnValue = false;
-
-            goto EXIT;
+        if ( UNLIKELY( !l_returnValue ) ) {
+            goto EXIT_UNCOMPRESSED_ASSET;
         }
 
         _image->data = l_uncompressedAsset.data;
         _image->size = l_uncompressedAsset.size;
 
+        l_returnValue = true;
+
+    EXIT_UNCOMPRESSED_ASSET:
         if ( UNLIKELY( !asset_t$destroy( &l_uncompressedAsset ) ) ) {
             l_returnValue = false;
 
             goto EXIT;
         }
-
-        l_returnValue = true;
     }
 
 EXIT:

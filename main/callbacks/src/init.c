@@ -15,7 +15,7 @@
 #define SETTINGS_FILE_NAME "settings"
 #define SETTINGS_FILE_EXTENSION "ini"
 
-callbackResult_t init( applicationState_t* _applicationState ) {
+callbackResult_t init( applicationState_t* restrict _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
     {

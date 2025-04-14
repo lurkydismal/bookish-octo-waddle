@@ -125,17 +125,19 @@ typedef enum {
 } eventModifier_t;
 
 // Called once per application run
-callbackResult_t init( applicationState_t* _applicationState );
-callbackResult_t quit( applicationState_t* _applicationState,
+callbackResult_t init( applicationState_t* restrict _applicationState );
+callbackResult_t quit( applicationState_t* restrict _applicationState,
                        callbackResult_t _exitCode );
 
 // Called each render frame
-callbackResult_t iterate$unlimited( applicationState_t* _applicationState );
+callbackResult_t iterate$unlimited(
+    applicationState_t* restrict _applicationState );
 
 // Called N times per second
-callbackResult_t iterate$limited( applicationState_t* _applicationState );
+callbackResult_t iterate$limited(
+    applicationState_t* restrict _applicationState );
 
 // Called each event received
-callbackResult_t event( applicationState_t* _applicationState,
+callbackResult_t event( applicationState_t* restrict _applicationState,
                         event_t _event,
                         eventModifier_t _eventModifier );

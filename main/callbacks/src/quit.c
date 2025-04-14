@@ -5,7 +5,7 @@
 #include "vsync.h"
 
 // TODO: Log errors
-callbackResult_t quit( applicationState_t* _applicationState,
+callbackResult_t quit( applicationState_t* restrict _applicationState,
                        callbackResult_t _exitCode ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
