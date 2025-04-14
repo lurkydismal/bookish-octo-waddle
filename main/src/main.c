@@ -22,6 +22,14 @@ static FORCE_INLINE void errorCallback( int _code, const char* _description ) {
                                   _description );
 }
 
+static FORCE_INLINE void frameBufferSizeCallback( GLFWwindow* _window,
+                                                  int _width,
+                                                  int _height ) {
+    glViewport( 0, // X
+                0, // Y
+                _width, _height );
+}
+
 static FORCE_INLINE void keyCallback( GLFWwindow* _window,
                                       int _key,
                                       int _scancode,
@@ -97,6 +105,9 @@ int main( void ) {
     if ( UNLIKELY( l_callbackResult != ( callbackResult_t )remain ) ) {
         goto EXIT;
     }
+
+    glfwSetFramebufferSizeCallback( g_applicationState.window,
+                                    frameBufferSizeCallback );
 
     glfwSetKeyCallback( g_applicationState.window, keyCallback );
 
