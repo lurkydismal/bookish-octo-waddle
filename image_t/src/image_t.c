@@ -167,10 +167,10 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
 
                         // clang-format off
     simde__m128i l_rgbaVector = simde_mm_setr_epi8(
-        r[ 0 ], g[ 0 ], b[ 0 ], ( char )0xFF,
-        r[ 1 ], g[ 1 ], b[ 1 ], ( char )0xFF,
-        r[ 2 ], g[ 2 ], b[ 2 ], ( char )0xFF,
-        r[ 3 ], g[ 3 ], b[ 3 ], ( char )0xFF );
+        r[ 0 ], g[ 0 ], b[ 0 ], ( char )IMAGE_DEFAULT_ALPHA,
+        r[ 1 ], g[ 1 ], b[ 1 ], ( char )IMAGE_DEFAULT_ALPHA,
+        r[ 2 ], g[ 2 ], b[ 2 ], ( char )IMAGE_DEFAULT_ALPHA,
+        r[ 3 ], g[ 3 ], b[ 3 ], ( char )IMAGE_DEFAULT_ALPHA );
                         // clang-format on
 
                         simde_mm_storeu_si128(
@@ -188,7 +188,7 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                         l_rgbaRow[ rgbaIndex + 0 ] = l_bgrRow[ bgrIndex + 0 ];
                         l_rgbaRow[ rgbaIndex + 1 ] = l_bgrRow[ bgrIndex + 1 ];
                         l_rgbaRow[ rgbaIndex + 2 ] = l_bgrRow[ bgrIndex + 2 ];
-                        l_rgbaRow[ rgbaIndex + 3 ] = 0xFF;
+                        l_rgbaRow[ rgbaIndex + 3 ] = IMAGE_DEFAULT_ALPHA;
                     }
                 }
 
@@ -207,7 +207,7 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     l_rgbaPixel[ 0 ] = l_bgrPixel[ 0 ]; // B
                     l_rgbaPixel[ 1 ] = l_bgrPixel[ 1 ]; // G
                     l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ]; // R
-                    l_rgbaPixel[ 3 ] = 0xFF;            // A
+                    l_rgbaPixel[ 3 ] = IMAGE_DEFAULT_ALPHA;            // A
                 }
 #endif
 #endif

@@ -5,6 +5,7 @@
 
 #include "asset_t.h"
 
+#define IMAGE_DEFAULT_ALPHA ( 0xFF )
 #define DEFAULT_IMAGE { .width = 0, .height = 0, .data = NULL, .size = 0 }
 
 typedef struct {
