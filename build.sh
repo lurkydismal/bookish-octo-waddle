@@ -63,6 +63,7 @@ export LINK_FLAGS_TESTS="$LINK_FLAGS_DEBUG"
 export declare LIBRARIES_TO_LINK=(
     "glfw"
     "mimalloc"
+    "m"
 )
 export declare EXTERNAL_LIBRARIES_TO_LINK=(
     "snappy"
