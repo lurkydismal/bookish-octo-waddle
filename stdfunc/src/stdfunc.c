@@ -6,10 +6,6 @@
 
 #include "log.h"
 
-#if 0
-#include "_useCallback.h"
-#endif
-
 #define COMPILATION_TIME_AS_SEED                                      \
     ( __TIME__[ 0 ] + __TIME__[ 1 ] + __TIME__[ 3 ] + __TIME__[ 4 ] + \
       __TIME__[ 6 ] + __TIME__[ 7 ] )
@@ -249,7 +245,6 @@ EXIT:
     return ( l_returnValue );
 }
 
-// TODO: Implement
 char** splitStringIntoArrayBySymbol( const char* restrict _string,
                                      const char _symbol ) {
     char** l_returnValue = ( char** )createArray( sizeof( char* ) );
