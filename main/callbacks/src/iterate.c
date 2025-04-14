@@ -8,17 +8,11 @@ callbackResult_t iterate$unlimited(
     applicationState_t* restrict _applicationState ) {
     callbackResult_t l_returnValue = ( callbackResult_t )failure;
 
+    // Render
     {
-        int width, height;
-        glfwGetFramebufferSize( _applicationState->window, &width, &height );
-        glViewport( 0, 0, width, height );
+        glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-        // Render
-        {
-            glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-            glfwSwapBuffers( _applicationState->window );
-        }
+        glfwSwapBuffers( _applicationState->window );
     }
 
     _applicationState->totalFramesRendered++;

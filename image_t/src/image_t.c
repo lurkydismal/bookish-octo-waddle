@@ -204,10 +204,10 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     uint8_t* l_rgbaPixel = ( l_rgbaRow + l_rgbaRowIndex );
                     const uint8_t* l_bgrPixel = ( l_bgrRow + l_bgrRowIndex );
 
-                    l_rgbaPixel[ 0 ] = l_bgrPixel[ 0 ]; // B
-                    l_rgbaPixel[ 1 ] = l_bgrPixel[ 1 ]; // G
-                    l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ]; // R
-                    l_rgbaPixel[ 3 ] = IMAGE_DEFAULT_ALPHA;            // A
+                    l_rgbaPixel[ 0 ] = l_bgrPixel[ 0 ];     // B
+                    l_rgbaPixel[ 1 ] = l_bgrPixel[ 1 ];     // G
+                    l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ];     // R
+                    l_rgbaPixel[ 3 ] = IMAGE_DEFAULT_ALPHA; // A
                 }
 #endif
 #endif
