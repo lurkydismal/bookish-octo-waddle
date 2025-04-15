@@ -1,7 +1,10 @@
 #define STBTT_STATIC
 #define STB_TRUETYPE_IMPLEMENTATION
+#define STB_IMAGE_WRITE_IMPLEMENTATION
 
 #include "font_t.h"
+
+#include <stb/stb_image_write.h>
 
 #include "log.h"
 
@@ -41,6 +44,25 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
     }
 
     {
+        int32_t l_fontCount = stbtt_GetNumberOfFonts( _asset->data ); 
+
+        if( UNLIKELY( l_fontCount == -1 ) ){
+        }
+
+        l_returnValue = stbtt_InitFont(&( _font->info ), _asset->data, 0);
+
+        if ( UNLIKELY( !l_returnValue)) {
+            goto EXIT;
+        }
+
+        float l_scale = stbtt_ScaleForPixelHeight(&info, _font->height);
+
+        if ( UNLIKELY( !l_scale )) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
         {
             uint8_t temp_bitmap[ FONT_ATLAS_W * FONT_ATLAS_H ];
 
@@ -97,6 +119,9 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
 
                 goto EXIT;
             }
+
+        stbi_write_png( "fontAtlas.png", FONT_ATLAS_W, FONT_ATLAS_H, 1,
+                        _font->glyphs, FONT_ATLAS_W );
         }
 
         l_returnValue = true;
