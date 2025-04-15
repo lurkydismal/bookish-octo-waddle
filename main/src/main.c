@@ -25,6 +25,11 @@ static FORCE_INLINE void errorCallback( int _code, const char* _description ) {
 static FORCE_INLINE void frameBufferSizeCallback( GLFWwindow* _window,
                                                   int _width,
                                                   int _height ) {
+    ( void )( sizeof( _window ) );
+
+    g_applicationState.settings.window.width = _width;
+    g_applicationState.settings.window.height = _height;
+
     glViewport( 0, // X
                 0, // Y
                 _width, _height );

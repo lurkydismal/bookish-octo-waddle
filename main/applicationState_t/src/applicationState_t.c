@@ -7,7 +7,5 @@ applicationState_t applicationState_t$create( void ) {
 }
 
 bool applicationState_t$destroy( applicationState_t* _applicationState ) {
-    ( void )( sizeof( _applicationState ) );
-
     return ( true );
 }
