@@ -2,25 +2,40 @@
 
 #include <cglm/cglm.h>
 #include <glad/gl.h>
+#include <stb/stb_rect_pack.h>
 #include <stb/stb_truetype.h>
 #include <stdbool.h>
 
 #include "asset_t.h"
 
-#define FONT_ATLAS_W 512
-#define FONT_ATLAS_H 512
+// TODO: Improve characters count
+#define FONT_ATLAS_WIDTH( _font )    \
+    ( ( size_t )( ( _font ).height * \
+                  CHARACTERS_COUNT( ASCII_START, ASCII_END ) ) )
+#define FONT_ATLAS_HEIGHT( _font ) ( ( size_t )( ( _font ).height ) )
 
 #define ASCII_START ( 32 )
 #define ASCII_END ( 126 )
-#define CHARACTERS_COUNT ( ASCII_END - ( ASCII_START - 1 ) )
+#define CHARACTERS_COUNT( _start, _end ) ( _end - ( _start - 1 ) )
 
-#define DEFAULT_FONT { .texture = 0, .height = 0.0 }
+#define DEFAULT_FONT \
+    { .texture = 0,  \
+      .height = 0.0, \
+      .ascent = 0,   \
+      .descent = 0,  \
+      .lineGap = 0,  \
+      .color = { 1, 1, 1 } }
 
 typedef struct {
     GLuint texture;
-    stbtt_bakedchar glyphs[ CHARACTERS_COUNT ];
-    stbtt_fontinfo info;
     float height;
+    size_t ascent;
+    size_t atlasHeight;
+    size_t atlasWidth;
+    size_t descent;
+    size_t lineGap;
+    stbtt_fontinfo info;
+    stbtt_packedchar glyphs[ CHARACTERS_COUNT( ASCII_START, ASCII_END ) ];
     vec3 color;
 } font_t;
 

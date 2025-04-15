@@ -24,6 +24,10 @@
 #define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
     ( _milliseconds * ONE_MILLISECOND_IN_NANOSECONDS )
 
+// Utility functions ( no side-effects )
+#define max( _a, _b ) ( ( _a > _b ) ? ( _a ) : ( _b ) )
+#define min( _a, _b ) ( ( _a < _b ) ? ( _a ) : ( _b ) )
+
 // Non-native and native array utility functions
 #define arrayLengthPointer( _array ) ( ( size_t* )( &( _array[ 0 ] ) ) )
 #define arrayLength( _array ) ( ( size_t )( _array[ 0 ] ) - 1 )
@@ -48,6 +52,7 @@
 #define FOR_RANGE( _type, _start, _end ) \
     for ( _type _index = _start; _index < _end; _index++ )
 
+// Range iteration FOR with increase BY amount
 #define FOR_RANGE_BY( _type, _start, _end, _amount ) \
     for ( _type _index = _start; _index < _end; _index += _amount )
 
