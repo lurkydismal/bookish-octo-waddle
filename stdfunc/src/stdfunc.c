@@ -100,11 +100,11 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
     size_t l_returnValue = 0;
 
     {
-        size_t l_stringLength = 0;
-
-        if ( LIKELY( _string ) && LIKELY( *_string ) ) {
-            l_stringLength = __builtin_strlen( *_string );
+        if ( UNLIKELY( !_string ) || UNLIKELY( !*_string ) ) {
+            goto EXIT;
         }
+
+        size_t l_stringLength = __builtin_strlen( *_string );
 
         size_t l_beforeStringLength = 0;
 
@@ -122,10 +122,6 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
             ( l_beforeStringLength + l_stringLength + l_afterStringLegnth );
 
         if ( UNLIKELY( !l_totalLength ) ) {
-            goto EXIT;
-        }
-
-        if ( UNLIKELY( !_string ) ) {
             goto EXIT;
         }
 

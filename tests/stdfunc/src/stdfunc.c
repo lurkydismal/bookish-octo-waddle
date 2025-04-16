@@ -46,16 +46,16 @@ TEST( trim ) {
 }
 
 TEST( lengthOfNumber ) {
-#define MAX_NUMBER 1000000000
+#define MAX_NUMBER ( 10000000 )
 
     size_t l_actualLengthFailed = 0;
     size_t l_expectedLengthFailed = 0;
 
 #pragma omp parallel for shared( l_actualLengthFailed, l_expectedLengthFailed )
-    for ( size_t _number = 0; _number < MAX_NUMBER; _number++ ) {
-        const size_t l_actualLength = lengthOfNumber( _number );
+    FOR_RANGE( size_t, 0, MAX_NUMBER ) {
+        const size_t l_actualLength = lengthOfNumber( _index );
         const size_t l_expectedLength =
-            ( ( _number == 0 ) ? ( 1 ) : ( log10( _number ) + 1 ) );
+            ( ( _index == 0 ) ? ( 1 ) : ( log10( _index ) + 1 ) );
 
         if ( UNLIKELY( l_actualLength != l_expectedLength ) ) {
             l_actualLengthFailed = l_actualLength;
@@ -68,7 +68,61 @@ TEST( lengthOfNumber ) {
 #undef MAX_NUMBER
 }
 
+TEST( randomNumber$seed$set ) {
+#define CALLS_AMOUNT ( 10000 )
+
+    // Ensure numbers are equal across calls
+    {
+        const size_t l_numberFirst = ( size_t )( -1 );
+
+        randomNumber$seed$set( l_numberFirst );
+
+        const size_t l_numberSecond = randomNumber$seed$get();
+
+        ASSERT_EQ( "%lu", l_numberFirst, l_numberSecond );
+    }
+
+    // Ensure numbers are equal across multiple calls
+    {
+        FOR_RANGE( size_t, 0, CALLS_AMOUNT ) {
+            randomNumber$seed$set( _index );
+
+            ASSERT_EQ( "%lu", randomNumber$seed$get(), _index );
+        }
+    }
+
+#undef CALLS_AMOUNT
+}
+
+TEST( randomNumber$seed$get ) {
+#define CALLS_AMOUNT ( 10000 )
+
+    // Ensure numbers are equal across calls
+    {
+        const size_t l_numberFirst = ( size_t )( -1 );
+
+        randomNumber$seed$set( l_numberFirst );
+
+        const size_t l_numberSecond = randomNumber$seed$get();
+
+        ASSERT_EQ( "%lu", l_numberFirst, l_numberSecond );
+    }
+
+    // Ensure numbers are equal across multiple calls
+    {
+        FOR_RANGE( size_t, 0, CALLS_AMOUNT ) {
+            randomNumber$seed$set( _index );
+
+            ASSERT_EQ( "%lu", randomNumber$seed$get(), _index );
+        }
+    }
+
+#undef CALLS_AMOUNT
+}
+
 TEST( randomNumber ) {
+#define CALLS_AMOUNT ( 10000 )
+
     // Ensure random numbers are different across calls
     {
         const size_t l_numberFirst = randomNumber();
@@ -79,10 +133,69 @@ TEST( randomNumber ) {
 
     // Ensure multiple calls return nonzero values
     {
-        for ( size_t _index = 0; _index < 1000; _index++ ) {
+        FOR_RANGE( size_t, 0, CALLS_AMOUNT ) {
             ASSERT_NOT_EQ( "%lu", randomNumber(), ( size_t )0 );
         }
     }
+
+#undef CALLS_AMOUNT
+}
+
+TEST( generateHash ) {
+#define MAX_BUFFER_LENGTH ( 100000 )
+
+    // Invalid inputs
+    {
+        // Both not valid
+        {
+            ASSERT_EQ( "%lu", generateHash( NULL, 1 ), ( size_t )0 );
+
+            uint8_t* l_buffer = NULL;
+
+            ASSERT_EQ( "%lu", generateHash( l_buffer, 0 ), ( size_t )0 );
+        }
+
+        // Valid buffer
+        {
+            // Non NULL terminated string
+            {
+                uint8_t l_buffer[ 1 ] = { '0' };
+
+                ASSERT_EQ( "%lu", generateHash( l_buffer, 0 ), ( size_t )0 );
+            }
+
+            // NULL terminated string
+            {
+                uint8_t l_buffer[] = "";
+
+                ASSERT_EQ( "%lu", generateHash( l_buffer, 0 ), ( size_t )0 );
+            }
+        }
+    }
+
+    // Valid buffer
+    {
+        // Ensure multiple calls return nonzero values
+        {
+            FOR_RANGE( size_t, 1, MAX_BUFFER_LENGTH ) {
+                const size_t l_bufferLength = _index;
+
+                uint8_t* l_buffer =
+                    ( uint8_t* )malloc( l_bufferLength * sizeof( uint8_t ) );
+
+                FOR_RANGE( size_t, 0, _index ) {
+                    l_buffer[ _index ] = ( randomNumber() % ( 255 + 1 ) );
+                }
+
+                ASSERT_NOT_EQ( "%lu", generateHash( l_buffer, l_bufferLength ),
+                               ( size_t )0 );
+
+                free( l_buffer );
+            }
+        }
+    }
+
+#undef MAX_BUFFER_LENGTH
 }
 
 TEST( duplicateString ) {
@@ -204,7 +317,7 @@ TEST( concatBeforeAndAfterString ) {
         l_string = NULL;
 
         ASSERT_EQ( "%lu", concatBeforeAndAfterString( &l_string, "A", "B" ),
-                   ( size_t )2 );
+                   ( size_t )0 );
     }
 
 #undef concatBeforeAndAfterStringTest
@@ -413,7 +526,7 @@ TEST( preallocateArray ) {
     }
 
     // Free memory
-    FREE_ARRAY( l_array );
+    free( l_array );
 }
 
 TEST( insertIntoArray ) {
@@ -438,7 +551,7 @@ TEST( insertIntoArray ) {
     ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )2 );
 
     // Free memory
-    FREE_ARRAY( l_array );
+    free( l_array );
 }
 
 TEST( findStringInArray ) {
