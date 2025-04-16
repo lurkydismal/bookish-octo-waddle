@@ -169,7 +169,7 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
                     goto EXIT;
                 }
 
-                // Bitmap trimmed
+                // Trimmed bitmap
                 {
                     size_t l_maxX = 0;
                     size_t l_maxY = 0;
@@ -193,7 +193,7 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
                     _font->atlasHeight = l_maxY;
 
                     log$transaction$query$format(
-                        ( logLevel_t )debug, "Font trimmed bitmap size: %lu\n",
+                        ( logLevel_t )debug, "Trimmed font bitmap size: %lu\n",
                         ( ( _font->atlasWidth * _font->atlasHeight ) *
                           sizeof( uint8_t ) ) );
                 }
@@ -203,8 +203,13 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
 
 #if defined( WRITE_FONT_TO_IMAGE )
 
-            stbi_write_png( "fontAtlas.png", l_maxX, l_maxY, 1, l_bitmapTrimmed,
-                            l_maxX );
+            stbi_write_png( "fontAtlas.png", _font->atlasWidth,
+                            _font->atlasHeight, 1, l_bitmapTrimmed,
+                            _font->atlasWidth );
+
+            log$transaction$query(
+                ( logLevel_t )info,
+                "'fontAtlas.png' file was created with trimmed fomt bitmap\n" );
 
 #endif
 
