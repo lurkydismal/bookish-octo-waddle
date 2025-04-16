@@ -1,11 +1,21 @@
 #pragma once
 
+#define XXH_CPU_LITTLE_ENDIAN 1
+#define XXH_INLINE_ALL
+#define XXH_NO_STDLIB
+#define XXH_NO_STREAM
+#define XXH_STATIC_LINKING_ONLY
+#define XXH_memcmp __builtin_memcmp
+#define XXH_memcpy __builtin_memcpy
+#define XXH_memset __builtin_memset
+
 #include <omp.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <xxhash.h>
 
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
@@ -102,6 +112,27 @@ static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
 void randomNumber$seed$set( const size_t _seed );
 size_t randomNumber$seed$get( void );
 size_t randomNumber( void );
+
+static FORCE_INLINE size_t generateHash( uint8_t* restrict _data,
+                                         const size_t _dataSize ) {
+    size_t l_returnValue = 0;
+
+    if ( !_data ) {
+        goto EXIT;
+    }
+
+    if ( !_dataSize ) {
+        goto EXIT;
+    }
+
+    {
+        l_returnValue = XXH32( _data, _dataSize, randomNumber$seed$get() );
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
 char* duplicateString( const char* restrict _string );
 ssize_t findSymbolInString( const char* restrict _string, const char _symbol );
 ssize_t findLastSymbolInString( const char* restrict _string,
