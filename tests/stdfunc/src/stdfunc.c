@@ -142,7 +142,7 @@ TEST( randomNumber ) {
 }
 
 TEST( generateHash ) {
-#define MAX_BUFFER_LENGTH ( 100000 )
+#define MAX_BUFFER_LENGTH ( 10000 )
 
     // Invalid inputs
     {

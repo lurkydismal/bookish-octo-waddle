@@ -53,47 +53,6 @@ EXIT:
     return ( l_returnValue );
 }
 
-ssize_t findSymbolInString( const char* restrict _string, const char _symbol ) {
-    ssize_t l_returnValue = -1;
-
-    if ( UNLIKELY( !_string ) ) {
-        goto EXIT;
-    }
-
-    for ( size_t _index = 0; ( _string[ _index ] != '\0' ); _index++ ) {
-        const char l_symbol = _string[ _index ];
-
-        if ( l_symbol == _symbol ) {
-            l_returnValue = _index;
-
-            break;
-        }
-    }
-
-EXIT:
-    return ( l_returnValue );
-}
-
-ssize_t findLastSymbolInString( const char* restrict _string,
-                                const char _symbol ) {
-    ssize_t l_returnValue = -1;
-
-    if ( UNLIKELY( !_string ) ) {
-        goto EXIT;
-    }
-
-    for ( size_t _index = 0; ( _string[ _index ] != '\0' ); _index++ ) {
-        const char l_symbol = _string[ _index ];
-
-        if ( l_symbol == _symbol ) {
-            l_returnValue = _index;
-        }
-    }
-
-EXIT:
-    return ( l_returnValue );
-}
-
 size_t concatBeforeAndAfterString( char* restrict* restrict _string,
                                    const char* restrict _beforeString,
                                    const char* restrict _afterString ) {

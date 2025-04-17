@@ -21,6 +21,8 @@
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
 #define NO_OPTIMIZE __attribute__( ( optimize( "0" ) ) )
 #define NO_RETURN __attribute__( ( noreturn ) )
+#define HOT __attribute__( ( hot ) )
+#define COLD __attribute__( ( cold ) )
 
 // Branch prediction hints
 #define LIKELY( _expression ) __builtin_expect( !!( _expression ), 1 )
@@ -134,9 +136,51 @@ EXIT:
 }
 
 char* duplicateString( const char* restrict _string );
-ssize_t findSymbolInString( const char* restrict _string, const char _symbol );
-ssize_t findLastSymbolInString( const char* restrict _string,
-                                const char _symbol );
+
+static FORCE_INLINE ssize_t findSymbolInString( const char* restrict _string,
+                                                const char _symbol ) {
+    ssize_t l_returnValue = -1;
+
+    if ( UNLIKELY( !_string ) ) {
+        goto EXIT;
+    }
+
+    {
+        char* l_result = __builtin_strchr( _string, _symbol );
+
+        if ( UNLIKELY( !l_result ) ) {
+            goto EXIT;
+        }
+
+        l_returnValue = ( l_result - _string );
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+static FORCE_INLINE ssize_t
+findLastSymbolInString( const char* restrict _string, const char _symbol ) {
+    ssize_t l_returnValue = -1;
+
+    if ( UNLIKELY( !_string ) ) {
+        goto EXIT;
+    }
+
+    {
+        char* l_result = __builtin_strrchr( _string, _symbol );
+
+        if ( UNLIKELY( !l_result ) ) {
+            goto EXIT;
+        }
+
+        l_returnValue = ( l_result - _string );
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
 size_t concatBeforeAndAfterString( char* restrict* restrict _string,
                                    const char* restrict _beforeString,
                                    const char* restrict _afterString );
