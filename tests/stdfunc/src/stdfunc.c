@@ -177,6 +177,10 @@ TEST( generateHash ) {
     {
         // Ensure multiple calls return nonzero values
         {
+            size_t l_actualHashFailed = 0;
+            size_t l_expectedHashFailed = 0;
+
+#pragma omp parallel for shared( l_actualHashFailed, l_expectedHashFailed )
             FOR_RANGE( size_t, 1, MAX_BUFFER_LENGTH ) {
                 const size_t l_bufferLength = _index;
 
@@ -187,11 +191,19 @@ TEST( generateHash ) {
                     l_buffer[ _index ] = ( randomNumber() % ( 255 + 1 ) );
                 }
 
-                ASSERT_NOT_EQ( "%lu", generateHash( l_buffer, l_bufferLength ),
-                               ( size_t )0 );
+                const size_t l_actualHash =
+                    generateHash( l_buffer, l_bufferLength );
+                const size_t l_expectedHash = ( size_t )0;
+
+                if ( UNLIKELY( l_actualHash != l_expectedHash ) ) {
+                    l_actualHashFailed = l_actualHash;
+                    l_expectedHashFailed = l_expectedHash;
+                }
 
                 free( l_buffer );
             }
+
+            ASSERT_NOT_EQ( "%lu", l_actualHashFailed, l_expectedHashFailed );
         }
     }
 
