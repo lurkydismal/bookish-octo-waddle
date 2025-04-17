@@ -1,6 +1,7 @@
 #!/bin/bash
 declare -a partsToBuild=(
     "gameState_t"
+    "gltf_t"
     "image_t"
     "font_t"
     "settings_t"

@@ -37,6 +37,7 @@ export declare BUILD_DEFINES_PROFILE=(
 export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
     "gameState_t/include"
+    "gltf_t/include"
     "image_t/include"
     "font_t/include"
     "settings_t/include"
