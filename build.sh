@@ -20,6 +20,10 @@ export BUILD_C_FLAGS_PROFILE="$BUILD_C_FLAGS_RELEASE"
 export BUILD_C_FLAGS_TESTS="$BUILD_C_FLAGS_DEBUG"
 
 export declare BUILD_DEFINES=(
+    "YYJSON_DISABLE_WRITER"
+    "YYJSON_DISABLE_UTILS"
+    "YYJSON_DISABLE_NON_STANDARD"
+    "YYJSON_DISABLE_UTF8_VALIDATION"
 )
 
 export declare BUILD_DEFINES_DEBUG=(
@@ -37,7 +41,7 @@ export declare BUILD_DEFINES_PROFILE=(
 export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
     "gameState_t/include"
-    "gltf_t/include"
+    "GLTF_t/include"
     "image_t/include"
     "font_t/include"
     "settings_t/include"
@@ -48,6 +52,7 @@ export declare BUILD_INCLUDES=(
     "log/include"
     "stdfunc/include"
     "glad/include"
+    "yyjson/include"
 )
 
 export declare BUILD_INCLUDES_TESTS=(

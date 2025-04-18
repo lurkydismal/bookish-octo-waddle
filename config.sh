@@ -1,7 +1,7 @@
 #!/bin/bash
 declare -a partsToBuild=(
     "gameState_t"
-    "gltf_t"
+    "GLTF_t"
     "image_t"
     "font_t"
     "settings_t"
@@ -17,6 +17,7 @@ declare -a testsToBuild=(
 )
 declare -a staticParts=(
     "glad"
+    "yyjson"
 )
 
 export executableMainPackage='main'

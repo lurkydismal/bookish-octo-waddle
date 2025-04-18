@@ -41,12 +41,25 @@
 #define min( _a, _b ) ( ( _a < _b ) ? ( _a ) : ( _b ) )
 
 // Non-native and native array utility functions
-#define arrayLengthPointer( _array ) ( ( size_t* )( &( _array[ 0 ] ) ) )
-#define arrayLength( _array ) ( ( size_t )( _array[ 0 ] ) - 1 )
+#define arrayElementSizePointer( _array ) \
+    ( ( uint8_t* )( ( uint8_t* )_array + 0 ) )
+#define arrayLengthPointer( _array ) \
+    ( ( size_t* )( ( uint8_t* )_array + sizeof( uint8_t ) ) )
+#define arrayElementByIndexPointer( _array, _index )                   \
+    ( ( typeof( _array ) )( ( ( uint8_t* )_array + sizeof( uint8_t ) + \
+                              sizeof( size_t ) ) +                     \
+                            ( _index * arrayElementSize( _array ) ) ) )
+
+#define arrayElementSize( _array ) ( *arrayElementSizePointer( _array ) )
+#define arrayLength( _array ) ( ( *arrayLengthPointer( _array ) ) - 1 )
 #define arrayLengthNative( _array ) ( sizeof( _array ) / sizeof( _array[ 0 ] ) )
+#define arrayElementByIndex( _array, _index ) \
+    ( *arrayElementByIndexPointer( _array, _index ) )
+
 #define randomValueFromArray( _array ) \
     ( _array[ randomNumber() % arrayLength( _array ) ] )
-#define arrayFirstElementPointer( _array ) ( _array + 1 )
+#define arrayFirstElementPointer( _array ) \
+    ( arrayElementByIndexPointer( _array, 0 ) )
 #define arrayLastElementPointer( _array ) \
     ( ( arrayFirstElementPointer( _array ) - 1 ) + arrayLength( _array ) )
 
@@ -190,9 +203,11 @@ char** splitStringIntoArray( const char* restrict _string,
 char** splitStringIntoArrayBySymbol( const char* restrict _string,
                                      const char _symbol );
 
-static FORCE_INLINE void** createArray( const size_t _elementSize ) {
-    void** l_array = ( void** )malloc( 1 * _elementSize );
+static FORCE_INLINE void** createArray( const uint8_t _elementSize ) {
+    void** l_array = ( void** )malloc( ( 1 * sizeof( uint8_t ) ) +
+                                       ( 1 * sizeof( size_t ) ) );
 
+    *arrayElementSizePointer( l_array ) = _elementSize;
     *arrayLengthPointer( l_array ) = ( size_t )( 1 );
 
     return ( l_array );
@@ -210,12 +225,12 @@ static FORCE_INLINE void preallocateArray( void*** restrict _array,
 
     const size_t l_currentArrayLength = arrayLength( *_array );
 
-    *_array =
-        ( void** )realloc( *_array, ( ( l_currentArrayLength + _length + 1 ) *
-                                      sizeof( ( *_array )[ 0 ] ) ) );
+    *_array = ( void** )realloc( *_array,
+                                 ( sizeof( uint8_t ) + sizeof( size_t ) +
+                                   ( l_currentArrayLength + _length ) *
+                                       *arrayElementSizePointer( *_array ) ) );
 
-    *arrayLengthPointer( *_array ) =
-        ( size_t )( l_currentArrayLength + _length + 1 );
+    *arrayLengthPointer( *_array ) += _length;
 }
 
 static FORCE_INLINE ssize_t insertIntoArray( void*** restrict _array,
@@ -231,21 +246,38 @@ static FORCE_INLINE ssize_t insertIntoArray( void*** restrict _array,
     }
 
     {
-        const size_t l_arrayLength = arrayLength( *_array );
-        const ssize_t l_index = ( 1 + l_arrayLength );
+        const size_t l_currentArrayLength = arrayLength( *_array );
 
         *_array = ( void** )realloc(
-            *_array, ( l_index + 1 ) * sizeof( ( *_array )[ 0 ] ) );
+            *_array, ( sizeof( uint8_t ) + sizeof( size_t ) +
+                       ( ( l_currentArrayLength + 1 ) *
+                         *arrayElementSizePointer( *_array ) ) ) );
 
-        ( *_array )[ l_index ] = _value;
+        *arrayElementByIndexPointer( *_array, l_currentArrayLength ) = _value;
 
         ( *arrayLengthPointer( *_array ) )++;
 
-        l_returnValue = l_index;
+        l_returnValue = arrayLength( *_array );
     }
 
 EXIT:
     return ( l_returnValue );
+}
+
+static FORCE_INLINE void insertIntoArrayByIndex( void*** restrict _array,
+                                                 void* restrict _value,
+                                                 const size_t _index ) {
+    if ( UNLIKELY( !_array ) ) {
+        return;
+    }
+
+    if ( UNLIKELY( !*_array ) ) {
+        return;
+    }
+
+    {
+        *arrayElementByIndexPointer( *_array, _index ) = _value;
+    }
 }
 
 ssize_t findStringInArray( const char** restrict _array,
