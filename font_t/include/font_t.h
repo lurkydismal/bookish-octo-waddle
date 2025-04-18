@@ -18,13 +18,15 @@
 #define ASCII_END ( 126 )
 #define CHARACTERS_COUNT( _start, _end ) ( _end - ( _start - 1 ) )
 
+#define DEFAULT_FONT_COLOR { 1, 1, 1 }
+
 #define DEFAULT_FONT \
     { .texture = 0,  \
       .height = 0.0, \
       .ascent = 0,   \
       .descent = 0,  \
       .lineGap = 0,  \
-      .color = { 1, 1, 1 } }
+      .color = DEFAULT_FONT_COLOR }
 
 typedef struct {
     GLuint texture;

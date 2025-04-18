@@ -63,7 +63,7 @@ TEST( lengthOfNumber ) {
         }
     }
 
-    ASSERT_EQ( "%lu", l_actualLengthFailed, l_expectedLengthFailed );
+    ASSERT_EQ( "%zu", l_actualLengthFailed, l_expectedLengthFailed );
 
 #undef MAX_NUMBER
 }
@@ -79,7 +79,7 @@ TEST( randomNumber$seed$set ) {
 
         const size_t l_numberSecond = randomNumber$seed$get();
 
-        ASSERT_EQ( "%lu", l_numberFirst, l_numberSecond );
+        ASSERT_EQ( "%zu", l_numberFirst, l_numberSecond );
     }
 
     // Ensure numbers are equal across multiple calls
@@ -87,7 +87,7 @@ TEST( randomNumber$seed$set ) {
         FOR_RANGE( size_t, 0, CALLS_AMOUNT ) {
             randomNumber$seed$set( _index );
 
-            ASSERT_EQ( "%lu", randomNumber$seed$get(), _index );
+            ASSERT_EQ( "%zu", randomNumber$seed$get(), _index );
         }
     }
 
@@ -105,7 +105,7 @@ TEST( randomNumber$seed$get ) {
 
         const size_t l_numberSecond = randomNumber$seed$get();
 
-        ASSERT_EQ( "%lu", l_numberFirst, l_numberSecond );
+        ASSERT_EQ( "%zu", l_numberFirst, l_numberSecond );
     }
 
     // Ensure numbers are equal across multiple calls
@@ -113,7 +113,7 @@ TEST( randomNumber$seed$get ) {
         FOR_RANGE( size_t, 0, CALLS_AMOUNT ) {
             randomNumber$seed$set( _index );
 
-            ASSERT_EQ( "%lu", randomNumber$seed$get(), _index );
+            ASSERT_EQ( "%zu", randomNumber$seed$get(), _index );
         }
     }
 
@@ -128,13 +128,13 @@ TEST( randomNumber ) {
         const size_t l_numberFirst = randomNumber();
         const size_t l_numberSecond = randomNumber();
 
-        ASSERT_NOT_EQ( "%lu", l_numberFirst, l_numberSecond );
+        ASSERT_NOT_EQ( "%zu", l_numberFirst, l_numberSecond );
     }
 
     // Ensure multiple calls return nonzero values
     {
         FOR_RANGE( size_t, 0, CALLS_AMOUNT ) {
-            ASSERT_NOT_EQ( "%lu", randomNumber(), ( size_t )0 );
+            ASSERT_NOT_EQ( "%zu", randomNumber(), ( size_t )0 );
         }
     }
 
@@ -148,11 +148,11 @@ TEST( generateHash ) {
     {
         // Both not valid
         {
-            ASSERT_EQ( "%lu", generateHash( NULL, 1 ), ( size_t )0 );
+            ASSERT_EQ( "%zu", generateHash( NULL, 1 ), ( size_t )0 );
 
             uint8_t* l_buffer = NULL;
 
-            ASSERT_EQ( "%lu", generateHash( l_buffer, 0 ), ( size_t )0 );
+            ASSERT_EQ( "%zu", generateHash( l_buffer, 0 ), ( size_t )0 );
         }
 
         // Valid buffer
@@ -161,14 +161,14 @@ TEST( generateHash ) {
             {
                 uint8_t l_buffer[ 1 ] = { '0' };
 
-                ASSERT_EQ( "%lu", generateHash( l_buffer, 0 ), ( size_t )0 );
+                ASSERT_EQ( "%zu", generateHash( l_buffer, 0 ), ( size_t )0 );
             }
 
             // NULL terminated string
             {
                 uint8_t l_buffer[] = "";
 
-                ASSERT_EQ( "%lu", generateHash( l_buffer, 0 ), ( size_t )0 );
+                ASSERT_EQ( "%zu", generateHash( l_buffer, 0 ), ( size_t )0 );
             }
         }
     }
@@ -203,7 +203,7 @@ TEST( generateHash ) {
                 free( l_buffer );
             }
 
-            ASSERT_NOT_EQ( "%lu", l_actualHashFailed, l_expectedHashFailed );
+            ASSERT_NOT_EQ( "%zu", l_actualHashFailed, l_expectedHashFailed );
         }
     }
 
@@ -293,7 +293,7 @@ TEST( concatBeforeAndAfterString ) {
         l_string = ( char* )malloc( ( sizeof( _string ) * sizeof( char ) ) );  \
         __builtin_strcpy( l_string, _string );                                 \
         ASSERT_EQ(                                                             \
-            "%lu",                                                             \
+            "%zu",                                                             \
             ( size_t )( concatBeforeAndAfterString( &l_string, _beforeString,  \
                                                     _afterString ) ==          \
                         ( ( sizeof( _beforeString _string _afterString ) -     \
@@ -323,12 +323,12 @@ TEST( concatBeforeAndAfterString ) {
 
     // Null input handling
     {
-        ASSERT_EQ( "%lu", concatBeforeAndAfterString( NULL, "A", "B" ),
+        ASSERT_EQ( "%zu", concatBeforeAndAfterString( NULL, "A", "B" ),
                    ( size_t )0 );
 
         l_string = NULL;
 
-        ASSERT_EQ( "%lu", concatBeforeAndAfterString( &l_string, "A", "B" ),
+        ASSERT_EQ( "%zu", concatBeforeAndAfterString( &l_string, "A", "B" ),
                    ( size_t )0 );
     }
 
@@ -378,9 +378,18 @@ TEST( splitStringIntoArray ) {
     // Basic case
     {
         l_result = splitStringIntoArray( "apple,banana,cherry", "," );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "apple" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "banana" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 3 ], "cherry" ), 0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "apple" ),
+            0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 2 ), "banana" ),
+            0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 3 ), "cherry" ),
+            0 );
 
         FREE_ARRAY( l_result );
     }
@@ -388,8 +397,12 @@ TEST( splitStringIntoArray ) {
     // Consecutive delimiters (empty tokens)
     {
         l_result = splitStringIntoArray( "one,,two", "," );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "one" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "two" ), 0 );
+        ASSERT_EQ(
+            "%d", __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "one" ),
+            0 );
+        ASSERT_EQ(
+            "%d", __builtin_strcmp( arrayElementByIndex( l_result, 2 ), "two" ),
+            0 );
 
         FREE_ARRAY( l_result );
     }
@@ -397,8 +410,14 @@ TEST( splitStringIntoArray ) {
     // Leading and trailing delimiters
     {
         l_result = splitStringIntoArray( ",first,second,", "," );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "first" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "second" ), 0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "first" ),
+            0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 2 ), "second" ),
+            0 );
 
         FREE_ARRAY( l_result );
     }
@@ -406,7 +425,9 @@ TEST( splitStringIntoArray ) {
     // Single character input
     {
         l_result = splitStringIntoArray( "X", "," );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "X" ), 0 );
+        ASSERT_EQ( "%d",
+                   __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "X" ),
+                   0 );
 
         FREE_ARRAY( l_result );
     }
@@ -414,7 +435,7 @@ TEST( splitStringIntoArray ) {
     // Only delimiters
     {
         l_result = splitStringIntoArray( ",,,", "," );
-        ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
+        ASSERT_EQ( "%zu", arrayLength( l_result ), ( size_t )0 );
 
         FREE_ARRAY( l_result );
     }
@@ -422,7 +443,7 @@ TEST( splitStringIntoArray ) {
     // Empty string
     {
         l_result = splitStringIntoArray( "", "," );
-        ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
+        ASSERT_EQ( "%zu", arrayLength( l_result ), ( size_t )0 );
 
         FREE_ARRAY( l_result );
     }
@@ -430,7 +451,7 @@ TEST( splitStringIntoArray ) {
     // NULL input
     {
         l_result = splitStringIntoArray( NULL, "," );
-        ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
+        ASSERT_EQ( "%zu", arrayLength( l_result ), ( size_t )0 );
 
         FREE_ARRAY( l_result );
     }
@@ -442,9 +463,18 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Basic case
     {
         l_result = splitStringIntoArrayBySymbol( "apple,banana,cherry", ',' );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "apple" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "banana" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 3 ], "cherry" ), 0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "apple" ),
+            0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 2 ), "banana" ),
+            0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 3 ), "cherry" ),
+            0 );
 
         FREE_ARRAY( l_result );
     }
@@ -452,8 +482,12 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Consecutive delimiters (empty tokens)
     {
         l_result = splitStringIntoArrayBySymbol( "one,,two", ',' );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "one" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "two" ), 0 );
+        ASSERT_EQ(
+            "%d", __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "one" ),
+            0 );
+        ASSERT_EQ(
+            "%d", __builtin_strcmp( arrayElementByIndex( l_result, 2 ), "two" ),
+            0 );
 
         FREE_ARRAY( l_result );
     }
@@ -461,8 +495,14 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Leading and trailing delimiters
     {
         l_result = splitStringIntoArrayBySymbol( ",first,second,", ',' );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "first" ), 0 );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 2 ], "second" ), 0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "first" ),
+            0 );
+        ASSERT_EQ(
+            "%d",
+            __builtin_strcmp( arrayElementByIndex( l_result, 2 ), "second" ),
+            0 );
 
         FREE_ARRAY( l_result );
     }
@@ -470,7 +510,9 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Single character input
     {
         l_result = splitStringIntoArrayBySymbol( "X", ',' );
-        ASSERT_EQ( "%d", __builtin_strcmp( l_result[ 1 ], "X" ), 0 );
+        ASSERT_EQ( "%d",
+                   __builtin_strcmp( arrayElementByIndex( l_result, 1 ), "X" ),
+                   0 );
 
         FREE_ARRAY( l_result );
     }
@@ -478,7 +520,7 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Only delimiters
     {
         l_result = splitStringIntoArrayBySymbol( ",,,", ',' );
-        ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
+        ASSERT_EQ( "%zu", arrayLength( l_result ), ( size_t )0 );
 
         FREE_ARRAY( l_result );
     }
@@ -486,7 +528,7 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Empty string
     {
         l_result = splitStringIntoArrayBySymbol( "", ',' );
-        ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
+        ASSERT_EQ( "%zu", arrayLength( l_result ), ( size_t )0 );
 
         FREE_ARRAY( l_result );
     }
@@ -494,24 +536,66 @@ TEST( splitStringIntoArrayBySymbol ) {
     // NULL input
     {
         l_result = splitStringIntoArrayBySymbol( NULL, ',' );
-        ASSERT_EQ( "%lu", arrayLength( l_result ), ( size_t )0 );
+        ASSERT_EQ( "%zu", arrayLength( l_result ), ( size_t )0 );
 
         FREE_ARRAY( l_result );
     }
 }
 
 TEST( createArray ) {
-    // Create an array of pointers
-    void** l_array = createArray( sizeof( void* ) );
+    // Normal
+    {
+        // Create an array of pointers
+        void** l_array = ( void** )createArray( sizeof( void* ) );
 
-    // Ensure it's not NULL
-    ASSERT_NOT_EQ( "%p", l_array, NULL );
+        // Ensure it's not NULL
+        ASSERT_NOT_EQ( "%p", l_array, NULL );
 
-    // Ensure array length is initialized correctly
-    ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )0 );
+        // Ensure array length is initialized correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
 
-    // Free allocated memory
-    FREE_ARRAY( l_array );
+        // Free allocated memory
+        // FREE_ARRAY for Allocated elements, safe if length is 0
+        FREE_ARRAY( l_array );
+    }
+
+    // Change array length manually
+    {
+        // Create an array of pointers
+        uint8_t* l_array = ( uint8_t* )createArray( sizeof( uint8_t ) );
+
+        // Ensure it's not NULL
+        ASSERT_NOT_EQ( "%p", l_array, NULL );
+
+        // Ensure array length is initialized correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
+
+        // Insert values
+        {
+            insertIntoArray( ( void*** )( &l_array ), ( void* )0 );
+            insertIntoArray( ( void*** )( &l_array ), ( void* )1 );
+        }
+
+        // Ensure new length is updated
+        // ( 0 existing + 2 new )
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( 2 ) );
+
+        // Change array length to maximum possible value
+        *arrayLengthPointer( l_array ) = SIZE_MAX;
+
+        // Ensure array length is changed correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX - 1 ) );
+
+        // Ensure original values are intact
+        {
+            ASSERT_EQ( "%u", arrayElementByIndex( l_array, 1 ), 0 );
+            ASSERT_EQ( "%u", arrayElementByIndex( l_array, 2 ), 1 );
+        }
+
+        // Free allocated memory
+        // No allocated elements in array
+        free( l_array );
+    }
 }
 
 TEST( preallocateArray ) {
@@ -528,13 +612,13 @@ TEST( preallocateArray ) {
     preallocateArray( &l_array, 3 );
 
     // Ensure new length is updated
-    // ( 2 existing + 3 new + 1 extra )
-    ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )( 2 + 3 ) );
+    // ( 2 existing + 3 new )
+    ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( 2 + 3 ) );
 
     // Ensure original values are intact
     {
-        ASSERT_EQ( "%p", l_array[ 1 ], ( void* )100 );
-        ASSERT_EQ( "%p", l_array[ 2 ], ( void* )200 );
+        ASSERT_EQ( "%p", arrayElementByIndex( l_array, 1 ), ( void* )100 );
+        ASSERT_EQ( "%p", arrayElementByIndex( l_array, 2 ), ( void* )200 );
     }
 
     // Free memory
@@ -545,22 +629,25 @@ TEST( insertIntoArray ) {
     // Create an initial array
     void** l_array = ( void** )createArray( sizeof( void* ) );
 
+    // Ensure array length is updated correctly
+    ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
+
     // Insert values
     {
-        ASSERT_EQ( "%lu", insertIntoArray( &l_array, ( void* )200 ),
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( void* )200 ),
                    ( size_t )1 );
-        ASSERT_EQ( "%lu", insertIntoArray( &l_array, ( void* )300 ),
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( void* )300 ),
                    ( size_t )2 );
     }
 
+    // Ensure array length is updated correctly
+    ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )2 );
+
     // Ensure new elements are inserted at correct indices
     {
-        ASSERT_EQ( "%p", l_array[ 1 ], ( void* )200 );
-        ASSERT_EQ( "%p", l_array[ 2 ], ( void* )300 );
+        ASSERT_EQ( "%p", arrayElementByIndex( l_array, 1 ), ( void* )200 );
+        ASSERT_EQ( "%p", arrayElementByIndex( l_array, 2 ), ( void* )300 );
     }
-
-    // Ensure array length is updated correctly
-    ASSERT_EQ( "%lu", arrayLength( l_array ), ( size_t )2 );
 
     // Free memory
     free( l_array );

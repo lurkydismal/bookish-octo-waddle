@@ -7,5 +7,16 @@ applicationState_t applicationState_t$create( void ) {
 }
 
 bool applicationState_t$destroy( applicationState_t* _applicationState ) {
-    return ( true );
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_applicationState ) ) {
+        goto EXIT;
+    }
+
+    {
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
 }
