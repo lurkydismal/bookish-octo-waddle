@@ -8,31 +8,31 @@ GLTF_t GLTF_t$create( void ) {
 
     {
         l_returnValue.scenes =
-            ( struct GLTF_scene* )createArray( sizeof( struct GLTF_scene* ) );
+            ( struct GLTF_scene* )createArray( struct GLTF_scene* );
         l_returnValue.nodes =
-            ( struct GLTF_node* )createArray( sizeof( struct GLTF_node* ) );
+            ( struct GLTF_node* )createArray( struct GLTF_node* );
         l_returnValue.meshes =
-            ( struct GLTF_mesh* )createArray( sizeof( struct GLTF_mesh* ) );
-        l_returnValue.accessors = ( struct GLTF_accessor* )createArray(
-            sizeof( struct GLTF_accessor* ) );
-        l_returnValue.materials = ( struct GLTF_material* )createArray(
-            sizeof( struct GLTF_material* ) );
-        l_returnValue.bufferViews = ( struct GLTF_bufferView* )createArray(
-            sizeof( struct GLTF_bufferView* ) );
+            ( struct GLTF_mesh* )createArray( struct GLTF_mesh* );
+        l_returnValue.accessors =
+            ( struct GLTF_accessor* )createArray( struct GLTF_accessor* );
+        l_returnValue.materials =
+            ( struct GLTF_material* )createArray( struct GLTF_material* );
+        l_returnValue.bufferViews =
+            ( struct GLTF_bufferView* )createArray( struct GLTF_bufferView* );
         l_returnValue.buffers =
-            ( struct GLTF_buffer* )createArray( sizeof( struct GLTF_buffer* ) );
-        l_returnValue.samplers = ( struct GLTF_sampler* )createArray(
-            sizeof( struct GLTF_sampler* ) );
-        l_returnValue.textures = ( struct GLTF_texture* )createArray(
-            sizeof( struct GLTF_texture* ) );
+            ( struct GLTF_buffer* )createArray( struct GLTF_buffer* );
+        l_returnValue.samplers =
+            ( struct GLTF_sampler* )createArray( struct GLTF_sampler* );
+        l_returnValue.textures =
+            ( struct GLTF_texture* )createArray( struct GLTF_texture* );
         l_returnValue.skins =
-            ( struct GLTF_skin* )createArray( sizeof( struct GLTF_skin* ) );
+            ( struct GLTF_skin* )createArray( struct GLTF_skin* );
         l_returnValue.images =
-            ( struct GLTF_image* )createArray( sizeof( struct GLTF_image* ) );
+            ( struct GLTF_image* )createArray( struct GLTF_image* );
         l_returnValue.cameras =
-            ( struct GLTF_camera* )createArray( sizeof( struct GLTF_camera* ) );
-        l_returnValue.animations = ( struct GLTF_animation* )createArray(
-            sizeof( struct GLTF_animation* ) );
+            ( struct GLTF_camera* )createArray( struct GLTF_camera* );
+        l_returnValue.animations =
+            ( struct GLTF_animation* )createArray( struct GLTF_animation* );
     }
 
     return ( l_returnValue );

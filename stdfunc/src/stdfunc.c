@@ -1,5 +1,6 @@
 #include "stdfunc.h"
 
+#include <stdio.h>
 #include <limits.h>
 #include <string.h>
 #include <unistd.h>
@@ -172,7 +173,7 @@ EXIT:
 
 char** splitStringIntoArray( const char* restrict _string,
                              const char* restrict _delimiter ) {
-    char** l_returnValue = ( char** )createArray( sizeof( char* ) );
+    char** l_returnValue = ( char** )createArray( char* );
 
     if ( UNLIKELY( !_string ) ) {
         goto EXIT;
@@ -187,7 +188,8 @@ char** splitStringIntoArray( const char* restrict _string,
         char* l_splitted = strtok( l_string, _delimiter );
 
         while ( l_splitted ) {
-            insertIntoArray( ( void*** )( &l_returnValue ),
+                        printf( "T\n" );
+            insertIntoArray( &l_returnValue,
                              duplicateString( l_splitted ) );
 
             l_splitted = strtok( NULL, _delimiter );
@@ -202,7 +204,7 @@ EXIT:
 
 char** splitStringIntoArrayBySymbol( const char* restrict _string,
                                      const char _symbol ) {
-    char** l_returnValue = ( char** )createArray( sizeof( char* ) );
+    char** l_returnValue = ( char** )createArray( char* );
 
     if ( UNLIKELY( !_string ) ) {
         goto EXIT;
@@ -224,8 +226,7 @@ char** splitStringIntoArrayBySymbol( const char* restrict _string,
                             goto LOOP_CONTINUE;
                         }
 
-                        insertIntoArray(
-                            ( void*** )( &l_returnValue ),
+                        insertIntoArray( &l_returnValue,
                             duplicateString( l_previousSplitted + 1 ) );
                     }
 
@@ -237,7 +238,7 @@ char** splitStringIntoArrayBySymbol( const char* restrict _string,
             }
 
             if ( ( l_buffer - l_previousSplitted ) >= ( 1 + 1 ) ) {
-                insertIntoArray( ( void*** )( &l_returnValue ),
+                insertIntoArray(  &l_returnValue ,
                                  duplicateString( l_previousSplitted + 1 ) );
             }
         }
