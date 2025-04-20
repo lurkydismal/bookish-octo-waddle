@@ -63,3 +63,29 @@ __attribute__( ( used ) ) static int g_status = 0;
             return;                                                   \
         }                                                             \
     } while ( 0 )
+
+#define ASSERT_STRING_EQ( _actual, _expected )                        \
+    do {                                                              \
+        if ( __builtin_strcmp( _actual, _expected ) != 0 ) {          \
+            printf( RED "[FAILED]" RESET                              \
+                        " %s:%d: Expected '%s'"                       \
+                        " but got '%s'"                               \
+                        "\n",                                         \
+                    __FILE__, __LINE__, ( _expected ), ( _actual ) ); \
+            g_status = 1;                                             \
+            return;                                                   \
+        }                                                             \
+    } while ( 0 )
+
+#define ASSERT_STRING_NOT_EQ( _actual, _expected )                    \
+    do {                                                              \
+        if ( __builtin_strcmp( _actual, _expected ) == 0 ) {          \
+            printf( RED "[FAILED]" RESET                              \
+                        " %s:%d: Expected different from '%s'"        \
+                        " but got '%s'"                               \
+                        "\n",                                         \
+                    __FILE__, __LINE__, ( _expected ), ( _actual ) ); \
+            g_status = 1;                                             \
+            return;                                                   \
+        }                                                             \
+    } while ( 0 )
