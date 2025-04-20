@@ -137,10 +137,12 @@ bool settings_t$load( settings_t* restrict _settings,
                         }
 
                     LOOP_CONTINUE:
+                        FREE_ARRAY_ELEMENTS( l_keyAndValue );
                         FREE_ARRAY( l_keyAndValue );
                     }
                 }
 
+                FREE_ARRAY_ELEMENTS( l_lines );
                 FREE_ARRAY( l_lines );
             }
 

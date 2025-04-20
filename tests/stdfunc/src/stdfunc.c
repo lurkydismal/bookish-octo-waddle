@@ -375,9 +375,9 @@ TEST( splitStringIntoArray ) {
     // Basic case
     {
         l_result = splitStringIntoArray( "apple,banana,cherry", "," );
-        ASSERT_STRING_EQ( l_result[ 0 ], "apple" );
-        ASSERT_STRING_EQ( l_result[ 1 ], "banana" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "cherry" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "apple" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "banana" );
+        ASSERT_STRING_EQ( l_result[ 3 ], "cherry" );
 
         FREE_ARRAY( l_result );
     }
@@ -385,8 +385,8 @@ TEST( splitStringIntoArray ) {
     // Consecutive delimiters (empty tokens)
     {
         l_result = splitStringIntoArray( "one,,two", "," );
-        ASSERT_STRING_EQ( l_result[ 0 ], "one" );
-        ASSERT_STRING_EQ( l_result[ 1 ], "two" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "one" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "two" );
 
         FREE_ARRAY( l_result );
     }
@@ -394,8 +394,8 @@ TEST( splitStringIntoArray ) {
     // Leading and trailing delimiters
     {
         l_result = splitStringIntoArray( ",first,second,", "," );
-        ASSERT_STRING_EQ( l_result[ 0 ], "first" );
-        ASSERT_STRING_EQ( l_result[ 1 ], "second" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "first" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "second" );
 
         FREE_ARRAY( l_result );
     }
@@ -403,7 +403,7 @@ TEST( splitStringIntoArray ) {
     // Single character input
     {
         l_result = splitStringIntoArray( "X", "," );
-        ASSERT_STRING_EQ( l_result[ 0 ], "X" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "X" );
 
         FREE_ARRAY( l_result );
     }
@@ -439,9 +439,9 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Basic case
     {
         l_result = splitStringIntoArrayBySymbol( "apple,banana,cherry", ',' );
-        ASSERT_STRING_EQ( l_result[ 0 ], "apple" );
-        ASSERT_STRING_EQ( l_result[ 1 ], "banana" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "cherry" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "apple" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "banana" );
+        ASSERT_STRING_EQ( l_result[ 3 ], "cherry" );
 
         FREE_ARRAY( l_result );
     }
@@ -449,8 +449,8 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Consecutive delimiters (empty tokens)
     {
         l_result = splitStringIntoArrayBySymbol( "one,,two", ',' );
-        ASSERT_STRING_EQ( l_result[ 0 ], "one" );
-        ASSERT_STRING_EQ( l_result[ 1 ], "two" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "one" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "two" );
 
         FREE_ARRAY( l_result );
     }
@@ -458,8 +458,8 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Leading and trailing delimiters
     {
         l_result = splitStringIntoArrayBySymbol( ",first,second,", ',' );
-        ASSERT_STRING_EQ( l_result[ 0 ], "first" );
-        ASSERT_STRING_EQ( l_result[ 1 ], "second" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "first" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "second" );
 
         FREE_ARRAY( l_result );
     }
@@ -467,7 +467,7 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Single character input
     {
         l_result = splitStringIntoArrayBySymbol( "X", ',' );
-        ASSERT_STRING_EQ( l_result[ 0 ], "X" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "X" );
 
         FREE_ARRAY( l_result );
     }
@@ -501,7 +501,7 @@ TEST( createArray ) {
     // Normal
     {
         // Create an array of pointers
-        void** l_array = ( void** )createArray( sizeof( void* ) );
+        void** l_array = ( void** )createArray( void* );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -510,14 +510,13 @@ TEST( createArray ) {
         ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
 
         // Free allocated memory
-        // FREE_ARRAY for Allocated elements, safe if length is 0
         FREE_ARRAY( l_array );
     }
 
     // Change array length manually
     {
         // Create an array of pointers
-        uint8_t* l_array = ( uint8_t* )createArray( sizeof( uint8_t ) );
+        uint8_t* l_array = ( uint8_t* )createArray( uint8_t );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -527,8 +526,10 @@ TEST( createArray ) {
 
         // Insert values
         {
-            insertIntoArray( ( void*** )( &l_array ), ( void* )0 );
-            insertIntoArray( ( void*** )( &l_array ), ( void* )1 );
+            ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( uint8_t )0 ),
+                       ( size_t )1 );
+            ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( uint8_t )1 ),
+                       ( size_t )2 );
         }
 
         // Ensure new length is updated
@@ -555,7 +556,7 @@ TEST( createArray ) {
 
 TEST( preallocateArray ) {
     // Create initial array
-    void** l_array = ( void** )createArray( sizeof( void* ) );
+    void** l_array = ( void** )createArray( void* );
 
     // Insert values
     {
@@ -582,7 +583,7 @@ TEST( preallocateArray ) {
 
 TEST( insertIntoArray ) {
     // Create an initial array
-    void** l_array = ( void** )createArray( sizeof( void* ) );
+    void** l_array = ( void** )createArray( void* );
 
     // Ensure array length is updated correctly
     ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
