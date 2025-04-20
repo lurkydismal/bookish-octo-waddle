@@ -202,8 +202,13 @@ static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     return ( l_array );
 }
 
-static FORCE_INLINE void preallocateArray( void*** restrict _array,
-                                           const size_t _length ) {
+#define preallocateArray( _array, _length )                  \
+    do {                                                     \
+        _preallocateArray( ( void*** )( _array ), _length ); \
+    } while ( 0 )
+
+static FORCE_INLINE void _preallocateArray( void*** restrict _array,
+                                            const size_t _length ) {
     if ( UNLIKELY( !_array ) ) {
         return;
     }
@@ -222,8 +227,11 @@ static FORCE_INLINE void preallocateArray( void*** restrict _array,
         ( size_t )( l_currentArrayLength + _length + 1 );
 }
 
-static FORCE_INLINE ssize_t insertIntoArray( void*** restrict _array,
-                                             void* restrict _value ) {
+#define insertIntoArray( _array, _value ) \
+    ( { _insertIntoArray( ( void*** )( _array ), ( void* )( _value ) ); } )
+
+static FORCE_INLINE ssize_t _insertIntoArray( void*** restrict _array,
+                                              void* restrict _value ) {
     ssize_t l_returnValue = -1;
 
     if ( UNLIKELY( !_array ) ) {

@@ -527,8 +527,8 @@ TEST( createArray ) {
 
         // Insert values
         {
-            insertIntoArray( ( void*** )( &l_array ), ( void* )0 );
-            insertIntoArray( ( void*** )( &l_array ), ( void* )1 );
+            insertIntoArray( &l_array, 0 );
+            insertIntoArray( &l_array, 1 );
         }
 
         // Ensure new length is updated
@@ -543,8 +543,8 @@ TEST( createArray ) {
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%u", l_array[ 1 ], 0 );
-            ASSERT_EQ( "%u", l_array[ 2 ], 1 );
+            ASSERT_EQ( "%p", ( ( ( void** )l_array )[ 1 ] ), ( void* )0 );
+            ASSERT_EQ( "%p", ( ( ( void** )l_array )[ 2 ] ), ( void* )1 );
         }
 
         // Free allocated memory
@@ -559,8 +559,8 @@ TEST( preallocateArray ) {
 
     // Insert values
     {
-        insertIntoArray( &l_array, ( void* )100 );
-        insertIntoArray( &l_array, ( void* )200 );
+        insertIntoArray( &l_array, 100 );
+        insertIntoArray( &l_array, 200 );
     }
 
     // Preallocate more space
@@ -589,10 +589,8 @@ TEST( insertIntoArray ) {
 
     // Insert values
     {
-        ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( void* )200 ),
-                   ( size_t )1 );
-        ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( void* )300 ),
-                   ( size_t )2 );
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, 200 ), ( size_t )1 );
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, 300 ), ( size_t )2 );
     }
 
     // Ensure array length is updated correctly
