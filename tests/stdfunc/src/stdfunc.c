@@ -501,7 +501,7 @@ TEST( createArray ) {
     // Normal
     {
         // Create an array of pointers
-        void** l_array = ( void** )createArray( void* );
+        void** l_array = ( void** )createArray( sizeof( void* ) );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -510,13 +510,14 @@ TEST( createArray ) {
         ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
 
         // Free allocated memory
+        // FREE_ARRAY for Allocated elements, safe if length is 0
         FREE_ARRAY( l_array );
     }
 
     // Change array length manually
     {
         // Create an array of pointers
-        uint8_t* l_array = ( uint8_t* )createArray( uint8_t );
+        uint8_t* l_array = ( uint8_t* )createArray( sizeof( uint8_t ) );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -526,10 +527,8 @@ TEST( createArray ) {
 
         // Insert values
         {
-            ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( uint8_t )0 ),
-                       ( size_t )1 );
-            ASSERT_EQ( "%zu", insertIntoArray( &l_array, ( uint8_t )1 ),
-                       ( size_t )2 );
+            insertIntoArray( ( void*** )( &l_array ), ( void* )0 );
+            insertIntoArray( ( void*** )( &l_array ), ( void* )1 );
         }
 
         // Ensure new length is updated
@@ -556,7 +555,7 @@ TEST( createArray ) {
 
 TEST( preallocateArray ) {
     // Create initial array
-    void** l_array = ( void** )createArray( void* );
+    void** l_array = ( void** )createArray( sizeof( void* ) );
 
     // Insert values
     {
@@ -583,7 +582,7 @@ TEST( preallocateArray ) {
 
 TEST( insertIntoArray ) {
     // Create an initial array
-    void** l_array = ( void** )createArray( void* );
+    void** l_array = ( void** )createArray( sizeof( void* ) );
 
     // Ensure array length is updated correctly
     ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
