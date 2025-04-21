@@ -1,9 +1,9 @@
 #include <glad/gl.h>
 
 #include "FPS.h"
+#include "GLTF_t.h"
 #include "asset_t.h"
 #include "callbacks.h"
-#include "image_t.h"
 #include "log.h"
 #include "stdfunc.h"
 
@@ -122,6 +122,28 @@ callbackResult_t init( applicationState_t* restrict _applicationState ) {
                 ( logLevel_t )info, "GL version: %d.%d\n",
                 GLAD_VERSION_MAJOR( _applicationState->glVersion ),
                 GLAD_VERSION_MINOR( _applicationState->glVersion ) );
+        }
+
+        {
+            GLTF_t t = GLTF_t$create();
+
+            if ( !GLTF_t$load$fromPath( &t, "t.gltf" ) ) {
+                log$transaction$query( ( logLevel_t )error, "GLTF1\n" );
+
+                goto EXIT;
+            }
+
+            if ( !GLTF_t$unload( &t ) ) {
+                log$transaction$query( ( logLevel_t )error, "GLTF2\n" );
+
+                goto EXIT;
+            }
+
+            if ( !GLTF_t$destroy( &t ) ) {
+                log$transaction$query( ( logLevel_t )error, "GLTF3\n" );
+
+                goto EXIT;
+            }
         }
 
         // Vsync

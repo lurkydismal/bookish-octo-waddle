@@ -6,7 +6,7 @@
 #define XXH_NO_STREAM
 #define XXH_STATIC_LINKING_ONLY
 #define XXH_memcmp __builtin_memcmp
-#define XXH_memcpy __builtin_memcpy
+// #define XXH_memcpy __builtin_memcpy
 #define XXH_memset __builtin_memset
 
 #include <omp.h>
@@ -17,43 +17,49 @@
 #include <sys/types.h>
 #include <xxhash.h>
 
+#include "stdfloat16.h"
+
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
 #define NO_OPTIMIZE __attribute__( ( optimize( "0" ) ) )
 #define NO_RETURN __attribute__( ( noreturn ) )
 #define HOT __attribute__( ( hot ) )
 #define COLD __attribute__( ( cold ) )
+#define SENTINEL __attribute__( ( sentinel ) )
 
 // Branch prediction hints
 #define LIKELY( _expression ) __builtin_expect( !!( _expression ), 1 )
 #define UNLIKELY( _expression ) __builtin_expect( !!( _expression ), 0 )
 
 // Constants
+#define DECIMAL_RADIX 10
 #define ONE_SECOND_IN_MILLISECONDS 1000
 #define ONE_MILLISECOND_IN_NANOSECONDS 1000000
 
 // Utility macros ( no side-effects )
 #define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
-    ( _milliseconds * ONE_MILLISECOND_IN_NANOSECONDS )
+    ( ( _milliseconds ) * ONE_MILLISECOND_IN_NANOSECONDS )
 
 // Utility functions ( no side-effects )
-#define max( _a, _b ) ( ( _a > _b ) ? ( _a ) : ( _b ) )
-#define min( _a, _b ) ( ( _a < _b ) ? ( _a ) : ( _b ) )
+#define max( _a, _b ) ( ( ( _a ) > ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
+#define min( _a, _b ) ( ( ( _a ) < ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
 
 // Non-native and native array utility functions
-#define arrayLengthPointer( _array ) ( ( size_t* )( &( _array[ 0 ] ) ) )
-#define arrayLength( _array ) ( ( size_t )( _array[ 0 ] ) - 1 )
-#define arrayLengthNative( _array ) ( sizeof( _array ) / sizeof( _array[ 0 ] ) )
+#define arrayLengthPointer( _array ) ( ( size_t* )( &( ( _array )[ 0 ] ) ) )
+#define arrayLength( _array ) ( ( size_t )( ( _array )[ 0 ] ) - 1 )
+#define arrayLengthNative( _array ) \
+    ( sizeof( ( _array ) ) / sizeof( ( _array )[ 0 ] ) )
 #define randomValueFromArray( _array ) \
-    ( _array[ randomNumber() % arrayLength( _array ) ] )
-#define arrayFirstElementPointer( _array ) ( _array + 1 )
+    ( ( _array )[ randomNumber() % arrayLength( ( _array ) ) ] )
+#define arrayFirstElementPointer( _array ) ( ( _array ) + 1 )
 #define arrayLastElementPointer( _array ) \
-    ( ( arrayFirstElementPointer( _array ) - 1 ) + arrayLength( _array ) )
+    ( ( arrayFirstElementPointer( ( _array ) ) - 1 ) + arrayLength( _array ) )
 
 // Native array iteration FOR
-#define FOR( _type, _array )       \
-    for ( _type _element = _array; \
-          _element < ( _array + arrayLengthNative( _array ) ); _element++ )
+#define FOR( _type, _array )                                       \
+    for ( _type _element = ( _array );                             \
+          _element < ( ( _array ) + arrayLengthNative( _array ) ); \
+          _element++ )
 
 // Non-native array iteration FOR
 #define FOR_ARRAY( _type, _array )                             \
@@ -62,18 +68,18 @@
 
 // Range iteration FOR
 #define FOR_RANGE( _type, _start, _end ) \
-    for ( _type _index = _start; _index < _end; _index++ )
+    for ( _type _index = ( _start ); _index < ( _end ); _index++ )
 
 // Range iteration FOR with increase BY amount
 #define FOR_RANGE_BY( _type, _start, _end, _amount ) \
-    for ( _type _index = _start; _index < _end; _index += _amount )
+    for ( _type _index = ( _start ); _index < ( _end ); _index += ( _amount ) )
 
 // Non-native array free every element
-#define FREE_ARRAY_ELEMENTS( _array )           \
-    do {                                        \
-        FOR_ARRAY( typeof( _array ), _array ) { \
-            free( *_element );                  \
-        }                                       \
+#define FREE_ARRAY_ELEMENTS( _array )               \
+    do {                                            \
+        FOR_ARRAY( typeof( _array ), ( _array ) ) { \
+            free( *_element );                      \
+        }                                           \
     } while ( 0 )
 
 #define FREE_ARRAY( _array ) \
@@ -83,6 +89,10 @@
 
 // Utility functions ( no side-effects )
 static FORCE_INLINE bool stringToBool( const char* restrict _string ) {
+    if ( UNLIKELY( !_string ) ) {
+        return ( false );
+    }
+
     if ( __builtin_strcmp( _string, "true" ) == 0 ) {
         return ( true );
 
@@ -109,10 +119,42 @@ static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
     do {
         l_length++;
 
-        _number /= 10;
+        _number /= DECIMAL_RADIX;
     } while ( _number );
 
     return ( l_length );
+}
+
+static FORCE_INLINE ssize_t convertFloat16ToDecimal( float16_t _number ) {
+    // 1 is the integer part
+    size_t l_presicion = 1;
+
+    // Presicion
+    {
+        float16_t l_number = _number;
+
+        while ( l_number != ( size_t )_number ) {
+            l_number /= DECIMAL_RADIX;
+            l_presicion++;
+        }
+    }
+
+    size_t l_returnValue =
+        ( ( size_t )_number * __builtin_powf( DECIMAL_RADIX, l_presicion ) );
+
+    // Fractional part
+    if ( l_presicion > 1 ) {
+        _number -= ( size_t )_number;
+
+        FOR_RANGE( size_t, 0, l_presicion ) {
+            _number *= DECIMAL_RADIX;
+
+            l_returnValue +=
+                ( ( size_t )_number * __builtin_powf( DECIMAL_RADIX, _index ) );
+        }
+    }
+
+    return ( l_returnValue );
 }
 
 void randomNumber$seed$set( const size_t _seed );

@@ -25,6 +25,7 @@ size_t randomNumber$seed$get( void ) {
 size_t randomNumber( void ) {
     size_t l_returnValue = 0;
 
+    // NOLINTBEGIN
     {
         g_seed ^= ( g_seed << 13 );
         g_seed ^= ( g_seed >> 17 );
@@ -32,6 +33,7 @@ size_t randomNumber( void ) {
 
         l_returnValue = g_seed;
     }
+    // NOLINTEND
 
     return ( l_returnValue );
 }
@@ -85,7 +87,7 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
         }
 
         {
-            char* l_buffer;
+            char* l_buffer = NULL;
 
             if ( LIKELY( *_string ) ) {
                 l_buffer = ( char* )malloc( l_stringLength * sizeof( char ) );
@@ -143,6 +145,8 @@ char* sanitizeString( const char* restrict _string ) {
 
 #define COMMENT_SYMBOL ( '#' )
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
         for ( const char* _symbol = _string;
               _symbol < ( _string + l_stringLength ); _symbol++ ) {
             if ( __builtin_isspace( *_symbol ) ) {
@@ -155,6 +159,7 @@ char* sanitizeString( const char* restrict _string ) {
             l_buffer[ l_bufferLength ] = *_symbol;
             l_bufferLength++;
         }
+#pragma clang diagnostic pop
 
 #undef COMMENT_SYMBOL
 
@@ -341,13 +346,13 @@ char* getApplicationDirectoryAbsolutePath( void ) {
 
                 free( l_executablePath );
 
-                goto EXIT_EXECUTABLE_PATH;
+                goto EXIT;
             }
 
             l_executablePath[ l_executablePathLength ] = '\0';
         }
 
-        char* l_directoryPath;
+        char* l_directoryPath = NULL;
 
         // Get directory path
         {
@@ -358,7 +363,7 @@ char* getApplicationDirectoryAbsolutePath( void ) {
                                               "Extracting directory: '%s'\n",
                                               l_executablePath );
 
-                goto EXIT_EXECUTABLE_PATH;
+                goto EXIT;
             }
 
             const ssize_t l_lastSlashIndex = ( l_lastSlash - l_executablePath );
@@ -372,14 +377,13 @@ char* getApplicationDirectoryAbsolutePath( void ) {
                                                         "/" ) ) ) {
                 free( l_directoryPath );
 
-                goto EXIT_EXECUTABLE_PATH;
+                goto EXIT;
             }
         }
 
         l_returnValue = l_directoryPath;
-
-    EXIT_EXECUTABLE_PATH:
     }
 
+EXIT:
     return ( l_returnValue );
 }

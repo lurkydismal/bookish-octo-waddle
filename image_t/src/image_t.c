@@ -6,8 +6,8 @@
 #include "stdfunc.h"
 
 // Constants
-#define RGBA_PIXEL_SIZE ( 4 )
-#define BGR_PIXEL_SIZE ( 3 )
+#define RGBA_PIXEL_SIZE ( ( size_t )4 )
+#define BGR_PIXEL_SIZE ( ( size_t )3 )
 
 #define BMP_DATA_START_VALUE_OFFsET ( 10 )
 #define BMP_WIDTH_OFFSET ( 18 )
@@ -44,7 +44,7 @@
  * @return The total row size in bytes, including padding.
  */
 #define BGR_ROW_SIZE( _width ) \
-    ( ( ( _width * BGR_PIXEL_SIZE ) + BGR_PIXEL_SIZE ) & ~BGR_PIXEL_SIZE )
+    ( ( ( ( _width ) * BGR_PIXEL_SIZE ) + BGR_PIXEL_SIZE ) & ~BGR_PIXEL_SIZE )
 
 // Computes total BMP data size (including padding)
 #define BGR_DATA_SIZE( _image )                                        \

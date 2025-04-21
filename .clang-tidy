@@ -1,0 +1,20 @@
+Checks: >
+  clang-analyzer-*
+  ,bugprone-*
+  ,cppcoreguidelines-*
+  ,performance-*
+  ,-bugprone-easily-swappable-parameters
+  ,-bugprone-multi-level-implicit-pointer-conversion
+  ,-bugprone-narrowing-conversions
+  ,-bugprone-reserved-identifier
+  ,-bugprone-suspicious-realloc-usage
+  ,-clang-diagnostic-#pragma-messages
+  ,-clang-diagnostic-implicit-function-declaration
+  ,-cppcoreguidelines-avoid-non-const-global-variables
+  ,-cppcoreguidelines-macro-to-enum
+  ,-cppcoreguidelines-narrowing-conversions
+WarningsAsErrors: '*'
+HeaderFilterRegex: '.*'
+FormatStyle: 'file'
+CheckOptions:
+  - { key: bugprone-assert-side-effect.StrictMode, value: true }

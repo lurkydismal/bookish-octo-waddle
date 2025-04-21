@@ -16,7 +16,7 @@
 
 #define ASCII_START ( 32 )
 #define ASCII_END ( 126 )
-#define CHARACTERS_COUNT( _start, _end ) ( _end - ( _start - 1 ) )
+#define CHARACTERS_COUNT( _start, _end ) ( ( _end ) - ( ( _start ) - 1 ) )
 
 #define DEFAULT_FONT_COLOR { 1, 1, 1 }
 
