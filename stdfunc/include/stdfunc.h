@@ -6,7 +6,7 @@
 #define XXH_NO_STREAM
 #define XXH_STATIC_LINKING_ONLY
 #define XXH_memcmp __builtin_memcmp
-// #define XXH_memcpy __builtin_memcpy
+#define XXH_memcpy __builtin_memcpy
 #define XXH_memset __builtin_memset
 
 #include <omp.h>
@@ -16,8 +16,6 @@
 #include <stdlib.h>
 #include <sys/types.h>
 #include <xxhash.h>
-
-#include "stdfloat16.h"
 
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
@@ -33,12 +31,13 @@
 
 // Constants
 #define DECIMAL_RADIX 10
-#define ONE_SECOND_IN_MILLISECONDS 1000
-#define ONE_MILLISECOND_IN_NANOSECONDS 1000000
+#define ONE_SECOND_IN_MILLISECONDS ( ( size_t )( 1000 ) )
+#define ONE_MILLISECOND_IN_NANOSECONDS ( ( size_t )( 1000000 ) )
 
 // Utility macros ( no side-effects )
 #define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
     ( ( _milliseconds ) * ONE_MILLISECOND_IN_NANOSECONDS )
+#define BITS_TO_BYTES( _bits ) ( ( size_t )( ( _bits ) / 8 ) )
 
 // Utility functions ( no side-effects )
 #define max( _a, _b ) ( ( ( _a ) > ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
@@ -125,13 +124,13 @@ static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
     return ( l_length );
 }
 
-static FORCE_INLINE ssize_t convertFloat16ToDecimal( float16_t _number ) {
+static FORCE_INLINE ssize_t convertFloat16ToDecimal( float _number ) {
     // 1 is the integer part
     size_t l_presicion = 1;
 
     // Presicion
     {
-        float16_t l_number = _number;
+        float l_number = _number;
 
         while ( l_number != ( size_t )_number ) {
             l_number /= DECIMAL_RADIX;

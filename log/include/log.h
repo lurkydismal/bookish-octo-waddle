@@ -53,7 +53,8 @@
 
 #endif
 
-#define LOG_MAX_TRANSACTION_SIZE_DEFAULT ( ( 1024 * 10 ) * sizeof( char ) )
+#define LOG_MAX_TRANSACTION_SIZE_DEFAULT \
+    ( ( size_t )( ( ( size_t )1024 * 10 ) * sizeof( char ) ) )
 
 typedef enum { debug, info, warn, error, unknownLogLevel } logLevel_t;
 
@@ -105,9 +106,7 @@ log$level$convert$fromString( const char* restrict _string ) {
     }
 }
 
-bool log$init( const char* _fileName,
-               const char* _fileExtension,
-               const size_t _maxTransactionSize );
+bool log$init( const char* _fileName, const char* _fileExtension );
 bool log$quit( void );
 
 bool log$level$set( const logLevel_t _logLevel );

@@ -117,7 +117,7 @@ int main( void ) {
     glfwSetKeyCallback( g_applicationState.window, keyCallback );
 
     {
-        pthread_t l_limitedIterateThread;
+        pthread_t l_limitedIterateThread = 0;
 
         // Limited iteration
         if ( UNLIKELY( pthread_create( &l_limitedIterateThread, NULL,

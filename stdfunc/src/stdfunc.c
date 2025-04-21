@@ -107,7 +107,7 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
                                   l_beforeStringLength );
             }
 
-            if ( LIKELY( *_string ) ) {
+            {
                 __builtin_memcpy( ( l_beforeStringLength + *_string ), l_buffer,
                                   l_stringLength );
 
@@ -145,8 +145,13 @@ char* sanitizeString( const char* restrict _string ) {
 
 #define COMMENT_SYMBOL ( '#' )
 
+#if defined( __clang__ )
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+
+#endif
+
         for ( const char* _symbol = _string;
               _symbol < ( _string + l_stringLength ); _symbol++ ) {
             if ( __builtin_isspace( *_symbol ) ) {
@@ -159,7 +164,12 @@ char* sanitizeString( const char* restrict _string ) {
             l_buffer[ l_bufferLength ] = *_symbol;
             l_bufferLength++;
         }
+
+#if defined( __clang__ )
+
 #pragma clang diagnostic pop
+
+#endif
 
 #undef COMMENT_SYMBOL
 

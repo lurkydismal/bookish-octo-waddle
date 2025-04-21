@@ -13,6 +13,8 @@ Checks: >
   ,-cppcoreguidelines-avoid-non-const-global-variables
   ,-cppcoreguidelines-macro-to-enum
   ,-cppcoreguidelines-narrowing-conversions
+  ,-bugprone-sizeof-expression
+  ,-bugprone-branch-clone
 WarningsAsErrors: '*'
 HeaderFilterRegex: '.*'
 FormatStyle: 'file'

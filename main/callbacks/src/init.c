@@ -22,8 +22,7 @@ callbackResult_t init( applicationState_t* restrict _applicationState ) {
         // Log
         {
             if ( UNLIKELY( !log$init( LOG_FILE_NAME_DEFAULT,
-                                      LOG_FILE_EXTENSION_DEFAULT,
-                                      LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) ) {
+                                      LOG_FILE_EXTENSION_DEFAULT ) ) ) {
                 log$transaction$query( ( logLevel_t )error,
                                        "Initializing logging system\n" );
 

@@ -12,7 +12,6 @@
 static int g_fileDescriptor = -1;
 static char* g_transactionString;
 static ssize_t g_transactionSize = 0;
-static size_t g_maxTransactionSize;
 static logLevel_t g_currentLogLevel = LOG_LEVEL_DEFAULT;
 
 static const char* log$level$convert$toColor( const logLevel_t _logLevel ) {
@@ -91,8 +90,7 @@ EXIT:
 }
 
 bool log$init( const char* restrict _fileName,
-               const char* restrict _fileExtension,
-               const size_t _maxTransactionSize ) {
+               const char* restrict _fileExtension ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_fileName ) ) {
@@ -100,10 +98,6 @@ bool log$init( const char* restrict _fileName,
     }
 
     if ( UNLIKELY( !_fileExtension ) ) {
-        goto EXIT;
-    }
-
-    if ( UNLIKELY( !_maxTransactionSize ) ) {
         goto EXIT;
     }
 
@@ -151,21 +145,10 @@ bool log$init( const char* restrict _fileName,
             }
         }
 
-        // Set max transaction size
-        {
-            if ( UNLIKELY( !_maxTransactionSize ) ) {
-                l_returnValue = false;
-
-                goto EXIT;
-            }
-
-            g_maxTransactionSize = _maxTransactionSize;
-        }
-
         // Allocate transaction string
         {
             g_transactionString =
-                ( char* )malloc( g_maxTransactionSize * sizeof( char ) );
+                ( char* )malloc( LOG_MAX_TRANSACTION_SIZE_DEFAULT );
         }
 
         l_returnValue = true;
@@ -245,8 +228,9 @@ bool _log$transaction$query( const logLevel_t _logLevel,
     size_t l_stringLength = __builtin_strlen( _string );
 
     if ( UNLIKELY( ( g_transactionSize + l_stringLength ) >
-                   g_maxTransactionSize ) ) {
-        l_stringLength = ( g_maxTransactionSize - g_transactionSize );
+                   LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
+        l_stringLength =
+            ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
 
 #if defined( DEBUG )
 
@@ -263,8 +247,9 @@ bool _log$transaction$query( const logLevel_t _logLevel,
             l_stringLength = log$level$prependToString( &l_string, _logLevel );
 
             if ( UNLIKELY( ( g_transactionSize + l_stringLength ) >
-                           g_maxTransactionSize ) ) {
-                l_stringLength = ( g_maxTransactionSize - g_transactionSize );
+                           LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
+                l_stringLength =
+                    ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
             }
 
             __builtin_memcpy( ( g_transactionString + g_transactionSize ),
@@ -310,7 +295,8 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
     }
 
     {
-        size_t l_bufferSize = ( g_maxTransactionSize - g_transactionSize );
+        size_t l_bufferSize =
+            ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
         char* l_buffer = ( char* )malloc( l_bufferSize * sizeof( char ) );
 
         va_list l_arguments;
@@ -330,8 +316,9 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
             l_bufferSize = log$level$prependToString( &l_buffer, _logLevel );
 
             if ( UNLIKELY( ( g_transactionSize + l_bufferSize ) >
-                           g_maxTransactionSize ) ) {
-                l_bufferSize = ( g_maxTransactionSize - g_transactionSize );
+                           LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
+                l_bufferSize =
+                    ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
             }
 
             __builtin_memcpy( ( g_transactionString + g_transactionSize ),

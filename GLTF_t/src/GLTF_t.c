@@ -1,5 +1,9 @@
+#if defined( __clang__ )
+
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wimplicit-function-declaration"
+
+#endif
 
 #include "GLTF_t.h"
 
@@ -393,4 +397,8 @@ EXIT:
     return ( l_returnValue );
 }
 
+#if defined( __clang__ )
+
 #pragma clang diagnostic pop
+
+#endif

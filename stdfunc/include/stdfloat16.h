@@ -1,5 +1,7 @@
 #pragma once
 
+#include "stdfunc.h"
+
 // Largest normal positive
 #define FLOAT16_MAX ( ( float16_t )( 65504.0f ) )
 
@@ -19,10 +21,18 @@
 // Smallest negative normal value
 #define FLOAT16_NEG_MIN ( ( float16x2_t )( -6.103515625e-5f ) )
 
-typedef _Float16 float16_t __attribute__( ( aligned( 2 ) ) );
+#define FLOAT16_TYPE_BIT_AMOUNT 16
 
-typedef float16_t float16x2_t __attribute__( ( vector_size( 4 ) ) );
-typedef float16_t float16x4_t __attribute__( ( vector_size( 8 ) ) );
-typedef float16_t float16x8_t __attribute__( ( vector_size( 16 ) ) );
-typedef float16_t float16x16_t __attribute__( ( vector_size( 32 ) ) );
-typedef float16_t float16x32_t __attribute__( ( vector_size( 64 ) ) );
+typedef _Float16 float16_t
+    __attribute__( ( aligned( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT ) ) ) );
+
+typedef float16_t float16x2_t __attribute__( (
+    vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 2 ) ) ) );
+typedef float16_t float16x4_t __attribute__( (
+    vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 4 ) ) ) );
+typedef float16_t float16x8_t __attribute__( (
+    vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 8 ) ) ) );
+typedef float16_t float16x16_t __attribute__( (
+    vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 16 ) ) ) );
+typedef float16_t float16x32_t __attribute__( (
+    vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 32 ) ) ) );
