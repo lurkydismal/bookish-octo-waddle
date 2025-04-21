@@ -4,6 +4,8 @@
 
 #include "stdfloat16.h"
 
+#define GLTF_NODE_MATRIX_BUFFER_SIZE 16
+
 #define DEFAULT_GLTF_NODE_MATRIX \
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
 
@@ -27,7 +29,7 @@
 struct GLTF_node {
     char* name;
     uint8_t* children;
-    float matrix[ 16 ];
+    float matrix[ GLTF_NODE_MATRIX_BUFFER_SIZE ];
     uint8_t mesh;
     float16_t* weights;
     float16_t translation[ 3 ];

@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /*==============================================================================
  Copyright (c) 2020 YaoYuan <ibireme@gmail.com>
 
@@ -12225,3 +12226,4 @@ bool yyjson_mut_write_fp( FILE* fp,
 }
 
 #endif /* YYJSON_DISABLE_WRITER */
+// NOLINTEND

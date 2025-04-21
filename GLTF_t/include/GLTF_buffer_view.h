@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 #define DEFAULT_GLTF_BUFFER_VIEW \

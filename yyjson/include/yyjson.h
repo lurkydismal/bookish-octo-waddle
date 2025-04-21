@@ -1,3 +1,4 @@
+// NOLINTBEGIN
 /*==============================================================================
  Copyright (c) 2020 YaoYuan <ibireme@gmail.com>
 
@@ -8391,3 +8392,4 @@ yyjson_deprecated( "renamed to unsafe_yyjson_mut_ptr_getx" ) yyjson_api_inline
 #ifdef __cplusplus
 }
 #endif /* extern "C" end */
+// NOLINTEND

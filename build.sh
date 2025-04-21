@@ -15,8 +15,8 @@ export BUILD_TYPE=${BUILD_TYPE:-0}
 
 export BUILD_C_FLAGS="-fopenmp -flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
 export BUILD_C_FLAGS_DEBUG="-Og -g"
-export BUILD_C_FLAGS_RELEASE="-Ofast -funroll-loops -fno-asynchronous-unwind-tables"
-export BUILD_C_FLAGS_PROFILE="$BUILD_C_FLAGS_RELEASE"
+export BUILD_C_FLAGS_RELEASE="-fprofile-use -Ofast -funroll-loops -fno-asynchronous-unwind-tables"
+export BUILD_C_FLAGS_PROFILE="-fprofile-generate $BUILD_C_FLAGS_RELEASE"
 export BUILD_C_FLAGS_TESTS="$BUILD_C_FLAGS_DEBUG"
 
 export declare BUILD_DEFINES=(

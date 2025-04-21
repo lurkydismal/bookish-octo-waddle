@@ -262,7 +262,7 @@ bool asset_t$uncompress( asset_t* restrict _asset ) {
             goto EXIT;
         }
 
-        size_t l_uncompressedLength;
+        size_t l_uncompressedLength = 0;
 
         if ( UNLIKELY( snappy_uncompressed_length(
                            ( char* )( _asset->data ), _asset->size,

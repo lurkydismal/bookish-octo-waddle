@@ -321,25 +321,25 @@ bool font_t$load$fromPath( font_t* restrict _font,
             l_returnValue = asset_t$load( &l_fontAsset, _path );
 
             if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_IMAGE_ASSET;
+                goto EXIT_FONT_ASSET;
             }
 
             l_returnValue = font_t$load$fromAsset( _font, &l_fontAsset );
 
             if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_IMAGE_ASSET;
+                goto EXIT_FONT_ASSET;
             }
 
             l_returnValue = asset_t$unload( &l_fontAsset );
 
             if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_IMAGE_ASSET;
+                goto EXIT_FONT_ASSET;
             }
         }
 
         l_returnValue = true;
 
-    EXIT_IMAGE_ASSET:
+    EXIT_FONT_ASSET:
         if ( UNLIKELY( !asset_t$destroy( &l_fontAsset ) ) ) {
             l_returnValue = false;
 

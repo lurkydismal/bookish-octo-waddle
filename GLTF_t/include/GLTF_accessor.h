@@ -1,8 +1,12 @@
 #pragma once
 
+#include <stdbool.h>
 #include <stdint.h>
 
 #include "stdfloat16.h"
+
+#define GLTF_ACCESSOR_MAX_BUFFER_SIZE 16
+#define GLTF_ACCESSOR_MIN_BUFFER_SIZE 16
 
 #define DEFAULT_GLTF_ACCESSOR_COMPONENT_TYPE INT8
 
@@ -48,8 +52,8 @@ struct GLTF_accessor {
     uint8_t bufferOffset;
     enum GLTF_accessor_componentType componentType;
     uint32_t count;
-    float16_t max[ 16 ];
-    float16_t min[ 16 ];
+    float16_t max[ GLTF_ACCESSOR_MAX_BUFFER_SIZE ];
+    float16_t min[ GLTF_ACCESSOR_MIN_BUFFER_SIZE ];
     enum GLTF_accessor_type type;
     bool normalized;
 };
