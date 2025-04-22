@@ -1,188 +1,14 @@
-#if defined( __clang__ )
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-function-declaration"
-
-#endif
-
 #include "GLTF_t.h"
-
-#include <stdarg.h>
 
 #include "log.h"
 #include "stdfunc.h"
 #include "yyjson.h"
 
-#define GLTF_BIND_PAIR_SIZE 2
-
-struct bind {
-    const char* fieldName;
-    void* storage;
-};
-
-/**
- * |----------------|------|
- * | C Type         | Code |
- * |----------------|------|
- * | `float16_t`    | `f2` |
- * | `float`        | `f4` |
- * | `double`       | `f8` |
- * | `int8_t`       | `i1` |
- * | `uint8_t`      | `u1` |
- * | `int16_t`      | `i2` |
- * | `uint16_t`     | `u2` |
- * | `int32_t`      | `i4` |
- * | `uint32_t`     | `u4` |
- * | `int64_t`      | `i8` |
- * | `uint64_t`     | `u8` |
- * | `int128_t`     | `iA` |
- * | `uint128_t`    | `uA` |
- * | `size_t`       | `sz` |
- * | `ssize_t`      | `ss` |
- * | `char*`        | `s0` |
- * | `bool`         | `bl` |
- * | `matrix1x1`    | `m1` |
- * | `matrix2x2`    | `m2` |
- * | `matrix3x3`    | `m3` |
- * | `matrix4x4`    | `m4` |
- * |----------------|------|
- **/
-// TODO: Error messages
-static SENTINEL void GLTF_t$bind( yyjson_val* restrict _root,
-                                  const char* restrict _rootFieldName,
-                                  const char* restrict _format,
-                                  ... ) {
-    if ( UNLIKELY( !_root ) ) {
-        return;
-    }
-
-    if ( UNLIKELY( !_rootFieldName ) ) {
-        return;
-    }
-
-    if ( UNLIKELY( !_format ) ) {
-        return;
-    }
-
-    {
-        yyjson_val* l_rootField = yyjson_obj_get( _root, _rootFieldName );
-
-        if ( UNLIKELY( !l_rootField ) ) {
-            log$transaction$query$format(
-                ( logLevel_t )info,
-                "Root field '%s' not found in JSON object\n", _rootFieldName );
-
-            return;
-        }
-
-        {
-            va_list l_binds;
-
-            va_start( l_binds, _format );
-
-            const char* l_bindFormat = _format;
-
-            while ( *l_bindFormat ) {
-                // Skip spaces
-                if ( UNLIKELY( __builtin_isspace( *l_bindFormat ) ) ) {
-                    l_bindFormat++;
-
-                    continue;
-                }
-
-                // Ensure we have two pairs
-                FOR_RANGE( size_t, 0, GLTF_BIND_PAIR_SIZE ) {
-                    if ( UNLIKELY( !( l_bindFormat[ _index ] ) ) ) {
-                        log$transaction$query$format(
-                            ( logLevel_t )error,
-                            "Incomplete format string near '%s'. Expected " MACRO_TO_STRING(GLTF_BIND_PAIR_SIZE) " "
-                            "characters \n",
-                            l_bindFormat );
-
-                        l_bindFormat = NULL;
-
-                        break;
-                    }
-                }
-
-                if ( UNLIKELY( !( l_bindFormat ) ) ) {
-                    break;
-                }
-
-                {
-                    char l_bindType[ GLTF_BIND_PAIR_SIZE + 1 ] = {
-                        l_bindFormat[ 0 ], l_bindFormat[ 1 ], '\0' };
-
-                    l_bindFormat += GLTF_BIND_PAIR_SIZE;
-
-                    struct bind* l_bind = va_arg( l_binds, struct bind* );
-
-                    if ( UNLIKELY( !l_bind ) ) {
-                        break;
-                    }
-
-                    yyjson_val* l_field =
-                        yyjson_obj_get( l_rootField, l_bind->fieldName );
-
-                    if ( UNLIKELY( !l_field ) ) {
-                        log$transaction$query$format(
-                            ( logLevel_t )info,
-                            "Field '%s' not found under '%s'\n",
-                            l_bind->fieldName, _rootFieldName );
-
-                        continue;
-                    }
-
-#define COMPARE_TYPES( _a, _b ) \
-    ( __builtin_strncmp( _a, _b, GLTF_BIND_PAIR_SIZE ) == 0 )
-
-                    if ( COMPARE_TYPES( l_bindType, "f2" ) ) {
-                        const char* l_value = yyjson_get_str( l_field );
-
-                        if ( !l_value ) {
-                            log$transaction$query$format(
-                                ( logLevel_t )error,
-                                "Field '%s' is not valid '%s'\n",
-                                l_bind->fieldName, l_bindType );
-
-                            continue;
-                        }
-
-                        const float16_t l_version = strtof( l_value, NULL );
-
-                        *( ( float16_t* )( l_bind->storage ) ) = l_version;
-
-                    } else if ( COMPARE_TYPES( l_bindType, "s0" ) ) {
-                        const char* l_value = yyjson_get_str( l_field );
-
-                        if ( !l_value ) {
-                            log$transaction$query$format(
-                                ( logLevel_t )error,
-                                "Field '%s' is not valid '%s'\n",
-                                l_bind->fieldName, l_bindType );
-
-                            continue;
-                        }
-
-                        *( ( char** )( l_bind->storage ) ) =
-                            duplicateString( l_value );
-
-                    } else {
-                        log$transaction$query$format(
-                            ( logLevel_t )error,
-                            "Unsupported type: '%s' for field "
-                            "'%s'\n",
-                            l_bindType, l_bind->fieldName );
-                    }
-
-#undef COMPARE_TYPES
-                }
-            }
-
-            va_end( l_binds );
-        }
-    }
-}
+#define FOR_JSON_ARRAY( _array ) \
+    size_t _index; \
+    size_t _indexMax; \
+    yyjson_val* _element; \
+    yyjson_arr_foreach( _array, _index, _indexMax, _element )
 
 GLTF_t GLTF_t$create( void ) {
     GLTF_t l_returnValue = DEFAULT_GLTF;
@@ -287,28 +113,182 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
         {
             yyjson_val* l_root = yyjson_doc_get_root( l_document );
 
-            // Bind asset
+            // Asset
             {
-                struct bind l_versionBind = {
-                    .fieldName = "version",
-                    .storage = &( _GLTF->asset.version ) };
-                struct bind l_generatorBind = {
-                    .fieldName = "generator",
-                    .storage = &( _GLTF->asset.generator ) };
-                struct bind l_copyrightBind = {
-                    .fieldName = "copyright",
-                    .storage = &( _GLTF->asset.copyright ) };
+                const char* l_rootFieldName = "asset";
 
-                GLTF_t$bind( l_root, "asset", "f2 s0 s0s0", &l_versionBind,
-                             &l_generatorBind, &l_copyrightBind, NULL );
+                yyjson_val* l_rootField =
+                    yyjson_obj_get( l_root, l_rootFieldName );
 
-                log$transaction$query$format(
-                    ( logLevel_t )error, "T %f %s %s\n",
-                    ( float )_GLTF->asset.version, _GLTF->asset.generator,
-                    _GLTF->asset.copyright );
+                if ( UNLIKELY( !l_rootField ) ) {
+                    log$transaction$query$format(
+                        ( logLevel_t )error,
+                        "Root field '%s' not found in GLTF object\n",
+                        l_rootFieldName );
+
+                    goto EXIT_DOCUMENT;
+                }
+
+                // Version
+                {
+                    const char* l_fieldName = "version";
+
+                    const char* l_version = yyjson_get_str(
+                        yyjson_obj_get( l_rootField, l_fieldName ) );
+
+                    if ( UNLIKELY( !l_version ) ) {
+                        log$transaction$query$format(
+                            ( logLevel_t )error,
+                            "Field '%s' not found in root field '%s'\n",
+                            l_fieldName, l_rootFieldName );
+
+                        goto EXIT_DOCUMENT;
+                    }
+
+                    _GLTF->asset.version = strtof( l_version, NULL );
+                }
+
+                // Generator
+                {
+                    const char* l_fieldName = "generator";
+
+                    const char* l_generator = yyjson_get_str(
+                        yyjson_obj_get( l_rootField, l_fieldName ) );
+
+                    if ( l_generator ) {
+                        _GLTF->asset.generator = duplicateString( l_generator );
+
+                    } else {
+                        log$transaction$query$format(
+                            ( logLevel_t )info,
+                            "Field '%s' not found in root field '%s'\n",
+                            l_fieldName, l_rootFieldName );
+                    }
+                }
+
+                // Copyright
+                {
+                    const char* l_fieldName = "copyright";
+
+                    const char* l_copyright = yyjson_get_str(
+                        yyjson_obj_get( l_rootField, l_fieldName ) );
+
+                    if ( l_copyright ) {
+                        _GLTF->asset.copyright = duplicateString( l_copyright );
+
+                    } else {
+                        log$transaction$query$format(
+                            ( logLevel_t )info,
+                            "Field '%s' not found in root field '%s'\n",
+                            l_fieldName, l_rootFieldName );
+                    }
+                }
+            }
+
+            // Scene
+            {
+                const char* l_rootFieldName = "scene";
+
+                const uint8_t l_scene = yyjson_get_uint(
+                    yyjson_obj_get( l_root, l_rootFieldName ) );
+
+                if ( l_scene ) {
+                    _GLTF->scene = l_scene;
+
+                } else {
+                    log$transaction$query$format(
+                        ( logLevel_t )info,
+                        "Root field '%s' not found in GLTF object\n",
+                        l_rootFieldName );
+                }
+            }
+
+            // Scenes
+            {
+                const char* l_rootFieldName = "scenes";
+
+                yyjson_val* l_rootField =
+                    yyjson_obj_get( l_root, l_rootFieldName );
+
+                if ( UNLIKELY( !l_rootField ) ) {
+                    log$transaction$query$format(
+                        ( logLevel_t )error,
+                        "Root field '%s' not found in GLTF object\n",
+                        l_rootFieldName );
+
+                    goto EXIT_DOCUMENT;
+                }
+
+                // Name
+                {
+                    const char* l_fieldName = "name";
+
+                    const char* l_name = yyjson_get_str(
+                        yyjson_obj_get( l_rootField, l_fieldName ) );
+
+                    if ( l_name ) {
+                        _GLTF->scenes.name = duplicateString( l_name );
+
+                    } else {
+                        log$transaction$query$format(
+                            ( logLevel_t )info,
+                            "Field '%s' not found in root field '%s'\n",
+                            l_fieldName, l_rootFieldName );
+                    }
+                }
+
+                // Nodes
+                {
+                    const char* l_fieldName = "nodes";
+
+                    const char* l_nodes = yyjson_obj_get( l_rootField, l_fieldName );
+
+                    if ( l_nodes ) {
+                        FOR_JSON_ARRAY( l_nodes ) {
+                            log$transaction$query$format(
+                                    ( logLevel_t )error,
+                                    "Node %u\n",
+                                    yyjson_get_uint( _element ) );
+                        }
+
+                    } else {
+                        log$transaction$query$format(
+                            ( logLevel_t )info,
+                            "Field '%s' not found in root field '%s'\n",
+                            l_fieldName, l_rootFieldName );
+                    }
+                }
             }
         }
 
+        log$transaction$query$format(
+            ( logLevel_t )info,
+            "\033[1;32m=== GLTF Asset Info ===\033[0m\n"
+            "  \033[1;34mVersion\033[0m    : \033[1;36m%.2f\033[0m\n"
+            "  \033[1;34mGenerator\033[0m  : \033[1;36m'%s'\033[0m\n"
+            "  \033[1;34mCopyright\033[0m  : \033[1;36m'%s'\033[0m\n"
+            "\033[1;32m========================\033[0m\n",
+            ( float )_GLTF->asset.version, ( ( _GLTF->asset.generator ) ? ( _GLTF->asset.generator ) : ( "N/A" ) ),
+            ( _GLTF->asset.copyright ) ? ( _GLTF->asset.copyright ) : ( "N/A" ) );
+
+        log$transaction$query$format(
+            ( logLevel_t )info,
+            "\033[1;32m=== GLTF Scene Info ===\033[0m\n"
+            "  \033[1;34mScene\033[0m    : \033[1;36m%u\033[0m\n"
+            "\033[1;32m========================\033[0m\n",
+            _GLTF->scene );
+
+        log$transaction$query$format(
+            ( logLevel_t )info,
+            "\033[1;32m=== GLTF Scenes Info ===\033[0m\n"
+            "  \033[1;34mVersion\033[0m    : \033[1;36m%.2f\033[0m\n"
+            "  \033[1;34mGenerator\033[0m  : \033[1;36m'%s'\033[0m\n"
+            "  \033[1;34mCopyright\033[0m  : \033[1;36m'%s'\033[0m\n"
+            "\033[1;32m========================\033[0m\n",
+            ( ( _GLTF->scenes.name ) ? ( _GLTF->scenes.name ) : ( "N/A" ) ),
+            ( ( _GLTF->scenes.nodes ) ? ( _GLTF->scenes.nodes ) : ( "N/A" ) ) );
+
+    EXIT_DOCUMENT:
         yyjson_doc_free( l_document );
 
         l_returnValue = true;
