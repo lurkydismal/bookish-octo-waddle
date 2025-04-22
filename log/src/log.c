@@ -231,13 +231,6 @@ bool _log$transaction$query( const logLevel_t _logLevel,
                    LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
         l_stringLength =
             ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
-
-#if defined( DEBUG )
-
-        // '\0'
-        l_stringLength--;
-
-#endif
     }
 
     {
@@ -260,19 +253,9 @@ bool _log$transaction$query( const logLevel_t _logLevel,
             free( l_string );
         }
 
-#if defined( DEBUG )
-
-        g_transactionString[ g_transactionSize ] = '\0';
-
-        log$transaction$commit();
-
-#else
-
         if ( UNLIKELY( _logLevel == ( logLevel_t )error ) ) {
             log$transaction$commit();
         }
-
-#endif
 
         l_returnValue = true;
     }
@@ -325,12 +308,6 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
                               l_buffer, l_bufferSize );
 
             g_transactionSize += l_bufferSize;
-
-#if defined( DEBUG )
-
-            g_transactionString[ g_transactionSize ] = '\0';
-
-#endif
         }
 
 #if defined( DEBUG )
@@ -377,6 +354,8 @@ bool log$transaction$commit( void ) {
 #if defined( DEBUG )
 
         {
+            g_transactionString[ g_transactionSize ] = '\0';
+
             const ssize_t l_writtenCount =
                 write( STDOUT_FILENO, g_transactionString, g_transactionSize );
 
