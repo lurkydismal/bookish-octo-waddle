@@ -65,19 +65,14 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
             goto EXIT;
         }
 
-        size_t l_stringLength = __builtin_strlen( *_string );
+        const size_t l_stringLength = __builtin_strlen( *_string );
 
-        size_t l_beforeStringLength = 0;
+        const size_t l_beforeStringLength =
+            ( ( _beforeString ) ? ( __builtin_strlen( _beforeString ) )
+                                : ( 0 ) );
 
-        if ( LIKELY( _beforeString ) ) {
-            l_beforeStringLength = __builtin_strlen( _beforeString );
-        }
-
-        size_t l_afterStringLegnth = 0;
-
-        if ( LIKELY( _afterString ) ) {
-            l_afterStringLegnth = __builtin_strlen( _afterString );
-        }
+        const size_t l_afterStringLegnth =
+            ( ( _afterString ) ? ( __builtin_strlen( _afterString ) ) : ( 0 ) );
 
         const size_t l_totalLength =
             ( l_beforeStringLength + l_stringLength + l_afterStringLegnth );
@@ -87,34 +82,25 @@ size_t concatBeforeAndAfterString( char* restrict* restrict _string,
         }
 
         {
-            char* l_buffer = NULL;
-
-            if ( LIKELY( *_string ) ) {
-                l_buffer = ( char* )malloc( l_stringLength * sizeof( char ) );
-
-                __builtin_memcpy( l_buffer, *_string, l_stringLength );
-
+            // String
+            {
                 *_string = ( char* )realloc(
                     *_string, ( l_totalLength + 1 ) * sizeof( char ) );
 
-            } else {
-                *_string =
-                    ( char* )malloc( ( l_totalLength + 1 ) * sizeof( char ) );
+                if ( l_stringLength && l_beforeStringLength ) {
+                    __builtin_memcpy( ( l_beforeStringLength + *_string ),
+                                      *_string, l_stringLength );
+                }
             }
 
-            if ( LIKELY( _beforeString ) ) {
+            // Before
+            if ( l_beforeStringLength ) {
                 __builtin_memcpy( *_string, _beforeString,
                                   l_beforeStringLength );
             }
 
-            {
-                __builtin_memcpy( ( l_beforeStringLength + *_string ), l_buffer,
-                                  l_stringLength );
-
-                free( l_buffer );
-            }
-
-            if ( LIKELY( _afterString ) ) {
+            // After
+            if ( l_afterStringLegnth ) {
                 __builtin_memcpy(
                     ( l_beforeStringLength + l_stringLength + *_string ),
                     _afterString, l_afterStringLegnth );

@@ -13,9 +13,12 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <xxhash.h>
+
+#include "stdfloat16.h"
 
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
@@ -37,7 +40,10 @@
 // Utility macros ( no side-effects )
 #define MILLISECONDS_TO_NANOSECONDS( _milliseconds ) \
     ( ( _milliseconds ) * ONE_MILLISECOND_IN_NANOSECONDS )
-#define BITS_TO_BYTES( _bits ) ( ( size_t )( ( _bits ) / 8 ) )
+// This macro turns a value into a string literal
+#define STRINGIFY_MACRO( _value ) #_value
+// This is a helper macro that handles the stringify
+#define MACRO_TO_STRING( _macro ) STRINGIFY_MACRO( _macro )
 
 // Utility functions ( no side-effects )
 #define max( _a, _b ) ( ( ( _a ) > ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
@@ -113,47 +119,30 @@ static FORCE_INLINE void trim( char** restrict _string,
 }
 
 static FORCE_INLINE size_t lengthOfNumber( size_t _number ) {
-    size_t l_length = 0;
-
-    do {
-        l_length++;
-
-        _number /= DECIMAL_RADIX;
-    } while ( _number );
-
-    return ( l_length );
-}
-
-static FORCE_INLINE ssize_t convertFloat16ToDecimal( float _number ) {
-    // 1 is the integer part
-    size_t l_presicion = 1;
-
-    // Presicion
-    {
-        float l_number = _number;
-
-        while ( l_number != ( size_t )_number ) {
-            l_number /= DECIMAL_RADIX;
-            l_presicion++;
-        }
-    }
-
-    size_t l_returnValue =
-        ( ( size_t )_number * __builtin_powf( DECIMAL_RADIX, l_presicion ) );
-
-    // Fractional part
-    if ( l_presicion > 1 ) {
-        _number -= ( size_t )_number;
-
-        FOR_RANGE( size_t, 0, l_presicion ) {
-            _number *= DECIMAL_RADIX;
-
-            l_returnValue +=
-                ( ( size_t )_number * __builtin_powf( DECIMAL_RADIX, _index ) );
-        }
-    }
-
-    return ( l_returnValue );
+    // clang-format off
+    return (
+        ( (_number < 10ULL) ) ? ( 1 ) :
+        ( (_number < 100ULL) ) ? ( 2 ) :
+        ( (_number < 1000ULL) ) ? ( 3 ) :
+        ( (_number < 10000ULL) ) ? ( 4 ) :
+        ( (_number < 100000ULL) ) ? ( 5 ) :
+        ( (_number < 1000000ULL) ) ? ( 6 ) :
+        ( (_number < 10000000ULL) ) ? ( 7 ) :
+        ( (_number < 100000000ULL) ) ? ( 8 ) :
+        ( (_number < 1000000000ULL) ) ? ( 9 ) :
+        ( (_number < 10000000000ULL) ) ? ( 10 ) :
+        ( (_number < 100000000000ULL) ) ? ( 11 ) :
+        ( (_number < 1000000000000ULL) ) ? ( 12 ) :
+        ( (_number < 10000000000000ULL) ) ? ( 13 ) :
+        ( (_number < 100000000000000ULL) ) ? ( 14 ) :
+        ( (_number < 1000000000000000ULL) ) ? ( 15 ) :
+        ( (_number < 10000000000000000ULL) ) ? ( 16 ) :
+        ( (_number < 100000000000000000ULL) ) ? ( 17 ) :
+        ( (_number < 1000000000000000000ULL) ) ? ( 18 ) :
+        ( (_number < 10000000000000000000ULL) ) ? ( 19 ) :
+        ( 20 )
+    );
+    // clang-format on
 }
 
 void randomNumber$seed$set( const size_t _seed );

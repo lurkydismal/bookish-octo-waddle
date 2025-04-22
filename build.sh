@@ -14,9 +14,9 @@ export TESTS_DIRECTORY="$SCRIPT_DIRECTORY/$TESTS_DIRECTORY_NAME"
 export BUILD_TYPE=${BUILD_TYPE:-0}
 
 export BUILD_C_FLAGS="-fopenmp -flto=jobserver -std=gnu99 -march=native -ffunction-sections -fdata-sections -fPIC -fopenmp-simd -fno-ident -fshort-enums -Wall -Wextra"
-export BUILD_C_FLAGS_DEBUG="-Og -g"
+export BUILD_C_FLAGS_DEBUG="-Og -ggdb"
 export BUILD_C_FLAGS_RELEASE="-fprofile-use -Ofast -funroll-loops -fno-asynchronous-unwind-tables"
-export BUILD_C_FLAGS_PROFILE="-fprofile-generate $BUILD_C_FLAGS_RELEASE"
+export BUILD_C_FLAGS_PROFILE="-fprofile-generate -pg -fprofile-arcs -ftest-coverage $BUILD_C_FLAGS_RELEASE"
 export BUILD_C_FLAGS_TESTS="$BUILD_C_FLAGS_DEBUG"
 
 export declare BUILD_DEFINES=(
@@ -60,9 +60,9 @@ export declare BUILD_INCLUDES_TESTS=(
 )
 
 export LINK_FLAGS="-fopenmp -flto -fPIC -fuse-ld=mold -Wl,-O1 -Wl,--gc-sections -Wl,--no-eh-frame-hdr"
-export LINK_FLAGS_DEBUG="-g"
+export LINK_FLAGS_DEBUG="-ggdb"
 export LINK_FLAGS_RELEASE="-s"
-export LINK_FLAGS_PROFILE="$LINK_FLAGS_DEBUG"
+export LINK_FLAGS_PROFILE="-lgcov $LINK_FLAGS_DEBUG"
 export LINK_FLAGS_TESTS="$LINK_FLAGS_DEBUG"
 
 export declare LIBRARIES_TO_LINK=(

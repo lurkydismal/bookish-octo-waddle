@@ -1,6 +1,10 @@
 #pragma once
 
-#include "stdfunc.h"
+#if !defined( BITS_TO_BYTES )
+
+#define BITS_TO_BYTES( _bits ) ( ( size_t )( ( _bits ) / 8 ) )
+
+#endif
 
 // Largest normal positive
 #define FLOAT16_MAX ( ( float16_t )( 65504.0f ) )
@@ -36,3 +40,5 @@ typedef float16_t float16x16_t __attribute__( (
     vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 16 ) ) ) );
 typedef float16_t float16x32_t __attribute__( (
     vector_size( BITS_TO_BYTES( FLOAT16_TYPE_BIT_AMOUNT * 32 ) ) ) );
+
+#undef BITS_TO_BYTES

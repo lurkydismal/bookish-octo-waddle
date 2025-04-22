@@ -1,6 +1,10 @@
 #pragma once
 
-#include "stdfunc.h"
+#if !defined( BITS_TO_BYTES )
+
+#define BITS_TO_BYTES( _bits ) ( ( size_t )( ( _bits ) / 8 ) )
+
+#endif
 
 #define UINT128_MAX ( ( uint128_t )( ( uint128_t ) ~( ( uint128_t )0 ) ) )
 #define INT128_MAX ( ( int128_t )( ( int128_t )( ( uint128_t )1 << 127 ) - 1 ) )
@@ -12,3 +16,5 @@ typedef __int128 int128_t
     __attribute__( ( aligned( BITS_TO_BYTES( INT128_TYPE_BIT_AMOUNT ) ) ) );
 typedef unsigned __int128 uint128_t
     __attribute__( ( aligned( BITS_TO_BYTES( INT128_TYPE_BIT_AMOUNT ) ) ) );
+
+#undef BITS_TO_BYTES

@@ -2,8 +2,26 @@
 
 #include <math.h>
 #include <omp.h>
+#include <stdio.h>
 
 #include "test.h"
+
+TEST( stringToBool ) {
+    ASSERT_TRUE( stringToBool( "true" ) );
+
+    ASSERT_FALSE( stringToBool( "false" ) );
+
+    ASSERT_FALSE( stringToBool( NULL ) );
+
+    // Empty string
+    ASSERT_FALSE( stringToBool( "" ) );
+
+    // String with spaces
+    ASSERT_FALSE( stringToBool( " true " ) );
+
+    // Random invalid string
+    ASSERT_FALSE( stringToBool( "hello" ) );
+}
 
 TEST( trim ) {
     {
@@ -691,41 +709,31 @@ TEST( containsString ) {
 
     // Value exists in the array
     {
-        ASSERT_EQ(
-            "%u",
-            containsString( l_array, arrayLengthNative( l_array ), "banana" ),
-            true );
-        ASSERT_EQ(
-            "%u",
-            containsString( l_array, arrayLengthNative( l_array ), "date" ),
-            true );
+        ASSERT_TRUE(
+            containsString( l_array, arrayLengthNative( l_array ), "banana" ) );
+        ASSERT_TRUE(
+            containsString( l_array, arrayLengthNative( l_array ), "date" ) );
     }
 
     // Value does not exist in the array
-    ASSERT_EQ( "%u",
-               containsString( l_array, arrayLengthNative( l_array ), "grape" ),
-               false );
+    ASSERT_FALSE(
+        containsString( l_array, arrayLengthNative( l_array ), "grape" ) );
 
     // Empty array
     {
         const char* l_array[] = {};
 
-        ASSERT_EQ(
-            "%u",
-            containsString( l_array, arrayLengthNative( l_array ), "apple" ),
-            false );
+        ASSERT_FALSE(
+            containsString( l_array, arrayLengthNative( l_array ), "apple" ) );
     }
 
     // NULL input
     {
-        ASSERT_EQ(
-            "%u",
-            containsString( NULL, arrayLengthNative( l_array ), "banana" ),
-            false );
-        ASSERT_EQ(
-            "%u", containsString( l_array, arrayLengthNative( l_array ), NULL ),
-            false );
-        ASSERT_EQ( "%u", containsString( NULL, 0, NULL ), false );
+        ASSERT_FALSE(
+            containsString( NULL, arrayLengthNative( l_array ), "banana" ) );
+        ASSERT_FALSE(
+            containsString( l_array, arrayLengthNative( l_array ), NULL ) );
+        ASSERT_FALSE( containsString( NULL, 0, NULL ) );
     }
 }
 
@@ -734,30 +742,24 @@ TEST( contains ) {
 
     // Value exists in the array
     {
-        ASSERT_EQ( "%u", contains( l_array, arrayLengthNative( l_array ), 2 ),
-                   true );
-        ASSERT_EQ( "%u", contains( l_array, arrayLengthNative( l_array ), 5 ),
-                   true );
+        ASSERT_TRUE( contains( l_array, arrayLengthNative( l_array ), 2 ) );
+        ASSERT_TRUE( contains( l_array, arrayLengthNative( l_array ), 5 ) );
     }
 
     // Value does not exist in the array
-    ASSERT_EQ( "%u", contains( l_array, arrayLengthNative( l_array ), 10 ),
-               false );
+    ASSERT_FALSE( contains( l_array, arrayLengthNative( l_array ), 10 ) );
 
     // Empty array
     {
         const size_t l_array[] = {};
 
-        ASSERT_EQ( "%u", contains( l_array, arrayLengthNative( l_array ), 1 ),
-                   false );
+        ASSERT_FALSE( contains( l_array, arrayLengthNative( l_array ), 1 ) );
     }
 
     // NULL input
     {
-        ASSERT_EQ( "%u", contains( NULL, arrayLengthNative( l_array ), 2 ),
-                   false );
-        ASSERT_EQ( "%u", contains( l_array, arrayLengthNative( l_array ), 0 ),
-                   false );
-        ASSERT_EQ( "%u", contains( NULL, 0, 0 ), false );
+        ASSERT_FALSE( contains( NULL, arrayLengthNative( l_array ), 2 ) );
+        ASSERT_FALSE( contains( l_array, arrayLengthNative( l_array ), 0 ) );
+        ASSERT_FALSE( contains( NULL, 0, 0 ) );
     }
 }

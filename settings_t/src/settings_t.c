@@ -74,6 +74,7 @@ bool settings_t$load( settings_t* restrict _settings,
                 free( l_filePath );
             }
 
+            // TODO: Improve
             if ( UNLIKELY( !l_returnValue ) ) {
                 goto EXIT;
             }

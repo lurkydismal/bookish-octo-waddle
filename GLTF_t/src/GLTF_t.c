@@ -13,6 +13,8 @@
 #include "stdfunc.h"
 #include "yyjson.h"
 
+#define GLTF_BIND_PAIR_SIZE 2
+
 struct bind {
     const char* fieldName;
     void* storage;
@@ -38,7 +40,11 @@ struct bind {
  * | `size_t`       | `sz` |
  * | `ssize_t`      | `ss` |
  * | `char*`        | `s0` |
- * | `bool`         | `bl` | Not yet supported
+ * | `bool`         | `bl` |
+ * | `matrix1x1`    | `m1` |
+ * | `matrix2x2`    | `m2` |
+ * | `matrix3x3`    | `m3` |
+ * | `matrix4x4`    | `m4` |
  * |----------------|------|
  **/
 // TODO: Error messages
@@ -85,12 +91,12 @@ static SENTINEL void GLTF_t$bind( yyjson_val* restrict _root,
                 }
 
                 // Ensure we have two pairs
-                FOR_RANGE( size_t, 0, 4 ) {
+                FOR_RANGE( size_t, 0, GLTF_BIND_PAIR_SIZE ) {
                     if ( UNLIKELY( !( l_bindFormat[ _index ] ) ) ) {
                         log$transaction$query$format(
                             ( logLevel_t )error,
-                            "Incomplete format string near '%s'. Expected 4 "
-                            "characters (2 type codes)\n",
+                            "Incomplete format string near '%s'. Expected " MACRO_TO_STRING(GLTF_BIND_PAIR_SIZE) " "
+                            "characters \n",
                             l_bindFormat );
 
                         l_bindFormat = NULL;
@@ -104,12 +110,10 @@ static SENTINEL void GLTF_t$bind( yyjson_val* restrict _root,
                 }
 
                 {
-                    char l_sourceType[ 2 + 1 ] = { l_bindFormat[ 0 ],
-                                                   l_bindFormat[ 1 ], '\0' };
-                    char l_storageType[ 2 + 1 ] = { l_bindFormat[ 2 ],
-                                                    l_bindFormat[ 3 ], '\0' };
+                    char l_bindType[ GLTF_BIND_PAIR_SIZE + 1 ] = {
+                        l_bindFormat[ 0 ], l_bindFormat[ 1 ], '\0' };
 
-                    l_bindFormat += 4;
+                    l_bindFormat += GLTF_BIND_PAIR_SIZE;
 
                     struct bind* l_bind = va_arg( l_binds, struct bind* );
 
@@ -129,37 +133,33 @@ static SENTINEL void GLTF_t$bind( yyjson_val* restrict _root,
                         continue;
                     }
 
-#define COMPARE_TYPES( _a, _b ) ( __builtin_strncmp( _a, _b, 2 ) == 0 )
+#define COMPARE_TYPES( _a, _b ) \
+    ( __builtin_strncmp( _a, _b, GLTF_BIND_PAIR_SIZE ) == 0 )
 
-                    if ( COMPARE_TYPES( l_sourceType, "f2" ) &&
-                         COMPARE_TYPES( l_storageType, "u1" ) ) {
+                    if ( COMPARE_TYPES( l_bindType, "f2" ) ) {
                         const char* l_value = yyjson_get_str( l_field );
 
                         if ( !l_value ) {
                             log$transaction$query$format(
                                 ( logLevel_t )error,
-                                "Field '%s' is not valid\n",
-                                l_bind->fieldName );
+                                "Field '%s' is not valid '%s'\n",
+                                l_bind->fieldName, l_bindType );
 
                             continue;
                         }
 
                         const float16_t l_version = strtof( l_value, NULL );
 
-                        const uint8_t l_versionAsUint8 =
-                            convertFloat16ToDecimal( l_version );
+                        *( ( float16_t* )( l_bind->storage ) ) = l_version;
 
-                        *( ( uint8_t* )( l_bind->storage ) ) = l_versionAsUint8;
-
-                    } else if ( COMPARE_TYPES( l_sourceType, "s0" ) &&
-                                COMPARE_TYPES( l_storageType, "s0" ) ) {
+                    } else if ( COMPARE_TYPES( l_bindType, "s0" ) ) {
                         const char* l_value = yyjson_get_str( l_field );
 
                         if ( !l_value ) {
                             log$transaction$query$format(
                                 ( logLevel_t )error,
-                                "Field '%s' is not valid\n",
-                                l_bind->fieldName );
+                                "Field '%s' is not valid '%s'\n",
+                                l_bind->fieldName, l_bindType );
 
                             continue;
                         }
@@ -170,9 +170,9 @@ static SENTINEL void GLTF_t$bind( yyjson_val* restrict _root,
                     } else {
                         log$transaction$query$format(
                             ( logLevel_t )error,
-                            "Unsupported type pair: '%s' -> '%s' for field "
+                            "Unsupported type: '%s' for field "
                             "'%s'\n",
-                            l_sourceType, l_storageType, l_bind->fieldName );
+                            l_bindType, l_bind->fieldName );
                     }
 
 #undef COMPARE_TYPES
@@ -299,12 +299,13 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                     .fieldName = "copyright",
                     .storage = &( _GLTF->asset.copyright ) };
 
-                GLTF_t$bind( l_root, "asset", "f2u1 s0s0 s0s0", &l_versionBind,
+                GLTF_t$bind( l_root, "asset", "f2 s0 s0s0", &l_versionBind,
                              &l_generatorBind, &l_copyrightBind, NULL );
 
                 log$transaction$query$format(
-                    ( logLevel_t )error, "T %u %s %s\n", _GLTF->asset.version,
-                    _GLTF->asset.generator, _GLTF->asset.copyright );
+                    ( logLevel_t )error, "T %f %s %s\n",
+                    ( float )_GLTF->asset.version, _GLTF->asset.generator,
+                    _GLTF->asset.copyright );
             }
         }
 

@@ -7,6 +7,10 @@
 # glad
 glad
 
+# Profiling
+**/*.gc*
+**/*.info
+
 # Binary
 **/*.o
 **/out
