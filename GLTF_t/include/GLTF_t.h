@@ -41,7 +41,7 @@
 typedef struct {
     struct GLTF_asset asset;
     uint8_t scene;
-    struct GLTF_scene* scenes;
+    struct GLTF_scene** scenes;
     struct GLTF_node* nodes;
     struct GLTF_mesh* meshes;
     struct GLTF_accessor* accessors;

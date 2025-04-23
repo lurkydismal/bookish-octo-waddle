@@ -51,6 +51,7 @@ export declare BUILD_INCLUDES=(
     "asset_t/include"
     "log/include"
     "stdfunc/include"
+    "hashMap_t/include"
     "glad/include"
     "yyjson/include"
 )

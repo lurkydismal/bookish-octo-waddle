@@ -38,23 +38,6 @@ size_t randomNumber( void ) {
     return ( l_returnValue );
 }
 
-char* duplicateString( const char* restrict _string ) {
-    char* l_returnValue = NULL;
-
-    if ( UNLIKELY( !_string ) ) {
-        goto EXIT;
-    }
-
-    const size_t l_stringLength = __builtin_strlen( _string );
-
-    l_returnValue = ( char* )malloc( ( l_stringLength + 1 ) * sizeof( char ) );
-
-    __builtin_memcpy( l_returnValue, _string, ( l_stringLength + 1 ) );
-
-EXIT:
-    return ( l_returnValue );
-}
-
 size_t concatBeforeAndAfterString( char* restrict* restrict _string,
                                    const char* restrict _beforeString,
                                    const char* restrict _afterString ) {

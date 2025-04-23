@@ -2,7 +2,6 @@
 
 #include <math.h>
 #include <omp.h>
-#include <stdio.h>
 
 #include "test.h"
 
@@ -620,6 +619,56 @@ TEST( insertIntoArray ) {
         ASSERT_EQ( "%p", l_array[ 2 ], ( void* )300 );
     }
 
+    // Custom struct values
+    {
+        // Custom struct
+        struct person {
+            size_t id;
+            char name[ 20 ];
+            char* nameAllocated;
+        };
+
+        // Dynamically allocate and initialize two struct person instances
+        struct person* l_personFirst =
+            ( struct person* )malloc( 1 * sizeof( struct person ) );
+        struct person* l_personSecond =
+            ( struct person* )malloc( 1 * sizeof( struct person ) );
+
+        l_personFirst->id = 1;
+        __builtin_strcpy( l_personFirst->name, "Alice" );
+        l_personFirst->nameAllocated = ( char* )malloc( 16 * sizeof( char ) );
+        __builtin_strcpy( l_personFirst->nameAllocated, "Alice_dyn" );
+
+        l_personSecond->id = 2;
+        __builtin_strcpy( l_personSecond->name, "Bob" );
+        l_personSecond->nameAllocated = ( char* )malloc( 16 * sizeof( char ) );
+        __builtin_strcpy( l_personSecond->nameAllocated, "Bob_dyn" );
+
+        // Insert struct pointers into the array
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, l_personFirst ),
+                   ( size_t )3 );
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, l_personSecond ),
+                   ( size_t )4 );
+
+        // Retrieve inserted structs from the array and verify their contents
+        struct person* test1 = ( struct person* )l_array[ 3 ];
+        struct person* test2 = ( struct person* )l_array[ 4 ];
+
+        // Verify that the struct data was correctly inserted and preserved
+        ASSERT_EQ( "%zu", test1->id, ( size_t )1 );
+        ASSERT_STRING_EQ( test1->name, "Alice" );
+        ASSERT_STRING_EQ( test1->nameAllocated, "Alice_dyn" );
+
+        ASSERT_EQ( "%zu", test2->id, ( size_t )2 );
+        ASSERT_STRING_EQ( test2->name, "Bob" );
+        ASSERT_STRING_EQ( test2->nameAllocated, "Bob_dyn" );
+
+        // Free the allocated structs to avoid memory leaks
+        free( l_personFirst->nameAllocated );
+        free( l_personSecond->nameAllocated );
+        free( l_personFirst );
+        free( l_personSecond );
+    }
     // Free memory
     FREE_ARRAY( l_array );
 }

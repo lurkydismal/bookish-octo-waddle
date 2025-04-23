@@ -6,6 +6,15 @@
 #include "log.h"
 #include "stdfunc.h"
 
+static enum settingsTypeCode { s0, su, vsync };
+
+static void settings_t$bind( const char* _source,
+                             void* _storage,
+                             const enum settingsTypeCode _code ) {}
+
+static FORCE_INLINE void settings_t$tryBind( const char* _key,
+                                             const char* _value ) {}
+
 settings_t settings_t$create( void ) {
     settings_t l_returnValue = DEFAULT_SETTINGS;
 
@@ -87,6 +96,30 @@ bool settings_t$load( settings_t* restrict _settings,
                 char** l_lines = splitStringIntoArrayBySymbol(
                     ( char* )( l_settingsAsset.data ), '\n' );
 
+                if ( UNLIKELY( !arrayLength( l_lines ) ) ) {
+                    goto EXIT_SETTINGS_DATA_LINES;
+                }
+
+                {
+                    settings_t$bind( "window_name", &( l_settings.window.name ),
+                                     ( enum settingsTypeCode )( s0 ) );
+                    settings_t$bind( "window_width",
+                                     &( l_settings.window.width ),
+                                     ( enum settingsTypeCode )( su ) );
+                    settings_t$bind( "window_height",
+                                     &( l_settings.window.height ),
+                                     ( enum settingsTypeCode )( su ) );
+                    settings_t$bind( "window_desired_FPS",
+                                     &( l_settings.window.desiredFPS ),
+                                     ( enum settingsTypeCode )( su ) );
+                    settings_t$bind( "window_vsync",
+                                     &( l_settings.window.vsync ),
+                                     ( enum settingsTypeCode )( vsync ) );
+                    settings_t$bind( "limited_loop_desired_FPS",
+                                     &( l_settings.limitedLoopDesiredFPS ),
+                                     ( enum settingsTypeCode )( su ) );
+                }
+
                 FOR_ARRAY( char* const*, l_lines ) {
                     const char* l_line = sanitizeString( *_element );
 
@@ -107,6 +140,8 @@ bool settings_t$load( settings_t* restrict _settings,
 
                         const char* l_key = l_keyAndValue[ 1 ];
                         const char* l_value = l_keyAndValue[ 2 ];
+
+                        settings_t$tryBind( l_key, l_value );
 
                         // TODO: Implement something like settingsOption_t
                         if ( __builtin_strcmp( l_key, "window_name" ) == 0 ) {
@@ -143,6 +178,7 @@ bool settings_t$load( settings_t* restrict _settings,
                     }
                 }
 
+            EXIT_SETTINGS_DATA_LINES:
                 FREE_ARRAY_ELEMENTS( l_lines );
                 FREE_ARRAY( l_lines );
             }

@@ -5,9 +5,9 @@
 #include "yyjson.h"
 
 #define FOR_JSON_ARRAY( _array ) \
-    size_t _index; \
-    size_t _indexMax; \
-    yyjson_val* _element; \
+    size_t _index;               \
+    size_t _indexMax;            \
+    yyjson_val* _element;        \
     yyjson_arr_foreach( _array, _index, _indexMax, _element )
 
 GLTF_t GLTF_t$create( void ) {
@@ -15,7 +15,7 @@ GLTF_t GLTF_t$create( void ) {
 
     {
         l_returnValue.scenes =
-            ( struct GLTF_scene* )createArray( sizeof( struct GLTF_scene* ) );
+            ( struct GLTF_scene** )createArray( sizeof( struct GLTF_scene* ) );
         l_returnValue.nodes =
             ( struct GLTF_node* )createArray( sizeof( struct GLTF_node* ) );
         l_returnValue.meshes =
@@ -156,7 +156,7 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         yyjson_obj_get( l_rootField, l_fieldName ) );
 
                     if ( l_generator ) {
-                        _GLTF->asset.generator = duplicateString( l_generator );
+                        l_generator = duplicateString( l_generator );
 
                     } else {
                         log$transaction$query$format(
@@ -219,48 +219,69 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                     goto EXIT_DOCUMENT;
                 }
 
-                // Name
-                {
-                    const char* l_fieldName = "name";
+                FOR_JSON_ARRAY( l_rootField ) {
+                    struct GLTF_scene l_scene = DEFAULT_GLTF_SCENE;
 
-                    const char* l_name = yyjson_get_str(
-                        yyjson_obj_get( l_rootField, l_fieldName ) );
+                    // Name
+                    {
+                        const char* l_fieldName = "name";
 
-                    if ( l_name ) {
-                        _GLTF->scenes.name = duplicateString( l_name );
+                        const char* l_name = yyjson_get_str(
+                            yyjson_obj_get( _element, l_fieldName ) );
 
-                    } else {
-                        log$transaction$query$format(
-                            ( logLevel_t )info,
-                            "Field '%s' not found in root field '%s'\n",
-                            l_fieldName, l_rootFieldName );
-                    }
-                }
+                        if ( l_name ) {
+                            l_scene.name = duplicateString( l_name );
 
-                // Nodes
-                {
-                    const char* l_fieldName = "nodes";
-
-                    const char* l_nodes = yyjson_obj_get( l_rootField, l_fieldName );
-
-                    if ( l_nodes ) {
-                        FOR_JSON_ARRAY( l_nodes ) {
+                        } else {
                             log$transaction$query$format(
-                                    ( logLevel_t )error,
-                                    "Node %u\n",
-                                    yyjson_get_uint( _element ) );
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
                         }
-
-                    } else {
-                        log$transaction$query$format(
-                            ( logLevel_t )info,
-                            "Field '%s' not found in root field '%s'\n",
-                            l_fieldName, l_rootFieldName );
                     }
+
+                    // Nodes
+                    {
+                        const char* l_fieldName = "nodes";
+
+                        yyjson_val* l_nodes =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_nodes ) {
+                            l_scene.nodes =
+                                ( uint16_t* )createArray( sizeof( uint16_t ) );
+
+                            FOR_JSON_ARRAY( l_nodes ) {
+                                // TODO: Fix
+                                const uint16_t t = yyjson_get_uint( _element );
+                                const size_t i =
+                                    insertIntoArray( &( l_scene.nodes ), t );
+                                log$transaction$query$format(
+                                    ( logLevel_t )info, "Field '%u' '%u'\n", t,
+                                    l_scene.nodes[ i ] );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+                    struct GLTF_scene* l_sceneAllocated =
+                        ( struct GLTF_scene* )malloc(
+                            sizeof( struct GLTF_scene ) );
+
+                    __builtin_memcpy( l_sceneAllocated, &l_scene,
+                                      sizeof( struct GLTF_scene ) );
+
+                    insertIntoArray( &( _GLTF->scenes ), l_sceneAllocated );
                 }
             }
         }
 
+        // Asset
         log$transaction$query$format(
             ( logLevel_t )info,
             "\033[1;32m=== GLTF Asset Info ===\033[0m\n"
@@ -268,9 +289,13 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
             "  \033[1;34mGenerator\033[0m  : \033[1;36m'%s'\033[0m\n"
             "  \033[1;34mCopyright\033[0m  : \033[1;36m'%s'\033[0m\n"
             "\033[1;32m========================\033[0m\n",
-            ( float )_GLTF->asset.version, ( ( _GLTF->asset.generator ) ? ( _GLTF->asset.generator ) : ( "N/A" ) ),
-            ( _GLTF->asset.copyright ) ? ( _GLTF->asset.copyright ) : ( "N/A" ) );
+            ( float )_GLTF->asset.version,
+            ( ( _GLTF->asset.generator ) ? ( _GLTF->asset.generator )
+                                         : ( "N/A" ) ),
+            ( _GLTF->asset.copyright ) ? ( _GLTF->asset.copyright )
+                                       : ( "N/A" ) );
 
+        // Scene
         log$transaction$query$format(
             ( logLevel_t )info,
             "\033[1;32m=== GLTF Scene Info ===\033[0m\n"
@@ -278,15 +303,46 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
             "\033[1;32m========================\033[0m\n",
             _GLTF->scene );
 
-        log$transaction$query$format(
-            ( logLevel_t )info,
-            "\033[1;32m=== GLTF Scenes Info ===\033[0m\n"
-            "  \033[1;34mVersion\033[0m    : \033[1;36m%.2f\033[0m\n"
-            "  \033[1;34mGenerator\033[0m  : \033[1;36m'%s'\033[0m\n"
-            "  \033[1;34mCopyright\033[0m  : \033[1;36m'%s'\033[0m\n"
-            "\033[1;32m========================\033[0m\n",
-            ( ( _GLTF->scenes.name ) ? ( _GLTF->scenes.name ) : ( "N/A" ) ),
-            ( ( _GLTF->scenes.nodes ) ? ( _GLTF->scenes.nodes ) : ( "N/A" ) ) );
+        // Scenes
+        {
+            log$transaction$query(
+                ( logLevel_t )info,
+                "\033[1;32m=== GLTF Scenes Info ===\033[0m\n" );
+
+            FOR_ARRAY( void**, ( void** )( _GLTF->scenes ) ) {
+                const struct GLTF_scene* l_element =
+                    *( ( struct GLTF_scene** )_element );
+                log$transaction$query$format(
+                    ( logLevel_t )info,
+                    "  \033[1;34mName\033[0m  : \033[1;36m'%s'\033[0m\n",
+                    ( ( l_element->name ) ? ( l_element->name ) : ( "N/A" ) ) );
+
+                char l_nodesAsString[ 256 ] = "";
+
+                if ( l_element->nodes ) {
+                    char* l_buffer = l_nodesAsString;
+
+                    FOR_ARRAY( uint16_t*, l_element->nodes ) {
+                        const uint16_t l_node = *_element;
+
+                        l_buffer += sprintf( l_buffer, "%u ", l_node );
+                    }
+
+                    // Remove trailing space
+                    *( l_buffer - 1 ) = '\0';
+                }
+
+                log$transaction$query$format(
+                    ( logLevel_t )info,
+                    "  \033[1;34mNodes\033[0m  : \033[1;36m'%s'\033[0m\n",
+                    ( ( *l_nodesAsString ) ? ( l_nodesAsString )
+                                           : ( "N/A" ) ) );
+            }
+
+            log$transaction$query(
+                ( logLevel_t )info,
+                "\033[1;32m========================\033[0m\n" );
+        }
 
     EXIT_DOCUMENT:
         yyjson_doc_free( l_document );

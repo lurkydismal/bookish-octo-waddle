@@ -96,14 +96,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
 
         __builtin_memcpy( l_header, _asset->data, l_headerSize );
 
-#if 0
-        _image->width = ( size_t )( *(
-            ( uint32_t* )( &( l_header )[ BMP_WIDTH_OFFSET ] ) ) );
-        _image->height = ( size_t )( *(
-            ( uint32_t* )( &( l_header )[ BMP_HEIGHT_OFFSET ] ) ) );
-#endif
-
-        // TODO: Decide on this
         __builtin_memcpy( &( _image->width ), ( l_header + BMP_WIDTH_OFFSET ),
                           sizeof( uint32_t ) );
         __builtin_memcpy( &( _image->height ), ( l_header + BMP_HEIGHT_OFFSET ),

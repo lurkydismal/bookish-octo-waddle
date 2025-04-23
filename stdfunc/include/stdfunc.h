@@ -13,7 +13,6 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <xxhash.h>
@@ -149,7 +148,7 @@ void randomNumber$seed$set( const size_t _seed );
 size_t randomNumber$seed$get( void );
 size_t randomNumber( void );
 
-static FORCE_INLINE size_t generateHash( uint8_t* restrict _data,
+static FORCE_INLINE size_t generateHash( const uint8_t* restrict _data,
                                          const size_t _dataSize ) {
     size_t l_returnValue = 0;
 
@@ -169,7 +168,22 @@ EXIT:
     return ( l_returnValue );
 }
 
-char* duplicateString( const char* restrict _string );
+static FORCE_INLINE char* duplicateString( const char* restrict _string ) {
+    char* l_returnValue = NULL;
+
+    if ( UNLIKELY( !_string ) ) {
+        goto EXIT;
+    }
+
+    const size_t l_stringLength = __builtin_strlen( _string );
+
+    l_returnValue = ( char* )malloc( ( l_stringLength + 1 ) * sizeof( char ) );
+
+    __builtin_memcpy( l_returnValue, _string, ( l_stringLength + 1 ) );
+
+EXIT:
+    return ( l_returnValue );
+}
 
 static FORCE_INLINE ssize_t findSymbolInString( const char* restrict _string,
                                                 const char _symbol ) {
