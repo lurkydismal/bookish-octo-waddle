@@ -18,7 +18,8 @@
 #define DEFAULT_GLTF_NODE                           \
     { .name = NULL,                                 \
       .children = NULL,                             \
-      .matrix = DEFAULT_GLTF_NODE_MATRIX.mesh = 0,  \
+      .matrix = DEFAULT_GLTF_NODE_MATRIX,           \
+      .mesh = 0,                                    \
       .weights = NULL,                              \
       .translation = DEFAULT_GLTF_NODE_TRANSLATION, \
       .scale = DEFAULT_GLTF_NODE_SCALE,             \

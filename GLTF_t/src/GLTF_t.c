@@ -17,28 +17,28 @@ GLTF_t GLTF_t$create( void ) {
         l_returnValue.scenes =
             ( struct GLTF_scene** )createArray( sizeof( struct GLTF_scene* ) );
         l_returnValue.nodes =
-            ( struct GLTF_node* )createArray( sizeof( struct GLTF_node* ) );
+            ( struct GLTF_node** )createArray( sizeof( struct GLTF_node* ) );
         l_returnValue.meshes =
-            ( struct GLTF_mesh* )createArray( sizeof( struct GLTF_mesh* ) );
-        l_returnValue.accessors = ( struct GLTF_accessor* )createArray(
+            ( struct GLTF_mesh** )createArray( sizeof( struct GLTF_mesh* ) );
+        l_returnValue.accessors = ( struct GLTF_accessor** )createArray(
             sizeof( struct GLTF_accessor* ) );
-        l_returnValue.materials = ( struct GLTF_material* )createArray(
+        l_returnValue.materials = ( struct GLTF_material** )createArray(
             sizeof( struct GLTF_material* ) );
-        l_returnValue.bufferViews = ( struct GLTF_bufferView* )createArray(
+        l_returnValue.bufferViews = ( struct GLTF_bufferView** )createArray(
             sizeof( struct GLTF_bufferView* ) );
-        l_returnValue.buffers =
-            ( struct GLTF_buffer* )createArray( sizeof( struct GLTF_buffer* ) );
-        l_returnValue.samplers = ( struct GLTF_sampler* )createArray(
+        l_returnValue.buffers = ( struct GLTF_buffer** )createArray(
+            sizeof( struct GLTF_buffer* ) );
+        l_returnValue.samplers = ( struct GLTF_sampler** )createArray(
             sizeof( struct GLTF_sampler* ) );
-        l_returnValue.textures = ( struct GLTF_texture* )createArray(
+        l_returnValue.textures = ( struct GLTF_texture** )createArray(
             sizeof( struct GLTF_texture* ) );
         l_returnValue.skins =
-            ( struct GLTF_skin* )createArray( sizeof( struct GLTF_skin* ) );
+            ( struct GLTF_skin** )createArray( sizeof( struct GLTF_skin* ) );
         l_returnValue.images =
-            ( struct GLTF_image* )createArray( sizeof( struct GLTF_image* ) );
-        l_returnValue.cameras =
-            ( struct GLTF_camera* )createArray( sizeof( struct GLTF_camera* ) );
-        l_returnValue.animations = ( struct GLTF_animation* )createArray(
+            ( struct GLTF_image** )createArray( sizeof( struct GLTF_image* ) );
+        l_returnValue.cameras = ( struct GLTF_camera** )createArray(
+            sizeof( struct GLTF_camera* ) );
+        l_returnValue.animations = ( struct GLTF_animation** )createArray(
             sizeof( struct GLTF_animation* ) );
     }
 
@@ -156,7 +156,7 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         yyjson_obj_get( l_rootField, l_fieldName ) );
 
                     if ( l_generator ) {
-                        l_generator = duplicateString( l_generator );
+                        _GLTF->asset.generator = duplicateString( l_generator );
 
                     } else {
                         log$transaction$query$format(
@@ -252,13 +252,10 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                                 ( uint16_t* )createArray( sizeof( uint16_t ) );
 
                             FOR_JSON_ARRAY( l_nodes ) {
-                                // TODO: Fix
-                                const uint16_t t = yyjson_get_uint( _element );
-                                const size_t i =
-                                    insertIntoArray( &( l_scene.nodes ), t );
-                                log$transaction$query$format(
-                                    ( logLevel_t )info, "Field '%u' '%u'\n", t,
-                                    l_scene.nodes[ i ] );
+                                preallocateArray( &( l_scene.nodes ), 1 );
+
+                                *arrayLastElementPointer( l_scene.nodes ) =
+                                    yyjson_get_uint( _element );
                             }
 
                         } else {
@@ -277,6 +274,272 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                                       sizeof( struct GLTF_scene ) );
 
                     insertIntoArray( &( _GLTF->scenes ), l_sceneAllocated );
+                }
+            }
+
+            // Nodes
+            {
+                const char* l_rootFieldName = "nodes";
+
+                yyjson_val* l_rootField =
+                    yyjson_obj_get( l_root, l_rootFieldName );
+
+                if ( UNLIKELY( !l_rootField ) ) {
+                    log$transaction$query$format(
+                        ( logLevel_t )error,
+                        "Root field '%s' not found in GLTF object\n",
+                        l_rootFieldName );
+
+                    goto EXIT_DOCUMENT;
+                }
+
+                FOR_JSON_ARRAY( l_rootField ) {
+                    struct GLTF_node l_node = DEFAULT_GLTF_NODE;
+
+                    // Name
+                    {
+                        const char* l_fieldName = "name";
+
+                        const char* l_name = yyjson_get_str(
+                            yyjson_obj_get( _element, l_fieldName ) );
+
+                        if ( l_name ) {
+                            l_node.name = duplicateString( l_name );
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+                    // Children
+                    {
+                        const char* l_fieldName = "children";
+
+                        yyjson_val* l_children =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_children ) {
+                            l_node.children =
+                                ( uint8_t* )createArray( sizeof( uint8_t ) );
+
+                            FOR_JSON_ARRAY( l_children ) {
+                                preallocateArray( &( l_node.children ), 1 );
+
+                                *arrayLastElementPointer( l_node.children ) =
+                                    yyjson_get_uint( _element );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+                    // Matrix
+#if 0
+                    {
+                        const char* l_fieldName = "children";
+
+                        yyjson_val* l_children =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_children ) {
+                            l_node.children =
+                                ( uint8_t* )createArray( sizeof( uint16_t ) );
+
+                            FOR_JSON_ARRAY( l_children ) {
+                                preallocateArray( &( l_node.children ), 1 );
+
+                                *arrayLastElementPointer( l_node.children ) =
+                                    yyjson_get_uint( _element );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                    ( logLevel_t )info,
+                                    "Field '%s' not found in root field '%s'\n",
+                                    l_fieldName, l_rootFieldName );
+                        }
+                    }
+#endif
+
+                    // Mesh
+                    {
+                        const char* l_fieldName = "mesh";
+
+                        yyjson_val* l_mesh =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_mesh ) {
+                            l_node.mesh = yyjson_get_uint( _element );
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+                    // Weights
+                    {
+                        const char* l_fieldName = "weights";
+
+                        yyjson_val* l_weights =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_weights ) {
+                            l_node.weights = ( float16_t* )createArray(
+                                sizeof( float16_t ) );
+
+                            FOR_JSON_ARRAY( l_weights ) {
+                                preallocateArray( &( l_node.weights ), 1 );
+
+                                *arrayLastElementPointer( l_node.weights ) =
+                                    yyjson_get_real( _element );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+#if 0
+                    // Translation
+                    {
+                        const char* l_fieldName = "weights";
+
+                        yyjson_val* l_weights =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_weights ) {
+                            l_node.weights =
+                                ( float16_t* )createArray( sizeof( float16_t ) );
+
+                            FOR_JSON_ARRAY( l_weights ) {
+                                preallocateArray( &( l_node.weights ), 1 );
+
+                                *arrayLastElementPointer( l_node.weights ) =
+                                    yyjson_get_real( _element );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                    ( logLevel_t )info,
+                                    "Field '%s' not found in root field '%s'\n",
+                                    l_fieldName, l_rootFieldName );
+                        }
+                    }
+#endif
+
+#if 0
+                    // Scale
+                    {
+                        const char* l_fieldName = "weights";
+
+                        yyjson_val* l_weights =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_weights ) {
+                            l_node.weights =
+                                ( float16_t* )createArray( sizeof( float16_t ) );
+
+                            FOR_JSON_ARRAY( l_weights ) {
+                                preallocateArray( &( l_node.weights ), 1 );
+
+                                *arrayLastElementPointer( l_node.weights ) =
+                                    yyjson_get_real( _element );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                    ( logLevel_t )info,
+                                    "Field '%s' not found in root field '%s'\n",
+                                    l_fieldName, l_rootFieldName );
+                        }
+                    }
+#endif
+
+#if 0
+                    // Rotation
+                    {
+                        const char* l_fieldName = "weights";
+
+                        yyjson_val* l_weights =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_weights ) {
+                            l_node.weights =
+                                ( float16_t* )createArray( sizeof( float16_t ) );
+
+                            FOR_JSON_ARRAY( l_weights ) {
+                                preallocateArray( &( l_node.weights ), 1 );
+
+                                *arrayLastElementPointer( l_node.weights ) =
+                                    yyjson_get_real( _element );
+                            }
+
+                        } else {
+                            log$transaction$query$format(
+                                    ( logLevel_t )info,
+                                    "Field '%s' not found in root field '%s'\n",
+                                    l_fieldName, l_rootFieldName );
+                        }
+                    }
+#endif
+
+                    // Skin
+                    {
+                        const char* l_fieldName = "skin";
+
+                        yyjson_val* l_skin =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_skin ) {
+                            l_node.skin = yyjson_get_uint( _element );
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+                    // Camera
+                    {
+                        const char* l_fieldName = "camera";
+
+                        yyjson_val* l_camera =
+                            yyjson_obj_get( _element, l_fieldName );
+
+                        if ( l_camera ) {
+                            l_node.camera = yyjson_get_uint( _element );
+
+                        } else {
+                            log$transaction$query$format(
+                                ( logLevel_t )info,
+                                "Field '%s' not found in root field '%s'\n",
+                                l_fieldName, l_rootFieldName );
+                        }
+                    }
+
+                    struct GLTF_node* l_nodeAllocated =
+                        ( struct GLTF_node* )malloc(
+                            sizeof( struct GLTF_node ) );
+
+                    __builtin_memcpy( l_nodeAllocated, &l_node,
+                                      sizeof( struct GLTF_node ) );
+
+                    insertIntoArray( &( _GLTF->nodes ), l_nodeAllocated );
                 }
             }
         }
@@ -317,26 +580,138 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                     "  \033[1;34mName\033[0m  : \033[1;36m'%s'\033[0m\n",
                     ( ( l_element->name ) ? ( l_element->name ) : ( "N/A" ) ) );
 
-                char l_nodesAsString[ 256 ] = "";
+                // Nodes
+                {
+                    char l_nodesAsString[ 256 ] = "";
 
-                if ( l_element->nodes ) {
-                    char* l_buffer = l_nodesAsString;
+                    if ( l_element->nodes ) {
+                        char* l_buffer = l_nodesAsString;
 
-                    FOR_ARRAY( uint16_t*, l_element->nodes ) {
-                        const uint16_t l_node = *_element;
+                        FOR_ARRAY( uint16_t*, l_element->nodes ) {
+                            const uint16_t l_node = *_element;
 
-                        l_buffer += sprintf( l_buffer, "%u ", l_node );
+                            l_buffer += sprintf( l_buffer, "%u ", l_node );
+                        }
+
+                        // Remove trailing space
+                        *( l_buffer - 1 ) = '\0';
                     }
 
-                    // Remove trailing space
-                    *( l_buffer - 1 ) = '\0';
+                    log$transaction$query$format(
+                        ( logLevel_t )info,
+                        "  \033[1;34mNodes\033[0m  : \033[1;36m'%s'\033[0m\n",
+                        ( ( *l_nodesAsString ) ? ( l_nodesAsString )
+                                               : ( "N/A" ) ) );
+                }
+            }
+
+            log$transaction$query(
+                ( logLevel_t )info,
+                "\033[1;32m========================\033[0m\n" );
+        }
+
+        // Nodes
+        {
+            log$transaction$query(
+                ( logLevel_t )info,
+                "\033[1;32m=== GLTF Nodes Info ===\033[0m\n" );
+
+            FOR_ARRAY( void**, ( void** )( _GLTF->nodes ) ) {
+                const struct GLTF_node* l_element =
+                    *( ( struct GLTF_node** )_element );
+                log$transaction$query$format(
+                    ( logLevel_t )info,
+                    "  \033[1;34mName\033[0m  : \033[1;36m'%s'\033[0m\n",
+                    ( ( l_element->name ) ? ( l_element->name ) : ( "N/A" ) ) );
+
+                // Children
+                {
+                    char l_childrenAsString[ 256 ] = "";
+
+                    if ( l_element->children ) {
+                        char* l_buffer = l_childrenAsString;
+
+                        FOR_ARRAY( uint8_t*, l_element->children ) {
+                            const uint8_t l_child = *_element;
+
+                            l_buffer += sprintf( l_buffer, "%u ", l_child );
+                        }
+
+                        // Remove trailing space
+                        *( l_buffer - 1 ) = '\0';
+                    }
+
+                    log$transaction$query$format(
+                        ( logLevel_t )info,
+                        "  \033[1;34mChildren\033[0m  : "
+                        "\033[1;36m'%s'\033[0m\n",
+                        ( ( *l_childrenAsString ) ? ( l_childrenAsString )
+                                                  : ( "N/A" ) ) );
+                }
+
+                // Matrix
+                {
                 }
 
                 log$transaction$query$format(
                     ( logLevel_t )info,
-                    "  \033[1;34mNodes\033[0m  : \033[1;36m'%s'\033[0m\n",
-                    ( ( *l_nodesAsString ) ? ( l_nodesAsString )
-                                           : ( "N/A" ) ) );
+                    "  \033[1;34mMesh\033[0m  : \033[1;36m'%u'\033[0m\n",
+                    ( ( l_element->mesh ) ? ( l_element->mesh ) : ( 0 ) ) );
+
+                // Weights
+                {
+                    char l_weightsAsString[ 256 ] = "";
+
+                    if ( l_element->weights ) {
+                        char* l_buffer = l_weightsAsString;
+
+                        FOR_ARRAY( float16_t*, l_element->weights ) {
+                            const float16_t l_weight = *_element;
+
+                            l_buffer +=
+                                sprintf( l_buffer, "%f ", ( float )l_weight );
+                        }
+
+                        // Remove trailing space
+                        *( l_buffer - 1 ) = '\0';
+                    }
+
+                    log$transaction$query$format(
+                        ( logLevel_t )info,
+                        "  \033[1;34mChildren\033[0m  : "
+                        "\033[1;36m'%s'\033[0m\n",
+                        ( ( *l_weightsAsString ) ? ( l_weightsAsString )
+                                                 : ( "N/A" ) ) );
+                }
+
+                // Translation
+                {
+                }
+
+                // Scale
+                {
+                }
+
+                // Rotation
+                {
+                }
+
+                // Skin
+                {
+                    log$transaction$query$format(
+                        ( logLevel_t )info,
+                        "  \033[1;34mSkin\033[0m  : \033[1;36m'%u'\033[0m\n",
+                        ( ( l_element->skin ) ? ( l_element->skin ) : ( 0 ) ) );
+                }
+
+                // Camera
+                {
+                    log$transaction$query$format(
+                        ( logLevel_t )info,
+                        "  \033[1;34mCamera\033[0m  : \033[1;36m'%u'\033[0m\n",
+                        ( ( l_element->camera ) ? ( l_element->camera )
+                                                : ( 0 ) ) );
+                }
             }
 
             log$transaction$query(
@@ -411,7 +786,6 @@ bool GLTF_t$unload( GLTF_t* restrict _GLTF ) {
     }
 
     {
-#if 0
         FREE_ARRAY_ELEMENTS( _GLTF->scenes );
         FREE_ARRAY_ELEMENTS( _GLTF->nodes );
         FREE_ARRAY_ELEMENTS( _GLTF->meshes );
@@ -426,7 +800,6 @@ bool GLTF_t$unload( GLTF_t* restrict _GLTF ) {
         FREE_ARRAY_ELEMENTS( _GLTF->cameras );
         FREE_ARRAY_ELEMENTS( _GLTF->animations );
 
-#endif
         l_returnValue = true;
     }
 
