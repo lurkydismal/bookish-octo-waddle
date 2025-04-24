@@ -4,11 +4,115 @@
 #include "stdfunc.h"
 #include "yyjson.h"
 
+typedef yyjson_val document_t;
+typedef yyjson_val rootField_t;
+typedef yyjson_val field_t;
+
+#define joinArrayNative( _array, _storage, _elementType, _elementFormat,   \
+                         _delimeter )                                      \
+    do {                                                                   \
+        char* l_buffer = ( _storage );                                     \
+        FOR( _elementType*, ( _array ) ) {                                 \
+            l_buffer +=                                                    \
+                sprintf( l_buffer, _elementFormat _delimeter, *_element ); \
+        }                                                                  \
+        /* Remove trailing space */                                        \
+        *( l_buffer - 1 ) = '\0';                                          \
+    } while ( 0 )
+
+#define joinArray( _array, _storage, _elementType, _elementFormat,             \
+                   _delimeter )                                                \
+    do {                                                                       \
+        if ( _array ) {                                                        \
+            char* l_buffer = ( _storage );                                     \
+            FOR_ARRAY( _elementType*, ( _array ) ) {                           \
+                l_buffer +=                                                    \
+                    sprintf( l_buffer, _elementFormat _delimeter, *_element ); \
+            }                                                                  \
+            /* Remove trailing space */                                        \
+            *( l_buffer - 1 ) = '\0';                                          \
+        }                                                                      \
+    } while ( 0 )
+
 #define FOR_JSON_ARRAY( _array ) \
     size_t _index;               \
     size_t _indexMax;            \
     yyjson_val* _element;        \
-    yyjson_arr_foreach( _array, _index, _indexMax, _element )
+    yyjson_arr_foreach( ( _array ), _index, _indexMax, _element )
+
+#define GLTF_t$get$rootField( _root, _rootFieldName )         \
+    ( {                                                       \
+        field_t* l_returnValue =                              \
+            yyjson_obj_get( ( _root ), ( _rootFieldName ) );  \
+        if ( UNLIKELY( !l_returnValue ) ) {                   \
+            log$transaction$query$format(                     \
+                ( logLevel_t )warn,                           \
+                "Root field '%s' not found in GLTF object\n", \
+                ( _rootFieldName ) );                         \
+            l_returnValue = NULL;                             \
+        }                                                     \
+        ( l_returnValue );                                    \
+    } )
+
+#define GLTF_t$bind$value( _rootField, _rootFieldName, _fieldName,           \
+                           _JSONParserType, _fieldType, _storage,            \
+                           _convertFunction, ... )                           \
+    do {                                                                     \
+        const _fieldType l_fieldValue = yyjson_get_##_JSONParserType(        \
+            yyjson_obj_get( ( _rootField ), ( _fieldName ) ) );              \
+        if ( UNLIKELY( !l_fieldValue ) ) {                                   \
+            log$transaction$query$format(                                    \
+                ( logLevel_t )info,                                          \
+                "Field '%s' not found in root field '%s'\n", ( _fieldName ), \
+                ( _rootFieldName ) );                                        \
+        } else {                                                             \
+            *( _storage ) = _convertFunction( l_fieldValue, ##__VA_ARGS__ ); \
+        }                                                                    \
+    } while ( 0 )
+
+#define GLTF_t$bind$value$array( _rootField, _rootFieldName, _fieldName,       \
+                                 _JSONParserType, _fieldType, _storage,        \
+                                 _convertFunction, ... )                       \
+    do {                                                                       \
+        field_t* l_fieldValue =                                                \
+            yyjson_obj_get( ( _rootField ), ( _fieldName ) );                  \
+        if ( !l_fieldValue ) {                                                 \
+            log$transaction$query$format(                                      \
+                ( logLevel_t )info,                                            \
+                "Field array '%s' not found in root field '%s'\n",             \
+                ( _fieldName ), ( _rootFieldName ) );                          \
+        } else {                                                               \
+            *_storage = ( _fieldType* )createArray( sizeof( _fieldType ) );    \
+            FOR_JSON_ARRAY( l_fieldValue ) {                                   \
+                preallocateArray( ( _storage ), 1 );                           \
+                *arrayLastElementPointer( *_storage ) = _convertFunction(      \
+                    yyjson_get_##_JSONParserType( _element ), ##__VA_ARGS__ ); \
+            }                                                                  \
+        }                                                                      \
+    } while ( 0 )
+
+#define GLTF_t$bind$value$array$range(                                         \
+    _range, _rootField, _rootFieldName, _fieldName, _JSONParserType,           \
+    _fieldType, _storage, _convertFunction, ... )                              \
+    do {                                                                       \
+        field_t* l_fieldValue =                                                \
+            yyjson_obj_get( ( _rootField ), ( _fieldName ) );                  \
+        if ( !l_fieldValue ) {                                                 \
+            log$transaction$query$format(                                      \
+                ( logLevel_t )info,                                            \
+                "Field array '%s' with range '%zu' "                           \
+                "not found in root field '%s'\n",                              \
+                ( _fieldName ), ( size_t )( _range ), ( _rootFieldName ) );    \
+        } else {                                                               \
+            FOR_JSON_ARRAY( l_fieldValue ) {                                   \
+                if ( _index == ( _range ) ) {                                  \
+                    break;                                                     \
+                }                                                              \
+                ( *_storage )[ ( _index ) ] = _convertFunction(                \
+                    yyjson_get_##_JSONParserType( _element ), ##__VA_ARGS__ ); \
+            }                                                                  \
+        }                                                                      \
+    } while ( 0 )
 
 GLTF_t GLTF_t$create( void ) {
     GLTF_t l_returnValue = DEFAULT_GLTF;
@@ -53,6 +157,10 @@ bool GLTF_t$destroy( GLTF_t* restrict _GLTF ) {
     }
 
     {
+        _GLTF->asset.version = 0;
+
+        _GLTF->scene = 0;
+
         FREE_ARRAY( _GLTF->scenes );
         FREE_ARRAY( _GLTF->nodes );
         FREE_ARRAY( _GLTF->meshes );
@@ -111,160 +219,58 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
 
         // Parse
         {
-            yyjson_val* l_root = yyjson_doc_get_root( l_document );
+            document_t* l_root = yyjson_doc_get_root( l_document );
 
             // Asset
             {
                 const char* l_rootFieldName = "asset";
 
-                yyjson_val* l_rootField =
-                    yyjson_obj_get( l_root, l_rootFieldName );
+                rootField_t* l_rootField =
+                    GLTF_t$get$rootField( l_root, l_rootFieldName );
 
-                if ( UNLIKELY( !l_rootField ) ) {
-                    log$transaction$query$format(
-                        ( logLevel_t )error,
-                        "Root field '%s' not found in GLTF object\n",
-                        l_rootFieldName );
-
+                if ( !l_rootField ) {
                     goto EXIT_DOCUMENT;
                 }
 
                 // Version
-                {
-                    const char* l_fieldName = "version";
-
-                    const char* l_version = yyjson_get_str(
-                        yyjson_obj_get( l_rootField, l_fieldName ) );
-
-                    if ( UNLIKELY( !l_version ) ) {
-                        log$transaction$query$format(
-                            ( logLevel_t )error,
-                            "Field '%s' not found in root field '%s'\n",
-                            l_fieldName, l_rootFieldName );
-
-                        goto EXIT_DOCUMENT;
-                    }
-
-                    _GLTF->asset.version = strtof( l_version, NULL );
-                }
+                GLTF_t$bind$value( l_rootField, l_rootFieldName, "version", str,
+                                   char*, &( _GLTF->asset.version ), strtof,
+                                   NULL );
 
                 // Generator
-                {
-                    const char* l_fieldName = "generator";
-
-                    const char* l_generator = yyjson_get_str(
-                        yyjson_obj_get( l_rootField, l_fieldName ) );
-
-                    if ( l_generator ) {
-                        _GLTF->asset.generator = duplicateString( l_generator );
-
-                    } else {
-                        log$transaction$query$format(
-                            ( logLevel_t )info,
-                            "Field '%s' not found in root field '%s'\n",
-                            l_fieldName, l_rootFieldName );
-                    }
-                }
+                GLTF_t$bind$value( l_rootField, l_rootFieldName, "generator",
+                                   str, char*, &( _GLTF->asset.generator ),
+                                   duplicateString );
 
                 // Copyright
-                {
-                    const char* l_fieldName = "copyright";
-
-                    const char* l_copyright = yyjson_get_str(
-                        yyjson_obj_get( l_rootField, l_fieldName ) );
-
-                    if ( l_copyright ) {
-                        _GLTF->asset.copyright = duplicateString( l_copyright );
-
-                    } else {
-                        log$transaction$query$format(
-                            ( logLevel_t )info,
-                            "Field '%s' not found in root field '%s'\n",
-                            l_fieldName, l_rootFieldName );
-                    }
-                }
+                GLTF_t$bind$value( l_rootField, l_rootFieldName, "copyright",
+                                   str, char*, &( _GLTF->asset.copyright ),
+                                   duplicateString );
             }
 
             // Scene
-            {
-                const char* l_rootFieldName = "scene";
-
-                const uint8_t l_scene = yyjson_get_uint(
-                    yyjson_obj_get( l_root, l_rootFieldName ) );
-
-                if ( l_scene ) {
-                    _GLTF->scene = l_scene;
-
-                } else {
-                    log$transaction$query$format(
-                        ( logLevel_t )info,
-                        "Root field '%s' not found in GLTF object\n",
-                        l_rootFieldName );
-                }
-            }
+            GLTF_t$bind$value( l_root, "GLTF", "scene", uint, uint8_t,
+                               &( _GLTF->scene ), ( uint8_t ));
 
             // Scenes
             {
                 const char* l_rootFieldName = "scenes";
 
-                yyjson_val* l_rootField =
-                    yyjson_obj_get( l_root, l_rootFieldName );
-
-                if ( UNLIKELY( !l_rootField ) ) {
-                    log$transaction$query$format(
-                        ( logLevel_t )error,
-                        "Root field '%s' not found in GLTF object\n",
-                        l_rootFieldName );
-
-                    goto EXIT_DOCUMENT;
-                }
+                rootField_t* l_rootField =
+                    GLTF_t$get$rootField( l_root, l_rootFieldName );
 
                 FOR_JSON_ARRAY( l_rootField ) {
                     struct GLTF_scene l_scene = DEFAULT_GLTF_SCENE;
 
                     // Name
-                    {
-                        const char* l_fieldName = "name";
-
-                        const char* l_name = yyjson_get_str(
-                            yyjson_obj_get( _element, l_fieldName ) );
-
-                        if ( l_name ) {
-                            l_scene.name = duplicateString( l_name );
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value( _element, l_rootFieldName, "name", str,
+                                       char*, &( l_scene.name ),
+                                       duplicateString );
 
                     // Nodes
-                    {
-                        const char* l_fieldName = "nodes";
-
-                        yyjson_val* l_nodes =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_nodes ) {
-                            l_scene.nodes =
-                                ( uint16_t* )createArray( sizeof( uint16_t ) );
-
-                            FOR_JSON_ARRAY( l_nodes ) {
-                                preallocateArray( &( l_scene.nodes ), 1 );
-
-                                *arrayLastElementPointer( l_scene.nodes ) =
-                                    yyjson_get_uint( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value$array( _element, l_rootFieldName, "nodes",
+                                             uint, uint16_t, &( l_scene.nodes ),
+                                             ( uint16_t ));
 
                     struct GLTF_scene* l_sceneAllocated =
                         ( struct GLTF_scene* )malloc(
@@ -281,256 +287,59 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
             {
                 const char* l_rootFieldName = "nodes";
 
-                yyjson_val* l_rootField =
-                    yyjson_obj_get( l_root, l_rootFieldName );
-
-                if ( UNLIKELY( !l_rootField ) ) {
-                    log$transaction$query$format(
-                        ( logLevel_t )error,
-                        "Root field '%s' not found in GLTF object\n",
-                        l_rootFieldName );
-
-                    goto EXIT_DOCUMENT;
-                }
+                rootField_t* l_rootField =
+                    GLTF_t$get$rootField( l_root, l_rootFieldName );
 
                 FOR_JSON_ARRAY( l_rootField ) {
                     struct GLTF_node l_node = DEFAULT_GLTF_NODE;
 
                     // Name
-                    {
-                        const char* l_fieldName = "name";
-
-                        const char* l_name = yyjson_get_str(
-                            yyjson_obj_get( _element, l_fieldName ) );
-
-                        if ( l_name ) {
-                            l_node.name = duplicateString( l_name );
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value( _element, l_rootFieldName, "name", str,
+                                       char*, &( l_node.name ),
+                                       duplicateString );
 
                     // Children
-                    {
-                        const char* l_fieldName = "children";
-
-                        yyjson_val* l_children =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_children ) {
-                            l_node.children =
-                                ( uint8_t* )createArray( sizeof( uint8_t ) );
-
-                            FOR_JSON_ARRAY( l_children ) {
-                                preallocateArray( &( l_node.children ), 1 );
-
-                                *arrayLastElementPointer( l_node.children ) =
-                                    yyjson_get_uint( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value$array( _element, l_rootFieldName,
+                                             "children", uint, uint8_t,
+                                             &( l_node.children ), ( uint8_t ));
 
                     // Matrix
-#if 0
-                    {
-                        const char* l_fieldName = "children";
-
-                        yyjson_val* l_children =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_children ) {
-                            l_node.children =
-                                ( uint8_t* )createArray( sizeof( uint16_t ) );
-
-                            FOR_JSON_ARRAY( l_children ) {
-                                preallocateArray( &( l_node.children ), 1 );
-
-                                *arrayLastElementPointer( l_node.children ) =
-                                    yyjson_get_uint( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                    ( logLevel_t )info,
-                                    "Field '%s' not found in root field '%s'\n",
-                                    l_fieldName, l_rootFieldName );
-                        }
-                    }
-#endif
+                    GLTF_t$bind$value$array$range(
+                        GLTF_NODE_MATRIX_BUFFER_SIZE, _element, l_rootFieldName,
+                        "matrix", real, float, &( l_node.matrix ), ( float ));
 
                     // Mesh
-                    {
-                        const char* l_fieldName = "mesh";
-
-                        yyjson_val* l_mesh =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_mesh ) {
-                            l_node.mesh = yyjson_get_uint( _element );
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value( l_root, l_rootFieldName, "mesh", uint,
+                                       uint8_t, &( l_node.mesh ), ( uint8_t ));
 
                     // Weights
-                    {
-                        const char* l_fieldName = "weights";
+                    GLTF_t$bind$value$array(
+                        _element, l_rootFieldName, "weights", real, float16_t,
+                        &( l_node.weights ), ( float16_t ) );
 
-                        yyjson_val* l_weights =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_weights ) {
-                            l_node.weights = ( float16_t* )createArray(
-                                sizeof( float16_t ) );
-
-                            FOR_JSON_ARRAY( l_weights ) {
-                                preallocateArray( &( l_node.weights ), 1 );
-
-                                *arrayLastElementPointer( l_node.weights ) =
-                                    yyjson_get_real( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
-
-#if 0
                     // Translation
-                    {
-                        const char* l_fieldName = "weights";
+                    GLTF_t$bind$value$array$range(
+                        3, _element, l_rootFieldName, "translation", real,
+                        float16_t, &( l_node.translation ), ( float16_t ) );
 
-                        yyjson_val* l_weights =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_weights ) {
-                            l_node.weights =
-                                ( float16_t* )createArray( sizeof( float16_t ) );
-
-                            FOR_JSON_ARRAY( l_weights ) {
-                                preallocateArray( &( l_node.weights ), 1 );
-
-                                *arrayLastElementPointer( l_node.weights ) =
-                                    yyjson_get_real( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                    ( logLevel_t )info,
-                                    "Field '%s' not found in root field '%s'\n",
-                                    l_fieldName, l_rootFieldName );
-                        }
-                    }
-#endif
-
-#if 0
                     // Scale
-                    {
-                        const char* l_fieldName = "weights";
+                    GLTF_t$bind$value$array$range(
+                        3, _element, l_rootFieldName, "scale", real, float16_t,
+                        &( l_node.scale ), ( float16_t ) );
 
-                        yyjson_val* l_weights =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_weights ) {
-                            l_node.weights =
-                                ( float16_t* )createArray( sizeof( float16_t ) );
-
-                            FOR_JSON_ARRAY( l_weights ) {
-                                preallocateArray( &( l_node.weights ), 1 );
-
-                                *arrayLastElementPointer( l_node.weights ) =
-                                    yyjson_get_real( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                    ( logLevel_t )info,
-                                    "Field '%s' not found in root field '%s'\n",
-                                    l_fieldName, l_rootFieldName );
-                        }
-                    }
-#endif
-
-#if 0
                     // Rotation
-                    {
-                        const char* l_fieldName = "weights";
-
-                        yyjson_val* l_weights =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_weights ) {
-                            l_node.weights =
-                                ( float16_t* )createArray( sizeof( float16_t ) );
-
-                            FOR_JSON_ARRAY( l_weights ) {
-                                preallocateArray( &( l_node.weights ), 1 );
-
-                                *arrayLastElementPointer( l_node.weights ) =
-                                    yyjson_get_real( _element );
-                            }
-
-                        } else {
-                            log$transaction$query$format(
-                                    ( logLevel_t )info,
-                                    "Field '%s' not found in root field '%s'\n",
-                                    l_fieldName, l_rootFieldName );
-                        }
-                    }
-#endif
+                    GLTF_t$bind$value$array$range(
+                        3, _element, l_rootFieldName, "rotation", real,
+                        float16_t, &( l_node.rotation ), ( float16_t ) );
 
                     // Skin
-                    {
-                        const char* l_fieldName = "skin";
-
-                        yyjson_val* l_skin =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_skin ) {
-                            l_node.skin = yyjson_get_uint( _element );
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value( l_root, l_rootFieldName, "skin", uint,
+                                       uint8_t, &( l_node.skin ), ( uint8_t ));
 
                     // Camera
-                    {
-                        const char* l_fieldName = "camera";
-
-                        yyjson_val* l_camera =
-                            yyjson_obj_get( _element, l_fieldName );
-
-                        if ( l_camera ) {
-                            l_node.camera = yyjson_get_uint( _element );
-
-                        } else {
-                            log$transaction$query$format(
-                                ( logLevel_t )info,
-                                "Field '%s' not found in root field '%s'\n",
-                                l_fieldName, l_rootFieldName );
-                        }
-                    }
+                    GLTF_t$bind$value( l_root, l_rootFieldName, "camera", uint,
+                                       uint8_t, &( l_node.camera ),
+                                       ( uint8_t ));
 
                     struct GLTF_node* l_nodeAllocated =
                         ( struct GLTF_node* )malloc(
@@ -582,20 +391,10 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
 
                 // Nodes
                 {
-                    char l_nodesAsString[ 256 ] = "";
+                    char l_nodesAsString[ 256 ];
 
-                    if ( l_element->nodes ) {
-                        char* l_buffer = l_nodesAsString;
-
-                        FOR_ARRAY( uint16_t*, l_element->nodes ) {
-                            const uint16_t l_node = *_element;
-
-                            l_buffer += sprintf( l_buffer, "%u ", l_node );
-                        }
-
-                        // Remove trailing space
-                        *( l_buffer - 1 ) = '\0';
-                    }
+                    joinArray( l_element->nodes, l_nodesAsString, uint16_t,
+                               "%u", " " );
 
                     log$transaction$query$format(
                         ( logLevel_t )info,
@@ -617,6 +416,10 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                 "\033[1;32m=== GLTF Nodes Info ===\033[0m\n" );
 
             FOR_ARRAY( void**, ( void** )( _GLTF->nodes ) ) {
+                log$transaction$query(
+                    ( logLevel_t )info,
+                    "\033[1;32m=== GLTF Node Info ===\033[0m\n" );
+
                 const struct GLTF_node* l_element =
                     *( ( struct GLTF_node** )_element );
                 log$transaction$query$format(
@@ -626,20 +429,10 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
 
                 // Children
                 {
-                    char l_childrenAsString[ 256 ] = "";
+                    char l_childrenAsString[ 256 ];
 
-                    if ( l_element->children ) {
-                        char* l_buffer = l_childrenAsString;
-
-                        FOR_ARRAY( uint8_t*, l_element->children ) {
-                            const uint8_t l_child = *_element;
-
-                            l_buffer += sprintf( l_buffer, "%u ", l_child );
-                        }
-
-                        // Remove trailing space
-                        *( l_buffer - 1 ) = '\0';
-                    }
+                    joinArray( l_element->children, l_childrenAsString, uint8_t,
+                               "%u", " " );
 
                     log$transaction$query$format(
                         ( logLevel_t )info,
@@ -651,6 +444,37 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
 
                 // Matrix
                 {
+                    bool l_isNotDefault = false;
+                    const float16_t
+                        l_matrixDefault[ GLTF_NODE_MATRIX_BUFFER_SIZE ] =
+                            DEFAULT_GLTF_NODE_MATRIX;
+
+                    FOR_RANGE( uint8_t, 0, GLTF_NODE_MATRIX_BUFFER_SIZE ) {
+                        if ( ( l_element->matrix )[ _index ] !=
+                             l_matrixDefault[ _index ] ) {
+                            l_isNotDefault = true;
+
+                            break;
+                        }
+                    }
+
+                    if ( l_isNotDefault ) {
+                        char l_matrixAsString[ 256 ];
+
+                        joinArrayNative( l_element->matrix, l_matrixAsString,
+                                         float, "%f", " " );
+
+                        log$transaction$query$format(
+                            ( logLevel_t )info,
+                            "  \033[1;34mMatrix\033[0m  : "
+                            "\033[1;36m'%s'\033[0m\n",
+                            l_matrixAsString );
+
+                    } else {
+                        log$transaction$query( ( logLevel_t )info,
+                                               "  \033[1;34mMatrix\033[0m  : "
+                                               "\033[1;36m'N/A'\033[0m\n" );
+                    }
                 }
 
                 log$transaction$query$format(
@@ -660,33 +484,56 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
 
                 // Weights
                 {
-                    char l_weightsAsString[ 256 ] = "";
+                    char l_weightsAsString[ 256 ];
 
-                    if ( l_element->weights ) {
-                        char* l_buffer = l_weightsAsString;
-
-                        FOR_ARRAY( float16_t*, l_element->weights ) {
-                            const float16_t l_weight = *_element;
-
-                            l_buffer +=
-                                sprintf( l_buffer, "%f ", ( float )l_weight );
-                        }
-
-                        // Remove trailing space
-                        *( l_buffer - 1 ) = '\0';
-                    }
+                    joinArray( ( float* )( l_element->weights ),
+                               l_weightsAsString, float, "%f", " " );
 
                     log$transaction$query$format(
                         ( logLevel_t )info,
-                        "  \033[1;34mChildren\033[0m  : "
+                        "  \033[1;34mWeights\033[0m  : "
                         "\033[1;36m'%s'\033[0m\n",
                         ( ( *l_weightsAsString ) ? ( l_weightsAsString )
                                                  : ( "N/A" ) ) );
                 }
 
+#if 0
                 // Translation
                 {
+                    bool l_isNotDefault = false;
+                    const float16_t l_translationDefault[ 3 ] =
+                        DEFAULT_GLTF_NODE_TRANSLATION;
+
+                    FOR_RANGE( uint8_t, 0, 3 ) {
+                        if ( ( l_element->translation )[ _index ] !=
+                             l_translationDefault[ _index ] ) {
+                            l_isNotDefault = true;
+
+                            break;
+                        }
+                    }
+
+                    if ( l_isNotDefault ) {
+                        char l_translationAsString[ 256 ];
+
+                        joinArrayNative( l_element->matrix,
+                                         l_translationAsString, float, "%f",
+                                         " " );
+
+                        log$transaction$query$format(
+                            ( logLevel_t )info,
+                            "  \033[1;34mTranslation\033[0m  : "
+                            "\033[1;36m'%s'\033[0m\n",
+                            l_translationAsString );
+
+                    } else {
+                        log$transaction$query(
+                            ( logLevel_t )info,
+                            "  \033[1;34mTranslation\033[0m  : "
+                            "\033[1;36m'N/A'\033[0m\n" );
+                    }
                 }
+#endif
 
                 // Scale
                 {
@@ -712,6 +559,10 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         ( ( l_element->camera ) ? ( l_element->camera )
                                                 : ( 0 ) ) );
                 }
+
+                log$transaction$query(
+                    ( logLevel_t )info,
+                    "\033[1;32m========================\033[0m\n" );
             }
 
             log$transaction$query(
@@ -786,6 +637,12 @@ bool GLTF_t$unload( GLTF_t* restrict _GLTF ) {
     }
 
     {
+        // Asset
+        {
+            free( _GLTF->asset.generator );
+            free( _GLTF->asset.copyright );
+        }
+
         FREE_ARRAY_ELEMENTS( _GLTF->scenes );
         FREE_ARRAY_ELEMENTS( _GLTF->nodes );
         FREE_ARRAY_ELEMENTS( _GLTF->meshes );
