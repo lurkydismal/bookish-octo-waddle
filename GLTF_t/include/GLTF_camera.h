@@ -21,17 +21,17 @@
 enum GLTF_camera_type { PERSPECTIVE, ORTHOGRAPHIC };
 
 struct GLTF_camera_orthographic {
-    float16_t xmag;
-    float16_t ymag;
-    float16_t zfar;
-    float16_t znear;
+    float xmag;
+    float ymag;
+    float zfar;
+    float znear;
 };
 
 struct GLTF_camera_perspective {
-    float16_t aspectRatio;
-    float16_t yfov;
-    float16_t zfar;
-    float16_t znear;
+    float aspectRatio;
+    float yfov;
+    float zfar;
+    float znear;
 };
 
 struct GLTF_camera {

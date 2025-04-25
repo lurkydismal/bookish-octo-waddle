@@ -49,9 +49,9 @@
       .doubleSided = false }
 
 struct GLTF_material_pbrMetallicRoughness {
-    float16_t baseColorFactor[ 4 ];
-    float16_t metallicFactor;
-    float16_t roughnessFactor;
+    float baseColorFactor[ 4 ];
+    float metallicFactor;
+    float roughnessFactor;
     struct GLTF_texture_info baseColorTexture;
     struct GLTF_texture_info metallicRoughnessTexture;
 };
@@ -59,13 +59,13 @@ struct GLTF_material_pbrMetallicRoughness {
 struct GLTF_material_normal_texture_info {
     uint8_t index;
     uint8_t texCoord;
-    float16_t scale;
+    float scale;
 };
 
 struct GLTF_material_occlusion_texture_info {
     uint8_t index;
     uint8_t texCoord;
-    float16_t strength;
+    float strength;
 };
 
 enum GLTF_material_alphaMode { OPAQUE, MASK, BLEND };
@@ -76,8 +76,8 @@ struct GLTF_material {
     struct GLTF_material_normal_texture_info normalTexture;
     struct GLTF_material_occlusion_texture_info occlusionTexture;
     struct GLTF_texture_info emissiveTexture;
-    float16_t emissiveFactor[ 3 ];
+    float emissiveFactor[ 3 ];
     enum GLTF_material_alphaMode alphaMode;
-    float16_t alphaCutoff;
+    float alphaCutoff;
     bool doubleSided;
 };

@@ -309,9 +309,17 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
             g_transactionSize += l_bufferSize;
         }
 
+#if defined( DEBUG )
+
+        log$transaction$commit();
+
+#else
+
         if ( UNLIKELY( _logLevel == ( logLevel_t )error ) ) {
             log$transaction$commit();
         }
+
+#endif
 
         l_returnValue = true;
 

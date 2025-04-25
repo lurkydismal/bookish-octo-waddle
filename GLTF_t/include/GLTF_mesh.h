@@ -40,26 +40,23 @@
       .NORMAL = DEFAULT_GLTF_MESH_PRIMITIVES_TARGETS_NORMAL,     \
       .TANGENT = DEFAULT_GLTF_MESH_PRIMITIVES_TARGETS_TANGENT }
 
-#define DEFAULT_GLTF_MESH_PRIMITIVES                         \
-    { .attributes = DEFAULT_GLTF_MESH_PRIMITIVES_ATTRIBUTES, \
-      .indices = 0,                                          \
-      .mode = DEFAULT_GLTF_MESH_PRIMITIVES_MODE,             \
-      .material = 0,                                         \
-      .targets = DEFAULT_GLTF_MESH_PRIMITIVES_TARGETS }
+#define DEFAULT_GLTF_MESH_PRIMITIVES             \
+    { .attributes = NULL,                        \
+      .indices = 0,                              \
+      .mode = DEFAULT_GLTF_MESH_PRIMITIVES_MODE, \
+      .material = 0,                             \
+      .targets = NULL }
 
-#define DEFAULT_GLTF_MESH                         \
-    { .name = NULL,                               \
-      .primitives = DEFAULT_GLTF_MESH_PRIMITIVES, \
-      .weights = NULL }
+#define DEFAULT_GLTF_MESH { .name = NULL, .primitives = NULL, .weights = NULL }
 
 struct GLTF_attribute {
-    float16_t POSITION[ 3 ];
-    float16_t NORMAL[ 3 ];
-    float16_t TANGENT[ 4 ];
-    float16_t* TEXCOORD_n[ 2 ];
-    float16_t* COLOR_n[ 4 ]; // If vec3 then 4th is 1.0
-    float16_t* JOINTS_n[ 4 ];
-    float16_t* WEIGHTS_n[ 4 ];
+    float POSITION[ 3 ];
+    float NORMAL[ 3 ];
+    float TANGENT[ 4 ];
+    float* TEXCOORD_n[ 2 ];
+    float* COLOR_n[ 4 ]; // If vec3 then 4th is 1.0
+    float* JOINTS_n[ 4 ];
+    float* WEIGHTS_n[ 4 ];
 };
 
 enum GLTF_primitive_mode {
@@ -73,9 +70,9 @@ enum GLTF_primitive_mode {
 };
 
 struct GLTF_target {
-    float16_t POSITION[ 3 ];
-    float16_t NORMAL[ 3 ];
-    float16_t TANGENT[ 4 ];
+    float POSITION[ 3 ];
+    float NORMAL[ 3 ];
+    float TANGENT[ 4 ];
 };
 
 struct GLTF_primitive {
@@ -89,5 +86,5 @@ struct GLTF_primitive {
 struct GLTF_mesh {
     char* name;
     struct GLTF_primitive* primitives;
-    float16_t* weights;
+    float* weights;
 };

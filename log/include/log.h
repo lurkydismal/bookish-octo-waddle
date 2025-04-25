@@ -39,10 +39,10 @@
     syscall( SYS_gettid ), __FILE__, __LINE__, __func__
 
 #define log$transaction$query( _logLevel, _string ) \
-    log$transaction$query$format( _logLevel, _string )
+    log$transaction$query$format( ( _logLevel ), _string )
 
 #define log$transaction$query$format( _logLevel, _format, ... )      \
-    _log$transaction$query$format( _logLevel,                        \
+    _log$transaction$query$format( ( _logLevel ),                    \
                                    DEBUG_INFORMATION_FORMAT _format, \
                                    DEBUG_INFORMATION_TO_PRINT, ##__VA_ARGS__ )
 

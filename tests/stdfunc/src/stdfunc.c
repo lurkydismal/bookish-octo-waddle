@@ -3,6 +3,7 @@
 #include <math.h>
 #include <omp.h>
 
+#include "stdfloat16.h"
 #include "test.h"
 
 TEST( stringToBool ) {
@@ -535,6 +536,82 @@ TEST( createArray ) {
     {
         // Create an array of pointers
         uint8_t* l_array = ( uint8_t* )createArray( sizeof( uint8_t ) );
+
+        // Ensure it's not NULL
+        ASSERT_NOT_EQ( "%p", l_array, NULL );
+
+        // Ensure array length is initialized correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
+
+        // Insert values
+        {
+            insertIntoArray( &l_array, 0 );
+            insertIntoArray( &l_array, 1 );
+        }
+
+        // Ensure new length is updated
+        // ( 0 existing + 2 new )
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( 2 ) );
+
+        // Change array length to maximum possible value
+        *arrayLengthPointer( l_array ) = UINT8_MAX;
+
+        // Ensure array length is changed correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX - 1 ) );
+
+        // Ensure original values are intact
+        {
+            ASSERT_EQ( "%p", ( ( ( void** )l_array )[ 1 ] ), ( void* )0 );
+            ASSERT_EQ( "%p", ( ( ( void** )l_array )[ 2 ] ), ( void* )1 );
+        }
+
+        // Free allocated memory
+        // No allocated elements in array
+        FREE_ARRAY( l_array );
+    }
+
+    // float
+    {
+        // Create an array of pointers
+        float* l_array = ( float* )createArray( sizeof( float ) );
+
+        // Ensure it's not NULL
+        ASSERT_NOT_EQ( "%p", l_array, NULL );
+
+        // Ensure array length is initialized correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
+
+        // Insert values
+        {
+            insertIntoArray( &l_array, 0 );
+            insertIntoArray( &l_array, 1 );
+        }
+
+        // Ensure new length is updated
+        // ( 0 existing + 2 new )
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( 2 ) );
+
+        // Change array length to maximum possible value
+        *arrayLengthPointer( l_array ) = UINT8_MAX;
+
+        // Ensure array length is changed correctly
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX - 1 ) );
+
+        // Ensure original values are intact
+        {
+            ASSERT_EQ( "%p", ( ( ( void** )l_array )[ 1 ] ), ( void* )0 );
+            ASSERT_EQ( "%p", ( ( ( void** )l_array )[ 2 ] ), ( void* )1 );
+        }
+
+        // Free allocated memory
+        // No allocated elements in array
+        FREE_ARRAY( l_array );
+    }
+
+    // float16_t
+    {
+        // Create an array of pointers
+        float16_t* l_array = ( float16_t* )createArray( sizeof( float16_t ) );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );

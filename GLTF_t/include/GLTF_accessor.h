@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "stdfloat16.h"
+#include "stdfunc.h"
 
 #define GLTF_ACCESSOR_MAX_BUFFER_SIZE 16
 #define GLTF_ACCESSOR_MIN_BUFFER_SIZE 16
@@ -18,20 +19,35 @@
 
 #define DEFAULT_GLTF_ACCESSOR_TYPE SCALAR
 
+#define DEFAULT_GLTF_ACCESSOR_SPARSE_INDICES \
+    { .bufferView = 0,                       \
+      .bufferOffset = 0,                     \
+      .componentType = DEFAULT_GLTF_ACCESSOR_COMPONENT_TYPE }
+
+#define DEFAULT_GLTF_ACCESSOR_SPARSE_VALUES \
+    { .bufferView = 0, .bufferOffset = 0 }
+
+#define DEFAULT_GLTF_ACCESSOR_SPARSE                   \
+    { .count = 0,                                      \
+      .indices = DEFAULT_GLTF_ACCESSOR_SPARSE_INDICES, \
+      .values = DEFAULT_GLTF_ACCESSOR_SPARSE_VALUES }
+
 #define DEFAULT_GLTF_ACCESSOR                                \
-    { .bufferView = 0,                                       \
+    { .name = NULL,                                          \
+      .bufferView = 0,                                       \
       .bufferOffset = 0,                                     \
       .componentType = DEFAULT_GLTF_ACCESSOR_COMPONENT_TYPE, \
+      .normalized = false,                                   \
       .count = 0,                                            \
+      .type = DEFAULT_GLTF_ACCESSOR_TYPE,                    \
       .max = DEFAULT_GLTF_ACCESSOR_MAX,                      \
       .min = DEFAULT_GLTF_ACCESSOR_MIN,                      \
-      .type = DEFAULT_GLTF_ACCESSOR_TYPE,                    \
-      .normalized = false }
+      .sparse = DEFAULT_GLTF_ACCESSOR_SPARSE }
 
 enum GLTF_accessor_componentType {
     INT8 = 5120,
     UINT8 = 5121,
-    INT16 = 5121,
+    INT16 = 5122,
     UINT16 = 5123,
     UINT32 = 5125,
     FLOAT = 5126
@@ -47,13 +63,139 @@ enum GLTF_accessor_type {
     MAT4 = 16
 };
 
-struct GLTF_accessor {
+struct GLTF_accessor_sparse_indices {
     uint8_t bufferView;
-    uint8_t bufferOffset;
+    size_t bufferOffset;
     enum GLTF_accessor_componentType componentType;
-    uint32_t count;
-    float16_t max[ GLTF_ACCESSOR_MAX_BUFFER_SIZE ];
-    float16_t min[ GLTF_ACCESSOR_MIN_BUFFER_SIZE ];
-    enum GLTF_accessor_type type;
-    bool normalized;
 };
+
+struct GLTF_accessor_sparse_values {
+    uint8_t bufferView;
+    size_t bufferOffset;
+};
+
+struct GLTF_accessor_sparse {
+    uint8_t count;
+    struct GLTF_accessor_sparse_indices indices;
+    struct GLTF_accessor_sparse_values values;
+};
+
+struct GLTF_accessor {
+    char* name;
+    uint8_t bufferView;
+    size_t bufferOffset;
+    enum GLTF_accessor_componentType componentType;
+    bool normalized;
+    uint32_t count;
+    enum GLTF_accessor_type type;
+    float max[ GLTF_ACCESSOR_MAX_BUFFER_SIZE ];
+    float min[ GLTF_ACCESSOR_MIN_BUFFER_SIZE ];
+    struct GLTF_accessor_sparse sparse;
+};
+
+static FORCE_INLINE enum GLTF_accessor_type GLTF_t$accessor$type$fromString(
+    const char* _string ) {
+    if ( UNLIKELY( !_string ) ) {
+        return ( ( enum GLTF_accessor_type )SCALAR );
+    }
+
+    {
+        if ( __builtin_strcmp( _string, "SCALAR" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )SCALAR );
+
+        } else if ( __builtin_strcmp( _string, "VEC2" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )VEC2 );
+
+        } else if ( __builtin_strcmp( _string, "VEC3" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )VEC3 );
+
+        } else if ( __builtin_strcmp( _string, "VEC4" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )VEC4 );
+
+        } else if ( __builtin_strcmp( _string, "MAT2" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )MAT2 );
+
+        } else if ( __builtin_strcmp( _string, "MAT3" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )MAT3 );
+
+        } else if ( __builtin_strcmp( _string, "MAT4" ) == 0 ) {
+            return ( ( enum GLTF_accessor_type )MAT4 );
+
+        } else {
+            return ( ( enum GLTF_accessor_type )SCALAR );
+        }
+    }
+}
+
+static FORCE_INLINE const char* GLTF_t$accessor$componentType$toString(
+    const enum GLTF_accessor_componentType _componentType ) {
+    switch ( _componentType ) {
+        case ( INT8 ): {
+            return ( "INT8" );
+        }
+
+        case ( UINT8 ): {
+            return ( "UINT8" );
+        }
+
+        case ( INT16 ): {
+            return ( "INT16" );
+        }
+
+        case ( UINT16 ): {
+            return ( "UINT16" );
+        }
+
+        case ( UINT32 ): {
+            return ( "UINT32" );
+        }
+
+        case ( FLOAT ): {
+            return ( "FLOAT" );
+        }
+
+        default: {
+            return ( "INT8" );
+        }
+    }
+}
+
+static FORCE_INLINE const char* GLTF_t$accessor$type$toString(
+    const enum GLTF_accessor_type _type ) {
+    switch ( _type ) {
+        case ( SCALAR ): {
+            return ( "SCALAR" );
+        }
+
+        case ( VEC2 ): {
+            return ( "VEC2" );
+        }
+
+        case ( VEC3 ): {
+            return ( "VEC3" );
+        }
+
+        case ( VEC4 ): {
+            return ( "VEC4" );
+        }
+
+#if 0
+       // TODO: The same as VEC4
+        case (MAT2): {
+            return ("MAT2");
+        }
+#endif
+
+        case ( MAT3 ): {
+            return ( "MAT3" );
+        }
+
+        case ( MAT4 ): {
+            return ( "MAT4" );
+        }
+
+        default: {
+            return ( "SCALAR" );
+        }
+    }
+}

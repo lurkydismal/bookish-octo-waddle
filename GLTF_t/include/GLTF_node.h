@@ -32,10 +32,10 @@ struct GLTF_node {
     uint8_t* children;
     float matrix[ GLTF_NODE_MATRIX_BUFFER_SIZE ];
     uint8_t mesh;
-    float16_t* weights;
-    float16_t translation[ 3 ];
-    float16_t scale[ 3 ];
-    float16_t rotation[ 4 ];
+    float* weights;
+    float translation[ 3 ];
+    float scale[ 3 ];
+    float rotation[ 4 ];
     uint8_t skin;
     uint8_t camera;
 };
