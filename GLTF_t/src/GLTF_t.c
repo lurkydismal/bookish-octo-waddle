@@ -106,6 +106,10 @@ typedef yyjson_val* field_t;
                     arrayLength( *_storage ),                                  \
                     yyjson_get_##_JSONParserType( _element ) );                \
                 preallocateArray( ( _storage ), 1 );                           \
+                log$transaction$query$format(                                  \
+                    ( logLevel_t )error, "2 %s %zu %f\n", _fieldName,          \
+                    arrayLength( *_storage ),                                  \
+                    yyjson_get_##_JSONParserType( _element ) );                \
                 *arrayLastElementPointer( *_storage ) = _convertFunction(      \
                     yyjson_get_##_JSONParserType( _element ), ##__VA_ARGS__ ); \
             }                                                                  \
@@ -659,7 +663,7 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                 APPEND_TO_LOG_BUFFER(
                     "\033[1;32m=== GLTF Nodes Info ===\033[0m\n" );
 
-                FOR_ARRAY( void**, ( void** )( _GLTF->nodes ) ) {
+                FOR_ARRAY( struct GLTF_node**, _GLTF->nodes ) {
                     APPEND_TO_LOG_BUFFER(
                         "\033[1;32m=== GLTF Node Info ===\033[0m\n" );
 

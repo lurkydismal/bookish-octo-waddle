@@ -13,6 +13,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
 #include <xxhash.h>
@@ -49,15 +50,23 @@
 #define min( _a, _b ) ( ( ( _a ) < ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
 
 // Non-native and native array utility functions
-#define arrayLengthPointer( _array ) ( ( size_t* )( &( ( _array )[ 0 ] ) ) )
-#define arrayLength( _array ) ( ( size_t )( ( _array )[ 0 ] ) - 1 )
-#define arrayLengthNative( _array ) \
-    ( sizeof( ( _array ) ) / sizeof( ( _array )[ 0 ] ) )
+#define arrayLengthPointer( _array ) \
+    ( ( size_t* )( &( ( ( void** )( _array ) )[ 0 ] ) ) )
+#define arrayFirstElementPointer( _array )                 \
+    ( ( ( typeof( _array ) )( ( ( uint8_t* )( _array ) ) + \
+                              sizeof( size_t ) ) ) )
+#define arrayLastElementPointer( _array ) \
+    ( ( arrayFirstElementPointer( _array ) - 1 ) + arrayLength( _array ) )
+
+#define arrayLength( _array ) \
+    ( ( size_t )( ( *arrayLengthPointer( _array ) ) - 1 ) )
 #define randomValueFromArray( _array ) \
     ( ( _array )[ randomNumber() % arrayLength( ( _array ) ) ] )
-#define arrayFirstElementPointer( _array ) ( ( _array ) + 1 )
-#define arrayLastElementPointer( _array ) \
-    ( ( arrayFirstElementPointer( ( _array ) ) - 1 ) + arrayLength( _array ) )
+
+#define arrayLengthNative( _array ) \
+    ( sizeof( ( _array ) ) / sizeof( ( _array )[ 0 ] ) )
+#define randomValueFromArrayNative( _array ) \
+    ( ( _array )[ randomNumber() % arrayLengthNative( ( _array ) ) ] )
 
 // Native array iteration FOR
 #define FOR( _type, _array )                                       \
