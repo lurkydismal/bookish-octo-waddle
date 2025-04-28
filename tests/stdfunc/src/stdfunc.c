@@ -393,9 +393,9 @@ TEST( splitStringIntoArray ) {
     // Basic case
     {
         l_result = splitStringIntoArray( "apple,banana,cherry", "," );
-        ASSERT_STRING_EQ( l_result[ 1 ], "apple" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "banana" );
-        ASSERT_STRING_EQ( l_result[ 3 ], "cherry" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "apple" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "banana" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "cherry" );
 
         FREE_ARRAY( l_result );
     }
@@ -403,8 +403,8 @@ TEST( splitStringIntoArray ) {
     // Consecutive delimiters (empty tokens)
     {
         l_result = splitStringIntoArray( "one,,two", "," );
-        ASSERT_STRING_EQ( l_result[ 1 ], "one" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "two" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "one" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "two" );
 
         FREE_ARRAY( l_result );
     }
@@ -412,8 +412,8 @@ TEST( splitStringIntoArray ) {
     // Leading and trailing delimiters
     {
         l_result = splitStringIntoArray( ",first,second,", "," );
-        ASSERT_STRING_EQ( l_result[ 1 ], "first" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "second" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "first" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "second" );
 
         FREE_ARRAY( l_result );
     }
@@ -421,7 +421,7 @@ TEST( splitStringIntoArray ) {
     // Single character input
     {
         l_result = splitStringIntoArray( "X", "," );
-        ASSERT_STRING_EQ( l_result[ 1 ], "X" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "X" );
 
         FREE_ARRAY( l_result );
     }
@@ -457,9 +457,9 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Basic case
     {
         l_result = splitStringIntoArrayBySymbol( "apple,banana,cherry", ',' );
-        ASSERT_STRING_EQ( l_result[ 1 ], "apple" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "banana" );
-        ASSERT_STRING_EQ( l_result[ 3 ], "cherry" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "apple" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "banana" );
+        ASSERT_STRING_EQ( l_result[ 2 ], "cherry" );
 
         FREE_ARRAY( l_result );
     }
@@ -467,8 +467,8 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Consecutive delimiters (empty tokens)
     {
         l_result = splitStringIntoArrayBySymbol( "one,,two", ',' );
-        ASSERT_STRING_EQ( l_result[ 1 ], "one" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "two" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "one" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "two" );
 
         FREE_ARRAY( l_result );
     }
@@ -476,8 +476,8 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Leading and trailing delimiters
     {
         l_result = splitStringIntoArrayBySymbol( ",first,second,", ',' );
-        ASSERT_STRING_EQ( l_result[ 1 ], "first" );
-        ASSERT_STRING_EQ( l_result[ 2 ], "second" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "first" );
+        ASSERT_STRING_EQ( l_result[ 1 ], "second" );
 
         FREE_ARRAY( l_result );
     }
@@ -485,7 +485,7 @@ TEST( splitStringIntoArrayBySymbol ) {
     // Single character input
     {
         l_result = splitStringIntoArrayBySymbol( "X", ',' );
-        ASSERT_STRING_EQ( l_result[ 1 ], "X" );
+        ASSERT_STRING_EQ( l_result[ 0 ], "X" );
 
         FREE_ARRAY( l_result );
     }
@@ -519,7 +519,7 @@ TEST( createArray ) {
     // Normal
     {
         // Create an array of pointers
-        void** l_array = ( void** )createArray( sizeof( void* ) );
+        void** l_array = createArray( void* );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -535,7 +535,7 @@ TEST( createArray ) {
     // Change array length manually
     {
         // Create an array of pointers
-        uint8_t* l_array = ( uint8_t* )createArray( sizeof( uint8_t ) );
+        uint8_t* l_array = createArray( uint8_t );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -557,12 +557,12 @@ TEST( createArray ) {
         *arrayLengthPointer( l_array ) = UINT8_MAX;
 
         // Ensure array length is changed correctly
-        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX - 1 ) );
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX ) );
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%u", l_array[ 1 ], 0 );
-            ASSERT_EQ( "%u", l_array[ 2 ], 1 );
+            ASSERT_EQ( "%u", l_array[ 0 ], 0 );
+            ASSERT_EQ( "%u", l_array[ 1 ], 1 );
         }
 
         // Free allocated memory
@@ -573,7 +573,7 @@ TEST( createArray ) {
     // float
     {
         // Create an array of pointers
-        float* l_array = ( float* )createArray( sizeof( float ) );
+        float* l_array = createArray( float );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -595,12 +595,12 @@ TEST( createArray ) {
         *arrayLengthPointer( l_array ) = UINT8_MAX;
 
         // Ensure array length is changed correctly
-        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX - 1 ) );
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX ) );
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%f", l_array[ 1 ], 0.0f );
-            ASSERT_EQ( "%f", l_array[ 2 ], 1.0f );
+            ASSERT_EQ( "%f", l_array[ 0 ], 0.0f );
+            ASSERT_EQ( "%f", l_array[ 1 ], 1.0f );
         }
 
         // Free allocated memory
@@ -611,7 +611,7 @@ TEST( createArray ) {
     // float16_t
     {
         // Create an array of pointers
-        float16_t* l_array = ( float16_t* )createArray( sizeof( float16_t ) );
+        float16_t* l_array = createArray( float16_t );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -633,13 +633,13 @@ TEST( createArray ) {
         *arrayLengthPointer( l_array ) = UINT8_MAX;
 
         // Ensure array length is changed correctly
-        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX - 1 ) );
+        ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )( UINT8_MAX ) );
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%f", ( float )( l_array[ 1 ] ),
+            ASSERT_EQ( "%f", ( float )( l_array[ 0 ] ),
                        ( float )( float16_t )( 0.0f ) );
-            ASSERT_EQ( "%f", ( float )( l_array[ 2 ] ),
+            ASSERT_EQ( "%f", ( float )( l_array[ 1 ] ),
                        ( float )( float16_t )( 1.0f ) );
         }
 
@@ -653,7 +653,7 @@ TEST( preallocateArray ) {
     // void* array
     {
         // Create initial array
-        void** l_array = ( void** )createArray( sizeof( void* ) );
+        void** l_array = createArray( void* );
 
         // Insert values
         {
@@ -670,8 +670,8 @@ TEST( preallocateArray ) {
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%p", l_array[ 1 ], ( void* )100 );
-            ASSERT_EQ( "%p", l_array[ 2 ], ( void* )200 );
+            ASSERT_EQ( "%p", l_array[ 0 ], ( void* )100 );
+            ASSERT_EQ( "%p", l_array[ 1 ], ( void* )200 );
         }
 
         // Free memory
@@ -681,7 +681,7 @@ TEST( preallocateArray ) {
     // 8 bit value array
     {
         // Create an array of pointers
-        uint8_t* l_array = ( uint8_t* )createArray( sizeof( uint8_t ) );
+        uint8_t* l_array = createArray( uint8_t );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -704,8 +704,8 @@ TEST( preallocateArray ) {
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%u", l_array[ 1 ], 100 );
-            ASSERT_EQ( "%u", l_array[ 2 ], 200 );
+            ASSERT_EQ( "%u", l_array[ 0 ], 100 );
+            ASSERT_EQ( "%u", l_array[ 1 ], 200 );
         }
 
         // Free memory
@@ -715,7 +715,7 @@ TEST( preallocateArray ) {
     // float array
     {
         // Create an array of pointers
-        float* l_array = ( float* )createArray( sizeof( float ) );
+        float* l_array = createArray( float );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -738,8 +738,8 @@ TEST( preallocateArray ) {
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%f", l_array[ 1 ], 100.0f );
-            ASSERT_EQ( "%f", l_array[ 2 ], 200.0f );
+            ASSERT_EQ( "%f", l_array[ 0 ], 100.0f );
+            ASSERT_EQ( "%f", l_array[ 1 ], 200.0f );
         }
 
         // Free memory
@@ -749,7 +749,7 @@ TEST( preallocateArray ) {
     // 16 bit value array
     {
         // Create an array of pointers
-        float16_t* l_array = ( float16_t* )createArray( sizeof( float16_t ) );
+        float16_t* l_array = createArray( float16_t );
 
         // Ensure it's not NULL
         ASSERT_NOT_EQ( "%p", l_array, NULL );
@@ -772,9 +772,9 @@ TEST( preallocateArray ) {
 
         // Ensure original values are intact
         {
-            ASSERT_EQ( "%f", ( float )( l_array[ 1 ] ),
+            ASSERT_EQ( "%f", ( float )( l_array[ 0 ] ),
                        ( float )( float16_t )( 100.0f ) );
-            ASSERT_EQ( "%f", ( float )( l_array[ 2 ] ),
+            ASSERT_EQ( "%f", ( float )( l_array[ 1 ] ),
                        ( float )( float16_t )( 200.0f ) );
         }
 
@@ -785,15 +785,15 @@ TEST( preallocateArray ) {
 
 TEST( insertIntoArray ) {
     // Create an initial array
-    void** l_array = ( void** )createArray( sizeof( void* ) );
+    void** l_array = createArray( void* );
 
     // Ensure array length is updated correctly
     ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
 
     // Insert values
     {
-        ASSERT_EQ( "%zu", insertIntoArray( &l_array, 200 ), ( size_t )1 );
-        ASSERT_EQ( "%zu", insertIntoArray( &l_array, 300 ), ( size_t )2 );
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, 200 ), ( size_t )0 );
+        ASSERT_EQ( "%zu", insertIntoArray( &l_array, 300 ), ( size_t )1 );
     }
 
     // Ensure array length is updated correctly
@@ -801,8 +801,8 @@ TEST( insertIntoArray ) {
 
     // Ensure new elements are inserted at correct indices
     {
-        ASSERT_EQ( "%p", l_array[ 1 ], ( void* )200 );
-        ASSERT_EQ( "%p", l_array[ 2 ], ( void* )300 );
+        ASSERT_EQ( "%p", l_array[ 0 ], ( void* )200 );
+        ASSERT_EQ( "%p", l_array[ 1 ], ( void* )300 );
     }
 
     // Custom struct values
@@ -832,13 +832,13 @@ TEST( insertIntoArray ) {
 
         // Insert struct pointers into the array
         ASSERT_EQ( "%zu", insertIntoArray( &l_array, l_personFirst ),
-                   ( size_t )3 );
+                   ( size_t )2 );
         ASSERT_EQ( "%zu", insertIntoArray( &l_array, l_personSecond ),
-                   ( size_t )4 );
+                   ( size_t )3 );
 
         // Retrieve inserted structs from the array and verify their contents
-        struct person* test1 = ( struct person* )l_array[ 3 ];
-        struct person* test2 = ( struct person* )l_array[ 4 ];
+        struct person* test1 = ( struct person* )l_array[ 2 ];
+        struct person* test2 = ( struct person* )l_array[ 3 ];
 
         // Verify that the struct data was correctly inserted and preserved
         ASSERT_EQ( "%zu", test1->id, ( size_t )1 );
@@ -855,6 +855,7 @@ TEST( insertIntoArray ) {
         free( l_personFirst );
         free( l_personSecond );
     }
+
     // Free memory
     FREE_ARRAY( l_array );
 }

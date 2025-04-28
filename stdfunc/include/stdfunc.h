@@ -46,20 +46,21 @@
 #define MACRO_TO_STRING( _macro ) STRINGIFY_MACRO( _macro )
 
 // Utility functions ( no side-effects )
-#define max( _a, _b ) ( ( ( _a ) > ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
-#define min( _a, _b ) ( ( ( _a ) < ( _b ) ) ? ( ( _a ) ) : ( ( _b ) ) )
+#define max( _a, _b ) ( ( ( _a ) > ( _b ) ) ? ( _a ) : ( _b ) )
+#define min( _a, _b ) ( ( ( _a ) < ( _b ) ) ? ( _a ) : ( _b ) )
 
 // Non-native and native array utility functions
 #define arrayLengthPointer( _array ) \
-    ( ( size_t* )( &( ( ( void** )( _array ) )[ 0 ] ) ) )
-#define arrayFirstElementPointer( _array )                 \
-    ( ( ( typeof( _array ) )( ( ( uint8_t* )( _array ) ) + \
-                              sizeof( size_t ) ) ) )
+    ( ( size_t* )( ( char* )( _array ) - sizeof( size_t ) ) )
+#define arrayAllocationPointer( _array ) ( arrayLengthPointer( _array ) )
+#define arrayFirstElementPointer( _array ) ( _array )
 #define arrayLastElementPointer( _array ) \
-    ( ( arrayFirstElementPointer( _array ) - 1 ) + arrayLength( _array ) )
+    ( ( _array ) + arrayLength( _array ) - 1 )
 
-#define arrayLength( _array ) \
-    ( ( size_t )( ( *arrayLengthPointer( _array ) ) - 1 ) )
+#define arrayFirstElement( _array ) ( *arrayFirstElementPointer( _array ) )
+#define arrayLastElement( _array ) ( *arrayLastElementPointer( _array ) )
+
+#define arrayLength( _array ) ( *arrayLengthPointer( _array ) )
 #define randomValueFromArray( _array ) \
     ( ( _array )[ randomNumber() % arrayLength( ( _array ) ) ] )
 
@@ -95,9 +96,9 @@
         }                                           \
     } while ( 0 )
 
-#define FREE_ARRAY( _array ) \
-    do {                     \
-        free( _array );      \
+#define FREE_ARRAY( _array )                      \
+    do {                                          \
+        free( arrayAllocationPointer( _array ) ); \
     } while ( 0 )
 
 // Utility functions ( no side-effects )
@@ -247,7 +248,14 @@ char** splitStringIntoArray( const char* restrict _string,
 char** splitStringIntoArrayBySymbol( const char* restrict _string,
                                      const char _symbol );
 
-static FORCE_INLINE void** createArray( const size_t _elementSize ) {
+#define createArray( _elementType )                   \
+    ( {                                               \
+        size_t* l_array = malloc( sizeof( size_t ) ); \
+        *l_array = ( size_t )0;                       \
+        ( _elementType* )( l_array + 1 );             \
+    } )
+
+static FORCE_INLINE void** _createArray( const size_t _elementSize ) {
     void** l_array = ( void** )malloc( 1 * _elementSize );
 
     *arrayLengthPointer( l_array ) = ( size_t )( 1 );
@@ -255,9 +263,18 @@ static FORCE_INLINE void** createArray( const size_t _elementSize ) {
     return ( l_array );
 }
 
-#define preallocateArray( _array, _length )                  \
-    do {                                                     \
-        _preallocateArray( ( void*** )( _array ), _length ); \
+#define preallocateArray( _array, _length )                                    \
+    do {                                                                       \
+        size_t* l_base = arrayLengthPointer( *( _array ) );                    \
+        size_t l_oldLen = *l_base;                                             \
+        size_t l_newLen = l_oldLen + ( _length );                              \
+        size_t* l_realloc =                                                    \
+            realloc( l_base, sizeof( size_t ) +                                \
+                                 ( l_newLen * sizeof( typeof( *_array ) ) ) ); \
+        if ( l_realloc ) {                                                     \
+            *l_realloc = l_newLen;                                             \
+            *( _array ) = ( typeof( *_array ) )( l_realloc + 1 );              \
+        }                                                                      \
     } while ( 0 )
 
 static FORCE_INLINE void _preallocateArray( void*** restrict _array,
@@ -272,16 +289,32 @@ static FORCE_INLINE void _preallocateArray( void*** restrict _array,
 
     const size_t l_currentArrayLength = arrayLength( *_array );
 
-    *_array =
-        ( void** )realloc( *_array, ( ( l_currentArrayLength + _length + 1 ) *
-                                      sizeof( ( *_array )[ 0 ] ) ) );
+    *_array = ( void** )realloc(
+        arrayAllocationPointer( *_array ),
+        ( ( sizeof( size_t ) + l_currentArrayLength + _length ) *
+          sizeof( void* ) ) );
 
     *arrayLengthPointer( *_array ) =
         ( size_t )( l_currentArrayLength + _length + 1 );
 }
 
-#define insertIntoArray( _array, _value ) \
-    ( { _insertIntoArray( ( void*** )( _array ), ( void* )( _value ) ); } )
+#define insertIntoArray( _array, _value )                                      \
+    ( {                                                                        \
+        size_t l_ret = -1;                                                     \
+        size_t* l_base = arrayLengthPointer( *( _array ) );                    \
+        size_t l_oldLen = *l_base;                                             \
+        size_t l_newLen = l_oldLen + 1;                                        \
+        size_t* l_realloc =                                                    \
+            realloc( l_base, sizeof( size_t ) +                                \
+                                 ( l_newLen * sizeof( typeof( *_array ) ) ) ); \
+        if ( l_realloc ) {                                                     \
+            *l_realloc = l_newLen;                                             \
+            *( _array ) = ( typeof( *_array ) )( l_realloc + 1 );              \
+            ( *( _array ) )[ l_oldLen ] = ( typeof( **_array ) )( _value );    \
+            l_ret = ( size_t )l_oldLen;                                        \
+        }                                                                      \
+        ( size_t )l_ret;                                                       \
+    } )
 
 static FORCE_INLINE ssize_t _insertIntoArray( void*** restrict _array,
                                               void* restrict _value ) {
@@ -300,7 +333,8 @@ static FORCE_INLINE ssize_t _insertIntoArray( void*** restrict _array,
         const ssize_t l_index = ( 1 + l_arrayLength );
 
         *_array = ( void** )realloc(
-            *_array, ( l_index + 1 ) * sizeof( ( *_array )[ 0 ] ) );
+            arrayAllocationPointer( *_array ),
+            ( sizeof( size_t ) + ( ( l_index + 1 ) * sizeof( void* ) ) ) );
 
         ( *_array )[ l_index ] = _value;
 

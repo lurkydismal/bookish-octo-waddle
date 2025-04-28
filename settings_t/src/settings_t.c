@@ -100,6 +100,7 @@ bool settings_t$load( settings_t* restrict _settings,
                     goto EXIT_SETTINGS_DATA_LINES;
                 }
 
+                // TODO: Implement
                 {
                     settings_t$bind( "window_name", &( l_settings.window.name ),
                                      ( enum settingsTypeCode )( s0 ) );
@@ -138,8 +139,13 @@ bool settings_t$load( settings_t* restrict _settings,
                             goto LOOP_CONTINUE;
                         }
 
-                        const char* l_key = l_keyAndValue[ 1 ];
-                        const char* l_value = l_keyAndValue[ 2 ];
+                        const char* l_key = arrayFirstElement( l_keyAndValue );
+                        log$transaction$query$format(
+                            ( logLevel_t )error, "Settings key '%s'\n", l_key );
+                        const char* l_value = arrayLastElement( l_keyAndValue );
+                        log$transaction$query$format( ( logLevel_t )error,
+                                                      "Settings value '%s'\n",
+                                                      l_value );
 
                         settings_t$tryBind( l_key, l_value );
 
