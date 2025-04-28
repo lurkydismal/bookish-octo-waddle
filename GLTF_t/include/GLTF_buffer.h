@@ -1,7 +1,6 @@
 #pragma once
 
 #include <stddef.h>
-#include <stdint.h>
 
 #define DEFAULT_GLTF_BUFFER { .name = NULL, .byteLength = 0, .uri = NULL }
 

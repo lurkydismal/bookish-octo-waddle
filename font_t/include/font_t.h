@@ -8,7 +8,6 @@
 
 #include "asset_t.h"
 
-// TODO: Improve characters count
 #define FONT_ATLAS_WIDTH( _font )    \
     ( ( size_t )( ( _font ).height * \
                   CHARACTERS_COUNT( ASCII_START, ASCII_END ) ) )
@@ -28,6 +27,9 @@
       .lineGap = 0,  \
       .color = DEFAULT_FONT_COLOR }
 
+typedef stbtt_fontinfo fontInfo_t;
+typedef stbtt_packedchar glyph_t;
+
 typedef struct {
     GLuint texture;
     float height;
@@ -36,8 +38,8 @@ typedef struct {
     size_t atlasWidth;
     size_t descent;
     size_t lineGap;
-    stbtt_fontinfo info;
-    stbtt_packedchar glyphs[ CHARACTERS_COUNT( ASCII_START, ASCII_END ) ];
+    fontInfo_t info;
+    glyph_t glyphs[ CHARACTERS_COUNT( ASCII_START, ASCII_END ) ];
     vec3 color;
 } font_t;
 

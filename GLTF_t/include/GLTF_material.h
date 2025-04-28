@@ -81,3 +81,41 @@ struct GLTF_material {
     float alphaCutoff;
     bool doubleSided;
 };
+
+static FORCE_INLINE enum GLTF_material_alphaMode
+GLTF_t$material$alphaMode$fromString( const char* _string ) {
+    if ( __builtin_strcmp( _string, "OPAQUE" ) == 0 ) {
+        return ( OPAQUE );
+
+    } else if ( __builtin_strcmp( _string, "MASK" ) == 0 ) {
+        return ( MASK );
+
+    } else if ( __builtin_strcmp( _string, "BLEND" ) == 0 ) {
+        return ( BLEND );
+
+    } else {
+        return ( DEFAULT_GLTF_MATERIAL_ALPHA_MODE );
+    }
+}
+
+static FORCE_INLINE const char* GLTF_t$material$alphaMode$toString(
+    const enum GLTF_material_alphaMode _alphaMode ) {
+    switch ( _alphaMode ) {
+        case ( OPAQUE ): {
+            return ( "OPAQUE" );
+        }
+
+        case ( MASK ): {
+            return ( "MASK" );
+        }
+
+        case ( BLEND ): {
+            return ( "BLEND" );
+        }
+
+        default: {
+            return ( GLTF_t$material$alphaMode$toString(
+                DEFAULT_GLTF_MATERIAL_ALPHA_MODE ) );
+        }
+    }
+}

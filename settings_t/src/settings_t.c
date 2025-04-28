@@ -75,17 +75,12 @@ bool settings_t$load( settings_t* restrict _settings,
 
                 l_returnValue = asset_t$load( &l_settingsAsset, l_filePath );
 
-                if ( UNLIKELY( !l_returnValue ) ) {
-                    goto EXIT_FILE_PATH_CONCAT;
-                }
-
             EXIT_FILE_PATH_CONCAT:
                 free( l_filePath );
-            }
 
-            // TODO: Improve
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT;
+                if ( UNLIKELY( !l_returnValue ) ) {
+                    goto EXIT;
+                }
             }
 
             log$transaction$query$format(
@@ -140,12 +135,7 @@ bool settings_t$load( settings_t* restrict _settings,
                         }
 
                         const char* l_key = arrayFirstElement( l_keyAndValue );
-                        log$transaction$query$format(
-                            ( logLevel_t )error, "Settings key '%s'\n", l_key );
                         const char* l_value = arrayLastElement( l_keyAndValue );
-                        log$transaction$query$format( ( logLevel_t )error,
-                                                      "Settings value '%s'\n",
-                                                      l_value );
 
                         settings_t$tryBind( l_key, l_value );
 

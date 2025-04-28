@@ -41,3 +41,59 @@ struct GLTF_sampler {
     enum GLTF_sampler_wrapping wrapS;
     enum GLTF_sampler_wrapping wrapT;
 };
+
+static FORCE_INLINE const char* GLTF_t$sampler$filter$toString(
+    const enum GLTF_sampler_filter _filter ) {
+    switch ( _filter ) {
+        case ( NEAREST ): {
+            return ( "NEAREST" );
+        }
+
+        case ( LINEAR_filter ): {
+            return ( "LINEAR" );
+        }
+
+        case ( NEAREST_MIPMAP_NEAREST ): {
+            return ( "NEAREST_MIPMAP_NEAREST" );
+        }
+
+        case ( LINEAR_MIPMAP_NEAREST ): {
+            return ( "LINEAR_MIPMAP_NEAREST" );
+        }
+
+        case ( NEAREST_MIPMAP_LINEAR ): {
+            return ( "NEAREST_MIPMAP_LINEAR" );
+        }
+
+        case ( LINEAR_MIPMAP_LINEAR ): {
+            return ( "LINEAR_MIPMAP_LINEAR" );
+        }
+
+        default: {
+            return ( GLTF_t$sampler$filter$toString(
+                DEFAULT_GLTF_SAMPLER_MAG_FILER ) );
+        }
+    }
+}
+
+static FORCE_INLINE const char* GLTF_t$sampler$wrapping$toString(
+    const enum GLTF_sampler_wrapping _wrapping ) {
+    switch ( _wrapping ) {
+        case ( CLAMP_TO_EDGE ): {
+            return ( "CLAMP_TO_EDGE" );
+        }
+
+        case ( MIRRORED_REPEAT ): {
+            return ( "MIRRORED_REPEAT" );
+        }
+
+        case ( REPEAT ): {
+            return ( "REPEAT" );
+        }
+
+        default: {
+            return ( GLTF_t$sampler$wrapping$toString(
+                DEFAULT_GLTF_SAMPLER_WRAP_T ) );
+        }
+    }
+}

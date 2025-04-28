@@ -53,8 +53,17 @@
 
 #endif
 
+#if defined( RELEASE )
+
 #define LOG_MAX_TRANSACTION_SIZE_DEFAULT \
     ( ( size_t )( ( ( size_t )1024 * 10 ) * sizeof( char ) ) )
+
+#else
+
+#define LOG_MAX_TRANSACTION_SIZE_DEFAULT \
+    ( ( size_t )( ( ( size_t )1024 * 10 * 10 ) * sizeof( char ) ) )
+
+#endif
 
 typedef enum { debug, info, warn, error, unknownLogLevel } logLevel_t;
 

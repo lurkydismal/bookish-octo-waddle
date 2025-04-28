@@ -255,14 +255,6 @@ char** splitStringIntoArrayBySymbol( const char* restrict _string,
         ( _elementType* )( l_array + 1 );             \
     } )
 
-static FORCE_INLINE void** _createArray( const size_t _elementSize ) {
-    void** l_array = ( void** )malloc( 1 * _elementSize );
-
-    *arrayLengthPointer( l_array ) = ( size_t )( 1 );
-
-    return ( l_array );
-}
-
 #define preallocateArray( _array, _length )                                    \
     do {                                                                       \
         size_t* l_base = arrayLengthPointer( *( _array ) );                    \
@@ -276,27 +268,6 @@ static FORCE_INLINE void** _createArray( const size_t _elementSize ) {
             *( _array ) = ( typeof( *_array ) )( l_realloc + 1 );              \
         }                                                                      \
     } while ( 0 )
-
-static FORCE_INLINE void _preallocateArray( void*** restrict _array,
-                                            const size_t _length ) {
-    if ( UNLIKELY( !_array ) ) {
-        return;
-    }
-
-    if ( UNLIKELY( !*_array ) ) {
-        return;
-    }
-
-    const size_t l_currentArrayLength = arrayLength( *_array );
-
-    *_array = ( void** )realloc(
-        arrayAllocationPointer( *_array ),
-        ( ( sizeof( size_t ) + l_currentArrayLength + _length ) *
-          sizeof( void* ) ) );
-
-    *arrayLengthPointer( *_array ) =
-        ( size_t )( l_currentArrayLength + _length + 1 );
-}
 
 #define insertIntoArray( _array, _value )                                      \
     ( {                                                                        \
@@ -315,37 +286,6 @@ static FORCE_INLINE void _preallocateArray( void*** restrict _array,
         }                                                                      \
         ( size_t )l_ret;                                                       \
     } )
-
-static FORCE_INLINE ssize_t _insertIntoArray( void*** restrict _array,
-                                              void* restrict _value ) {
-    ssize_t l_returnValue = -1;
-
-    if ( UNLIKELY( !_array ) ) {
-        goto EXIT;
-    }
-
-    if ( UNLIKELY( !*_array ) ) {
-        goto EXIT;
-    }
-
-    {
-        const size_t l_arrayLength = arrayLength( *_array );
-        const ssize_t l_index = ( 1 + l_arrayLength );
-
-        *_array = ( void** )realloc(
-            arrayAllocationPointer( *_array ),
-            ( sizeof( size_t ) + ( ( l_index + 1 ) * sizeof( void* ) ) ) );
-
-        ( *_array )[ l_index ] = _value;
-
-        ( *arrayLengthPointer( *_array ) )++;
-
-        l_returnValue = l_index;
-    }
-
-EXIT:
-    return ( l_returnValue );
-}
 
 ssize_t findStringInArray( const char** restrict _array,
                            const size_t _arrayLength,
