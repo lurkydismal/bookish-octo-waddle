@@ -4,6 +4,9 @@
 #include "stdfunc.h"
 #include "yyjson.h"
 
+#define DEBUG_LOG_ROOT_FIELD_NOT_FOUND
+#define DEBUG_LOG_FIELD_NOT_FOUND
+#define DEBUG_LOG_FIELD_ARRAY_RANGE_NOT_FOUND
 #define LOG_PARSED_GLTF
 
 typedef yyjson_doc* document_t;
@@ -34,11 +37,30 @@ typedef yyjson_val* field_t;
         }                                                                      \
     } while ( 0 )
 
-#define FOR_JSON_ARRAY( _array ) \
-    size_t _index;               \
-    size_t _indexMax;            \
-    field_t _element;            \
-    yyjson_arr_foreach( ( _array ), _index, _indexMax, _element )
+#define FOR_JSON_ARRAY( _array )                                 \
+    size_t _index;                                               \
+    field_t _element;                                            \
+    for ( _index = 0, _element = yyjson_arr_get_first( _array ); \
+          _index < yyjson_arr_size( _array );                    \
+          _index++, _element = unsafe_yyjson_get_next( _element ) )
+
+#define FOR_JSON_ARRAY_RANGE( _range, _array )                               \
+    size_t _index;                                                           \
+    field_t _element;                                                        \
+    for ( _index = 0, _element = yyjson_arr_get_first( _array );             \
+          ( ( _index < _range ) && ( _index < yyjson_arr_size( _array ) ) ); \
+          _index++, _element = unsafe_yyjson_get_next( _element ) )
+
+#define FOR_JSON_FIELD( _field )                                             \
+    size_t _index;                                                           \
+    field_t _elementKey, _elementValue;                                      \
+    for ( _index = 0,                                                        \
+          _elementKey = ( ( _field ) ? ( unsafe_yyjson_get_first( _field ) ) \
+                                     : ( NULL ) ),                           \
+          _elementValue = ( _elementKey + 1 );                               \
+          _index < yyjson_obj_size( _field );                                \
+          _index++, _elementKey = unsafe_yyjson_get_next( _elementValue ),   \
+          _elementValue = ( _elementKey + 1 ) )
 
 #if defined( DEBUG_LOG_ROOT_FIELD_NOT_FOUND )
 
@@ -162,10 +184,7 @@ typedef yyjson_val* field_t;
             LOG_FIELD_ARRAY_RANGE_NOT_FOUND( _fieldName, _range,               \
                                              _rootFieldName );                 \
         } else {                                                               \
-            FOR_JSON_ARRAY( l_fieldValue ) {                                   \
-                if ( _index == ( _range ) ) {                                  \
-                    break;                                                     \
-                }                                                              \
+            FOR_JSON_ARRAY_RANGE( ( _range ), l_fieldValue ) {                 \
                 ( *_storage )[ ( _index ) ] = _convertFunction(                \
                     yyjson_get_##_JSONParserType( _element ), ##__VA_ARGS__ ); \
             }                                                                  \
@@ -222,14 +241,38 @@ EXIT:
     return ( l_returnValue );
 }
 
-static FORCE_INLINE field_t GLTF_t$rootField$get( rootField_t* _rootField,
-                                                  const char* _rootFieldName ) {
+static FORCE_INLINE field_t
+GLTF_t$rootField$get( rootField_t* restrict _rootField,
+                      const char* restrict _rootFieldName ) {
     return ( yyjson_obj_get( *_rootField, _rootFieldName ) );
 }
 
-static FORCE_INLINE field_t GLTF_t$field$get( rootField_t* _rootField,
-                                              const char* _rootFieldName ) {
-    return ( yyjson_obj_get( *_rootField, _rootFieldName ) );
+static FORCE_INLINE field_t
+GLTF_t$field$get( rootField_t* restrict _rootField,
+                  const char* restrict _fieldName ) {
+    return ( yyjson_obj_get( *_rootField, _fieldName ) );
+}
+
+static FORCE_INLINE field_t
+GLTF_t$field$get2( rootField_t* restrict _rootField,
+                   const char* _rootFieldName,
+                   const char* restrict _fieldName ) {
+    field_t l_returnValue = yyjson_obj_get( *_rootField, _fieldName );
+
+    if ( !l_returnValue ) {
+        FOR_JSON_FIELD( *_rootField ) {
+            if ( __builtin_strcmp( yyjson_get_str( _elementKey ),
+                                   _fieldName ) == 0 ) {
+                l_returnValue = _elementValue;
+            }
+        }
+    }
+
+    if ( !l_returnValue ) {
+        LOG_FIELD_NOT_FOUND( _fieldName, _rootFieldName );
+    }
+
+    return ( l_returnValue );
 }
 
 GLTF_t GLTF_t$create( void ) {
@@ -474,128 +517,163 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         l_mesh.primitives =
                             createArray( struct GLTF_mesh_primitive* );
 
-                        field_t l_field = _element;
+                        const char* l_fieldName = "primitives";
 
-                        // TODO: Fix, nothing getting added
-                        FOR_JSON_ARRAY( l_field ) {
-                            const char* l_rootFieldName = "meshes.primitives";
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
 
-                            struct GLTF_mesh_primitive l_primitive =
-                                DEFAULT_GLTF_MESH_PRIMITIVES;
+                        if ( l_field ) {
+                            FOR_JSON_ARRAY( l_field ) {
+                                const char* l_rootFieldName =
+                                    "meshes.primitives";
 
-                            // Attributes
-                            {
-                                struct GLTF_mesh_primitive_attributes*
-                                    l_attributes = &( l_primitive.attributes );
+                                struct GLTF_mesh_primitive l_primitive =
+                                    DEFAULT_GLTF_MESH_PRIMITIVES;
 
-                                // POSITION
-                                GLTF_t$bind$value$array$range(
-                                    3, _element, l_rootFieldName, "POSITION",
-                                    real, float, &( l_attributes->POSITION ),
-                                    ( float ));
+                                // Attributes
+                                {
+                                    const char* l_fieldName = "attributes";
 
-                                // NORMAL
-                                GLTF_t$bind$value$array$range(
-                                    3, _element, l_rootFieldName, "NORMAL",
-                                    real, float, &( l_attributes->NORMAL ),
-                                    ( float ));
+                                    field_t l_field = GLTF_t$field$get2(
+                                        &_element, l_rootFieldName,
+                                        l_fieldName );
 
-                                // TANGENT
-                                GLTF_t$bind$value$array$range(
-                                    3, _element, l_rootFieldName, "TANGENT",
-                                    real, float, &( l_attributes->TANGENT ),
-                                    ( float ));
+                                    if ( l_field ) {
+                                        const char* l_rootFieldName =
+                                            "meshes.primitives.attributes";
 
-                                // TODO: Implement
-                                // TEXCOORD_n
-                                // COLOR_n
-                                // JOINTS_n
-                                // WEIGHTS_n
-                            }
+                                        struct GLTF_mesh_primitive_attributes*
+                                            l_attributes =
+                                                &( l_primitive.attributes );
 
-                            // Indices
-                            GLTF_t$bind$value(
-                                _element, l_rootFieldName, "indices", uint,
-                                uint8_t, &( l_primitive.indices ), ( uint8_t ));
+                                        // POSITION
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName,
+                                            "POSITION", uint, uint16_t,
+                                            &( l_attributes->POSITION ),
+                                            ( uint16_t ));
 
-                            // Mode
-                            {
-                                enum GLTF_mesh_primitive_mode l_mode;
+                                        // NORMAL
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName, "NORMAL",
+                                            uint, uint16_t,
+                                            &( l_attributes->NORMAL ),
+                                            ( uint16_t ));
 
-                                GLTF_t$bind$value(
-                                    _element, l_rootFieldName, "mode", uint,
-                                    uint8_t, &l_mode,
-                                    ( enum GLTF_mesh_primitive_mode ) );
+                                        // TANGENT
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName, "TANGENT",
+                                            uint, uint16_t,
+                                            &( l_attributes->TANGENT ),
+                                            ( uint16_t ));
 
-                                l_primitive.mode = l_mode;
-                            }
+                                        // TODO: Implement
+                                        // TEXCOORD_n
+                                        // COLOR_n
+                                        // JOINTS_n
+                                        // WEIGHTS_n
+                                    }
+                                }
 
-                            // Material
-                            GLTF_t$bind$value( _element, l_rootFieldName,
-                                               "material", uint, uint8_t,
-                                               &( l_primitive.material ),
-                                               ( uint8_t ));
+                                // Indices
+                                GLTF_t$bind$value( _element, l_rootFieldName,
+                                                   "indices", uint, uint8_t,
+                                                   &( l_primitive.indices ),
+                                                   ( uint8_t ));
 
-                            // Targets
-                            {
-                                l_primitive.targets = createArray(
-                                    struct GLTF_mesh_primitive_target* );
+                                // Mode
+                                {
+                                    enum GLTF_mesh_primitive_mode l_mode;
 
-                                field_t l_field = _element;
+                                    GLTF_t$bind$value(
+                                        _element, l_rootFieldName, "mode", uint,
+                                        uint8_t, &l_mode,
+                                        ( enum GLTF_mesh_primitive_mode ) );
 
-                                FOR_JSON_ARRAY( l_field ) {
-                                    const char* l_rootFieldName =
-                                        "meshes.primitives.targets";
+                                    l_primitive.mode = l_mode;
+                                }
 
-                                    struct GLTF_mesh_primitive_target l_target =
-                                        DEFAULT_GLTF_MESH_PRIMITIVES_TARGETS;
+                                // Material
+                                GLTF_t$bind$value( _element, l_rootFieldName,
+                                                   "material", uint, uint8_t,
+                                                   &( l_primitive.material ),
+                                                   ( uint8_t ));
 
-                                    // POSITION
-                                    GLTF_t$bind$value$array$range(
-                                        3, _element, l_rootFieldName,
-                                        "POSITION", real, float,
-                                        &( l_target.POSITION ), ( float ));
+                                // Targets
+                                {
+                                    l_primitive.targets = createArray(
+                                        struct GLTF_mesh_primitive_target* );
 
-                                    // NORMAL
-                                    GLTF_t$bind$value$array$range(
-                                        3, _element, l_rootFieldName, "NORMAL",
-                                        real, float, &( l_target.NORMAL ),
-                                        ( float ));
+                                    const char* l_fieldName = "targets";
 
-                                    // TANGENT
-                                    GLTF_t$bind$value$array$range(
-                                        3, _element, l_rootFieldName, "TANGENT",
-                                        real, float, &( l_target.TANGENT ),
-                                        ( float ));
+                                    field_t l_field = GLTF_t$field$get2(
+                                        &_element, l_rootFieldName,
+                                        l_fieldName );
 
-                                    struct GLTF_mesh_primitive_target*
-                                        l_targetAllocated =
-                                            ( struct
-                                              GLTF_mesh_primitive_target* )
-                                                malloc( sizeof(
+                                    if ( l_field ) {
+                                        FOR_JSON_ARRAY( l_field ) {
+                                            const char* l_rootFieldName =
+                                                "meshes.primitives.targets";
+
+                                            struct GLTF_mesh_primitive_target
+                                                l_target =
+                                                    DEFAULT_GLTF_MESH_PRIMITIVES_TARGETS;
+
+                                            // POSITION
+                                            GLTF_t$bind$value(
+                                                _element, l_rootFieldName,
+                                                "POSITION", uint, uint16_t,
+                                                &( l_target.POSITION ),
+                                                ( uint16_t ));
+
+                                            // NORMAL
+                                            GLTF_t$bind$value(
+                                                _element, l_rootFieldName,
+                                                "NORMAL", uint, uint16_t,
+                                                &( l_target.NORMAL ),
+                                                ( uint16_t ));
+
+                                            // TANGENT
+                                            GLTF_t$bind$value(
+                                                _element, l_rootFieldName,
+                                                "TANGENT", uint, uint16_t,
+                                                &( l_target.TANGENT ),
+                                                ( uint16_t ));
+
+                                            struct GLTF_mesh_primitive_target*
+                                                l_targetAllocated =
+                                                    ( struct
+                                                      GLTF_mesh_primitive_target* )
+                                                        malloc( sizeof(
+                                                            struct
+                                                            GLTF_mesh_primitive_target ) );
+
+                                            __builtin_memcpy(
+                                                l_targetAllocated, &l_target,
+                                                sizeof(
                                                     struct
                                                     GLTF_mesh_primitive_target ) );
 
-                                    __builtin_memcpy(
-                                        l_targetAllocated, &l_target,
-                                        sizeof( struct
-                                                GLTF_mesh_primitive_target ) );
-
-                                    insertIntoArray( &( l_primitive.targets ),
-                                                     l_targetAllocated );
+                                            insertIntoArray(
+                                                &( l_primitive.targets ),
+                                                l_targetAllocated );
+                                        }
+                                    }
                                 }
-                            }
 
-                            struct GLTF_mesh_primitive* l_primitiveAllocated =
-                                ( struct GLTF_mesh_primitive* )malloc(
+                                struct GLTF_mesh_primitive*
+                                    l_primitiveAllocated =
+                                        ( struct GLTF_mesh_primitive* )malloc(
+                                            sizeof(
+                                                struct GLTF_mesh_primitive ) );
+
+                                __builtin_memcpy(
+                                    l_primitiveAllocated, &l_primitive,
                                     sizeof( struct GLTF_mesh_primitive ) );
 
-                            __builtin_memcpy(
-                                l_primitiveAllocated, &l_primitive,
-                                sizeof( struct GLTF_mesh_primitive ) );
-
-                            insertIntoArray( &( l_mesh.primitives ),
-                                             l_primitiveAllocated );
+                                insertIntoArray( &( l_mesh.primitives ),
+                                                 l_primitiveAllocated );
+                            }
                         }
                     }
 
@@ -665,7 +743,7 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                     // Type is length by specification
                     // Type
                     {
-                        char* l_type;
+                        char* l_type = NULL;
 
                         GLTF_t$bind$value( _element, l_rootFieldName, "type",
                                            str, char*, &( l_type ),
@@ -692,66 +770,81 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         field_t l_field = GLTF_t$get$field(
                             l_rootField, l_rootFieldName, l_fieldName );
 
-                        if ( !l_field ) {
-                            goto EXIT_PARSE_SPARSE;
-                        }
-
-                        // Count
-                        GLTF_t$bind$value(
-                            l_field, l_fieldName, "count", uint, uint32_t,
-                            &( l_accessor.sparse.count ), ( uint32_t ));
-
-                        // One item
-                        // Indices
-                        {
-                            // BufferView
+                        if ( l_field ) {
+                            // Count
                             GLTF_t$bind$value(
-                                l_field, l_fieldName, "bufferView", uint,
-                                uint8_t,
-                                &( l_accessor.sparse.indices.bufferView ),
-                                ( uint8_t ));
+                                l_field, l_fieldName, "count", uint, uint32_t,
+                                &( l_accessor.sparse.count ), ( uint32_t ));
 
-                            // ByteOffset
-                            GLTF_t$bind$value(
-                                l_field, l_fieldName, "byteOffset", uint,
-                                size_t,
-                                &( l_accessor.sparse.indices.byteOffset ),
-                                ( size_t ));
-
-                            // ComponentType
+                            // One item
+                            // Indices
                             {
-                                enum GLTF_accessor_componentType
-                                    l_componentType;
+                                const char* l_fieldName = "indices";
 
-                                GLTF_t$bind$value(
-                                    _element, l_fieldName, "componentType",
-                                    uint, uint16_t, &l_componentType,
-                                    ( enum GLTF_accessor_componentType ) );
+                                field_t l_indicesField = GLTF_t$get$field(
+                                    l_field, l_rootFieldName, l_fieldName );
 
-                                l_accessor.sparse.indices.componentType =
-                                    l_componentType;
+                                if ( l_indicesField ) {
+                                    // BufferView
+                                    GLTF_t$bind$value(
+                                        l_indicesField, l_fieldName,
+                                        "bufferView", uint, uint8_t,
+                                        &( l_accessor.sparse.indices
+                                               .bufferView ),
+                                        ( uint8_t ));
+
+                                    // ByteOffset
+                                    GLTF_t$bind$value(
+                                        l_indicesField, l_fieldName,
+                                        "byteOffset", uint, size_t,
+                                        &( l_accessor.sparse.indices
+                                               .byteOffset ),
+                                        ( size_t ));
+
+                                    // ComponentType
+                                    {
+                                        enum GLTF_accessor_componentType
+                                            l_componentType;
+
+                                        GLTF_t$bind$value(
+                                            l_indicesField, l_fieldName,
+                                            "componentType", uint, uint16_t,
+                                            &l_componentType,
+                                            ( enum GLTF_accessor_componentType ) );
+
+                                        l_accessor.sparse.indices
+                                            .componentType = l_componentType;
+                                    }
+                                }
+                            }
+
+                            // One item
+                            // Values
+                            {
+                                const char* l_fieldName = "values";
+
+                                field_t l_valuesField = GLTF_t$get$field(
+                                    l_field, l_rootFieldName, l_fieldName );
+
+                                if ( l_valuesField ) {
+                                    // BufferView
+                                    GLTF_t$bind$value(
+                                        l_valuesField, l_fieldName,
+                                        "bufferView", uint, uint8_t,
+                                        &( l_accessor.sparse.values
+                                               .bufferView ),
+                                        ( uint8_t ));
+
+                                    // ByteOffset
+                                    GLTF_t$bind$value(
+                                        l_valuesField, l_fieldName,
+                                        "byteOffset", uint, size_t,
+                                        &( l_accessor.sparse.values
+                                               .byteOffset ),
+                                        ( size_t ));
+                                }
                             }
                         }
-
-                        // One item
-                        // Values
-                        {
-                            // BufferView
-                            GLTF_t$bind$value(
-                                l_field, l_fieldName, "bufferView", uint,
-                                uint8_t,
-                                &( l_accessor.sparse.values.bufferView ),
-                                ( uint8_t ));
-
-                            // ByteOffset
-                            GLTF_t$bind$value(
-                                l_field, l_fieldName, "byteOffset", uint,
-                                size_t,
-                                &( l_accessor.sparse.values.byteOffset ),
-                                ( size_t ));
-                        }
-
-                    EXIT_PARSE_SPARSE:
                     }
 
                     struct GLTF_accessor* l_accesssorAllocated =
@@ -766,9 +859,239 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                 }
             }
 
-            // TODO: Implement
             // Materials
             {
+                const char* l_rootFieldName = "materials";
+
+                rootField_t l_rootField =
+                    GLTF_t$get$rootField( l_root, l_rootFieldName );
+
+                FOR_JSON_ARRAY( l_rootField ) {
+                    struct GLTF_material l_material = DEFAULT_GLTF_MATERIAL;
+
+                    // Name
+                    GLTF_t$bind$value( _element, l_rootFieldName, "name", str,
+                                       char*, &( l_material.name ),
+                                       duplicateString );
+
+                    // PBRMetallicRoughness
+                    {
+                        const char* l_fieldName = "pbrMetallicRoughness";
+
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
+
+                        if ( l_field ) {
+                            struct GLTF_material_pbrMetallicRoughness*
+                                l_pbrMetallicRoughness =
+                                    &( l_material.pbrMetallicRoughness );
+
+                            // BaseColorFactor
+                            GLTF_t$bind$value$array$range(
+                                4, l_field, l_rootFieldName, "baseColorFactor",
+                                real, float,
+                                &( l_pbrMetallicRoughness->baseColorFactor ),
+                                ( float ));
+
+                            // MetallicFactor
+                            GLTF_t$bind$value(
+                                l_field, l_rootFieldName, "metallicFactor",
+                                real, float,
+                                &( l_pbrMetallicRoughness->metallicFactor ),
+                                ( float ));
+
+                            // RoughnessFactor
+                            GLTF_t$bind$value(
+                                l_field, l_rootFieldName, "roughnessFactor",
+                                real, float,
+                                &( l_pbrMetallicRoughness->roughnessFactor ),
+                                ( float ));
+
+                            // BaseColorTexture
+                            {
+                                const char* l_fieldName = "baseColorTexture";
+
+                                field_t l_field = GLTF_t$field$get2(
+                                    &_element, l_rootFieldName, l_fieldName );
+
+                                if ( l_field ) {
+                                    struct GLTF_texture_info*
+                                        l_baseColorTexture =
+                                            &( l_pbrMetallicRoughness
+                                                   ->baseColorTexture );
+
+                                    // Index
+                                    GLTF_t$bind$value(
+                                        l_field, l_rootFieldName, "index", uint,
+                                        uint8_t, &( l_baseColorTexture->index ),
+                                        ( uint8_t ));
+
+                                    // TexCoord
+                                    GLTF_t$bind$value(
+                                        l_field, l_rootFieldName, "texCoord",
+                                        uint, uint32_t,
+                                        &( l_baseColorTexture->texCoord ),
+                                        ( uint32_t ));
+                                }
+                            }
+
+                            // MetallicRoughnessTexture
+                            {
+                                const char* l_fieldName =
+                                    "metallicRoughnessTexture";
+
+                                field_t l_field = GLTF_t$field$get2(
+                                    &_element, l_rootFieldName, l_fieldName );
+
+                                if ( l_field ) {
+                                    struct GLTF_texture_info*
+                                        l_metallicRoughnessTexture =
+                                            &( l_pbrMetallicRoughness
+                                                   ->metallicRoughnessTexture );
+
+                                    // Index
+                                    GLTF_t$bind$value(
+                                        l_field, l_rootFieldName, "index", uint,
+                                        uint8_t,
+                                        &( l_metallicRoughnessTexture->index ),
+                                        ( uint8_t ));
+
+                                    // TexCoord
+                                    GLTF_t$bind$value(
+                                        l_field, l_rootFieldName, "texCoord",
+                                        uint, uint32_t,
+                                        &( l_metallicRoughnessTexture
+                                               ->texCoord ),
+                                        ( uint32_t ));
+                                }
+                            }
+                        }
+                    }
+
+                    // NormalTexture
+                    {
+                        const char* l_fieldName = "normalTexture";
+
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
+
+                        if ( l_field ) {
+                            struct GLTF_material_normal_texture_info*
+                                l_normalTexture = &( l_material.normalTexture );
+
+                            // Index
+                            GLTF_t$bind$value( l_field, l_rootFieldName,
+                                               "index", uint, uint8_t,
+                                               &( l_normalTexture->index ),
+                                               ( uint8_t ));
+
+                            // TexCoord
+                            GLTF_t$bind$value( l_field, l_rootFieldName,
+                                               "texCoord", uint, uint32_t,
+                                               &( l_normalTexture->texCoord ),
+                                               ( uint32_t ));
+
+                            // Scale
+                            GLTF_t$bind$value(
+                                l_field, l_rootFieldName, "scale", real, float,
+                                &( l_normalTexture->scale ), ( float ));
+                        }
+                    }
+
+                    // OcclusionTexture
+                    {
+                        const char* l_fieldName = "occlusionTexture";
+
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
+
+                        if ( l_field ) {
+                            struct GLTF_material_occlusion_texture_info*
+                                l_occlusionTexture =
+                                    &( l_material.occlusionTexture );
+
+                            // Index
+                            GLTF_t$bind$value( l_field, l_rootFieldName,
+                                               "index", uint, uint8_t,
+                                               &( l_occlusionTexture->index ),
+                                               ( uint8_t ));
+
+                            // TexCoord
+                            GLTF_t$bind$value(
+                                l_field, l_rootFieldName, "texCoord", uint,
+                                uint32_t, &( l_occlusionTexture->texCoord ),
+                                ( uint32_t ));
+
+                            // Strength
+                            GLTF_t$bind$value(
+                                l_field, l_rootFieldName, "strength", real,
+                                float, &( l_occlusionTexture->strength ),
+                                ( float ));
+                        }
+                    }
+
+                    // EmissiveTexture
+                    {
+                        const char* l_fieldName = "emissiveTexture";
+
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
+
+                        if ( l_field ) {
+                            struct GLTF_texture_info* l_emissiveTexture =
+                                &( l_material.emissiveTexture );
+
+                            // Index
+                            GLTF_t$bind$value( l_field, l_rootFieldName,
+                                               "index", uint, uint8_t,
+                                               &( l_emissiveTexture->index ),
+                                               ( uint8_t ));
+
+                            // TexCoord
+                            GLTF_t$bind$value( l_field, l_rootFieldName,
+                                               "texCoord", uint, uint32_t,
+                                               &( l_emissiveTexture->texCoord ),
+                                               ( uint32_t ));
+                        }
+                    }
+
+                    // EmissiveFactor
+                    GLTF_t$bind$value$array$range(
+                        3, _element, l_rootFieldName, "emissiveFactor", real,
+                        float, &( l_material.emissiveFactor ), ( float ));
+
+                    // AlphaMode
+                    {
+                        char* l_alphaMode = NULL;
+
+                        GLTF_t$bind$value( _element, l_rootFieldName,
+                                           "alphaMode", str, char*,
+                                           &( l_alphaMode ), duplicateString );
+
+                        l_material.alphaMode =
+                            GLTF_t$material$alphaMode$fromString( l_alphaMode );
+                    }
+
+                    // AlphaCutoff
+                    GLTF_t$bind$value( _element, l_rootFieldName, "alphaCutoff",
+                                       real, float, &( l_material.alphaCutoff ),
+                                       ( float ));
+
+                    // DoubleSided
+                    GLTF_t$bind$value( _element, l_rootFieldName, "doubleSided",
+                                       bool, bool, &( l_material.doubleSided ),
+                                       ( bool ));
+
+                    struct GLTF_material* l_materialAllocated =
+                        ( struct GLTF_material* )malloc(
+                            sizeof( struct GLTF_material ) );
+
+                    __builtin_memcpy( l_materialAllocated, &l_material,
+                                      sizeof( struct GLTF_material ) );
+
+                    insertIntoArray( &( _GLTF->materials ),
+                                     l_materialAllocated );
+                }
             }
 
             // BufferViews
@@ -1045,9 +1368,258 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                 }
             }
 
-            /// TODO: Implement
             // Cameras
             {
+                const char* l_rootFieldName = "cameras";
+
+                rootField_t l_rootField =
+                    GLTF_t$get$rootField( l_root, l_rootFieldName );
+
+                FOR_JSON_ARRAY( l_rootField ) {
+                    struct GLTF_camera l_camera = DEFAULT_GLTF_CAMERA;
+
+                    // Name
+                    GLTF_t$bind$value( _element, l_rootFieldName, "name", str,
+                                       char*, &( l_camera.name ),
+                                       duplicateString );
+
+                    // Type
+                    {
+                        char* l_type = NULL;
+
+                        GLTF_t$bind$value( _element, l_rootFieldName, "type",
+                                           str, char*, &( l_type ),
+                                           duplicateString );
+
+                        l_camera.type = GLTF_t$camera$type$fromString( l_type );
+                    }
+
+                    if ( l_camera.type == ORTHOGRAPHIC ) {
+                        const char* l_fieldName = "orthographic";
+
+                        field_t l_orthographic = GLTF_t$get$field(
+                            l_rootField, l_rootFieldName, l_fieldName );
+
+                        // Xmag
+                        GLTF_t$bind$value(
+                            l_orthographic, l_rootFieldName, "xmag", real,
+                            float, &( l_camera.orthographic.xmag ), ( float ));
+
+                        // Ymag
+                        GLTF_t$bind$value(
+                            l_orthographic, l_rootFieldName, "ymag", real,
+                            float, &( l_camera.orthographic.ymag ), ( float ));
+
+                        // Zfar
+                        GLTF_t$bind$value(
+                            l_orthographic, l_rootFieldName, "zfar", real,
+                            float, &( l_camera.orthographic.zfar ), ( float ));
+
+                        // Znear
+                        GLTF_t$bind$value(
+                            l_orthographic, l_rootFieldName, "znear", real,
+                            float, &( l_camera.orthographic.znear ), ( float ));
+
+                    } else if ( l_camera.type == PERSPECTIVE ) {
+                        const char* l_fieldName = "perspective";
+
+                        field_t l_perspective = GLTF_t$get$field(
+                            l_rootField, l_rootFieldName, l_fieldName );
+
+                        // AspectRatio
+                        GLTF_t$bind$value(
+                            l_perspective, l_rootFieldName, "aspectRatio", real,
+                            float, &( l_camera.perspective.aspectRatio ),
+                            ( float ));
+
+                        // YFOV
+                        GLTF_t$bind$value(
+                            l_perspective, l_rootFieldName, "yfov", real, float,
+                            &( l_camera.perspective.yfov ), ( float ));
+
+                        // Zfar
+                        GLTF_t$bind$value(
+                            l_perspective, l_rootFieldName, "zfar", real, float,
+                            &( l_camera.perspective.zfar ), ( float ));
+
+                        // Znear
+                        GLTF_t$bind$value(
+                            l_perspective, l_rootFieldName, "znear", real,
+                            float, &( l_camera.perspective.znear ), ( float ));
+                    }
+
+                    struct GLTF_camera* l_cameraAllocated =
+                        ( struct GLTF_camera* )malloc(
+                            sizeof( struct GLTF_camera ) );
+
+                    __builtin_memcpy( l_cameraAllocated, &l_camera,
+                                      sizeof( struct GLTF_camera ) );
+
+                    insertIntoArray( &( _GLTF->cameras ), l_cameraAllocated );
+                }
+            }
+
+            // Animations
+            {
+                const char* l_rootFieldName = "animations";
+
+                rootField_t l_rootField =
+                    GLTF_t$get$rootField( l_root, l_rootFieldName );
+
+                FOR_JSON_ARRAY( l_rootField ) {
+                    struct GLTF_animation l_animation = DEFAULT_GLTF_ANIMATION;
+
+                    // Name
+                    GLTF_t$bind$value( _element, l_rootFieldName, "name", str,
+                                       char*, &( l_animation.name ),
+                                       duplicateString );
+
+                    // Channels
+                    {
+                        l_animation.channels =
+                            createArray( struct GLTF_animation_channel* );
+
+                        const char* l_fieldName = "channels";
+
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
+
+                        if ( l_field ) {
+                            FOR_JSON_ARRAY( l_field ) {
+                                const char* l_rootFieldName =
+                                    "animations.channels";
+
+                                struct GLTF_animation_channel l_channel =
+                                    DEFAULT_GLTF_ANIMATION_CHANNEL;
+
+                                // Sampler
+                                GLTF_t$bind$value( _element, l_rootFieldName,
+                                                   "sampler", uint, uint8_t,
+                                                   &( l_channel.sampler ),
+                                                   ( uint8_t ));
+
+                                // Target
+                                {
+                                    const char* l_fieldName = "target";
+
+                                    field_t l_field = GLTF_t$field$get2(
+                                        &_element, l_rootFieldName,
+                                        l_fieldName );
+
+                                    if ( l_field ) {
+                                        const char* l_rootFieldName =
+                                            "animations.channels.target";
+
+                                        // Node
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName, "node",
+                                            uint, uint8_t,
+                                            &( l_channel.target.node ),
+                                            ( uint8_t ));
+
+                                        // Path
+                                        {
+                                            char* l_path = NULL;
+
+                                            GLTF_t$bind$value(
+                                                l_field, l_rootFieldName,
+                                                "path", str, char*, &( l_path ),
+                                                duplicateString );
+
+                                            l_channel.target.path =
+                                                GLTF_t$animation$channel$target$path$fromString(
+                                                    l_path );
+                                        }
+                                    }
+                                }
+
+                                struct GLTF_animation_channel*
+                                    l_channelAllocated =
+                                        ( struct GLTF_animation_channel* )
+                                            malloc( sizeof(
+                                                struct
+                                                GLTF_animation_channel ) );
+
+                                __builtin_memcpy(
+                                    l_channelAllocated, &l_channel,
+                                    sizeof( struct GLTF_animation_channel ) );
+
+                                insertIntoArray( &( l_animation.channels ),
+                                                 l_channelAllocated );
+                            }
+                        }
+                    }
+
+                    // Samplers
+                    {
+                        l_animation.samplers =
+                            createArray( struct GLTF_animation_sampler* );
+
+                        const char* l_fieldName = "samplers";
+
+                        field_t l_field = GLTF_t$field$get2(
+                            &_element, l_rootFieldName, l_fieldName );
+
+                        if ( l_field ) {
+                            FOR_JSON_ARRAY( l_field ) {
+                                const char* l_rootFieldName =
+                                    "animations.samplers";
+
+                                struct GLTF_animation_sampler l_sampler =
+                                    DEFAULT_GLTF_ANIMATION_SAMPLER;
+
+                                // Input
+                                GLTF_t$bind$value(
+                                    _element, l_rootFieldName, "input", uint,
+                                    uint8_t, &( l_sampler.input ), ( uint8_t ));
+
+                                // Interpolation
+                                {
+                                    char* l_interpolation = NULL;
+
+                                    GLTF_t$bind$value(
+                                        _element, l_rootFieldName,
+                                        "interpolation", str, char*,
+                                        &( l_interpolation ), duplicateString );
+
+                                    l_sampler.interpolation =
+                                        GLTF_t$animation$sampler$interpolation$fromString(
+                                            l_interpolation );
+                                }
+
+                                // Output
+                                GLTF_t$bind$value( _element, l_rootFieldName,
+                                                   "output", uint, uint8_t,
+                                                   &( l_sampler.output ),
+                                                   ( uint8_t ));
+
+                                struct GLTF_animation_sampler*
+                                    l_samplerAllocated =
+                                        ( struct GLTF_animation_sampler* )
+                                            malloc( sizeof(
+                                                struct
+                                                GLTF_animation_sampler ) );
+
+                                __builtin_memcpy(
+                                    l_samplerAllocated, &l_sampler,
+                                    sizeof( struct GLTF_animation_sampler ) );
+
+                                insertIntoArray( &( l_animation.samplers ),
+                                                 l_samplerAllocated );
+                            }
+                        }
+                    }
+
+                    struct GLTF_animation* l_animationAllocated =
+                        ( struct GLTF_animation* )malloc(
+                            sizeof( struct GLTF_animation ) );
+
+                    __builtin_memcpy( l_animationAllocated, &l_animation,
+                                      sizeof( struct GLTF_animation ) );
+
+                    insertIntoArray( &( _GLTF->animations ),
+                                     l_animationAllocated );
+                }
             }
         }
 
@@ -1268,6 +1840,45 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                             const struct GLTF_mesh_primitive* l_primitive =
                                 *_element;
 
+                            // Attributes
+                            {
+                                APPEND_TO_LOG_BUFFER(
+                                    "\033[1;32m=== GLTF Primitive Attributes "
+                                    "Info "
+                                    "===\033[0m\n" );
+
+                                const struct GLTF_mesh_primitive_attributes
+                                    l_attributes = l_primitive->attributes;
+
+                                // POSITION
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mPosition\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.POSITION )
+                                          ? ( l_attributes.POSITION )
+                                          : ( 0 ) ) );
+
+                                // NORMAL
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mNormal\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.NORMAL )
+                                          ? ( l_attributes.NORMAL )
+                                          : ( 0 ) ) );
+
+                                // TANGENT
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mTangent\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.TANGENT )
+                                          ? ( l_attributes.TANGENT )
+                                          : ( 0 ) ) );
+
+                                APPEND_TO_LOG_BUFFER(
+                                    "\033[1;32m========================\033["
+                                    "0m\n" );
+                            }
+
                             // Indices
                             APPEND_TO_LOG_BUFFER(
                                 "  \033[1;34mIndices\033[0m  : "
@@ -1290,6 +1901,57 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                                 ( ( l_primitive->material )
                                       ? ( l_primitive->material )
                                       : ( 0 ) ) );
+
+                            // Targets
+                            if ( arrayLength( l_primitive->targets ) ) {
+                                APPEND_TO_LOG_BUFFER(
+                                    "\033[1;32m=== GLTF Primitive Targets Info "
+                                    "===\033[0m\n" );
+
+                                FOR_ARRAY(
+                                    struct GLTF_mesh_primitive_target* const*,
+                                    l_primitive->targets ) {
+                                    APPEND_TO_LOG_BUFFER(
+                                        "\033[1;32m=== GLTF Primitive Target "
+                                        "Info "
+                                        "===\033[0m\n" );
+
+                                    const struct GLTF_mesh_primitive_target*
+                                        l_element = *_element;
+
+                                    // POSITION
+                                    APPEND_TO_LOG_BUFFER(
+                                        "  \033[1;34mPosition\033[0m  : "
+                                        "\033[1;36m'%u'\033[0m\n",
+                                        ( ( l_element->POSITION )
+                                              ? ( l_element->POSITION )
+                                              : ( 0 ) ) );
+
+                                    // NORMAL
+                                    APPEND_TO_LOG_BUFFER(
+                                        "  \033[1;34mNormal\033[0m  : "
+                                        "\033[1;36m'%u'\033[0m\n",
+                                        ( ( l_element->NORMAL )
+                                              ? ( l_element->NORMAL )
+                                              : ( 0 ) ) );
+
+                                    // TANGENT
+                                    APPEND_TO_LOG_BUFFER(
+                                        "  \033[1;34mTangent\033[0m  : "
+                                        "\033[1;36m'%u'\033[0m\n",
+                                        ( ( l_element->TANGENT )
+                                              ? ( l_element->TANGENT )
+                                              : ( 0 ) ) );
+
+                                    APPEND_TO_LOG_BUFFER(
+                                        "\033[1;32m========================"
+                                        "\033[0m\n" );
+                                }
+
+                                APPEND_TO_LOG_BUFFER(
+                                    "\033[1;32m========================\033["
+                                    "0m\n" );
+                            }
 
                             APPEND_TO_LOG_BUFFER(
                                 "\033[1;32m========================\033[0m\n" );
@@ -1456,6 +2118,56 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         APPEND_TO_LOG_BUFFER(
                             "\033[1;32m========================\033[0m\n" );
                     }
+
+                    APPEND_TO_LOG_BUFFER(
+                        "\033[1;32m========================\033[0m\n" );
+                }
+
+                APPEND_TO_LOG_BUFFER(
+                    "\033[1;32m========================\033[0m\n" );
+            }
+
+            // Materials
+            if ( arrayLength( _GLTF->materials ) ) {
+                APPEND_TO_LOG_BUFFER(
+                    "\033[1;32m=== GLTF Materials Info ===\033[0m\n" );
+
+                FOR_ARRAY( struct GLTF_material**, _GLTF->materials ) {
+                    APPEND_TO_LOG_BUFFER(
+                        "\033[1;32m=== GLTF Material Info ===\033[0m\n" );
+
+                    struct GLTF_material* l_element = *_element;
+
+                    // Name
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mName\033[0m  : \033[1;36m'%s'\033[0m\n",
+                        ( ( l_element->name ) ? ( l_element->name )
+                                              : ( "N/A" ) ) );
+
+                    // EmissiveFactor
+                    LOG_ARRAY_IF_NOT_DEFAULT( l_element->emissiveFactor, "%f",
+                                              DEFAULT_GLTF_MATERIAL_EMISSIVE_FACTOR,
+                                              "  \033[1;34mMatrix\033[0m  : "
+                                              "\033[1;36m'%s'\033[0m\n" );
+
+                    // AlphaMode
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mAlphaMode\033[0m  : "
+                        "\033[1;36m'%s'\033[0m\n",
+                        GLTF_t$material$alphaMode$toString(
+                            l_element->alphaMode ) );
+
+                    // AlphaCutoff
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mAlphaCutoff\033[0m  : \033[1;36m'%f'\033[0m\n",
+                        ( ( l_element->alphaCutoff ) ? ( l_element->alphaCutoff )
+                                                : ( 0 ) ) );
+
+                    // DoubleSided
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mDoubleSided\033[0m  : \033[1;36m'%s'\033[0m\n",
+                        ( ( l_element->doubleSided ) ? ( "True" )
+                                                : ( "False" ) ) );
 
                     APPEND_TO_LOG_BUFFER(
                         "\033[1;32m========================\033[0m\n" );
@@ -1725,6 +2437,229 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         "\033[1;36m'%u'\033[0m\n",
                         ( ( l_element->bufferView ) ? ( l_element->bufferView )
                                                     : ( 0 ) ) );
+
+                    APPEND_TO_LOG_BUFFER(
+                        "\033[1;32m========================\033[0m\n" );
+                }
+
+                APPEND_TO_LOG_BUFFER(
+                    "\033[1;32m========================\033[0m\n" );
+            }
+
+            // Cameras
+            if ( arrayLength( _GLTF->cameras ) ) {
+                APPEND_TO_LOG_BUFFER(
+                    "\033[1;32m=== GLTF Cameras Info ===\033[0m\n" );
+
+                FOR_ARRAY( struct GLTF_camera**, _GLTF->cameras ) {
+                    APPEND_TO_LOG_BUFFER(
+                        "\033[1;32m=== GLTF Camera Info ===\033[0m\n" );
+
+                    struct GLTF_camera* l_element = *_element;
+
+                    // Name
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mName\033[0m  : \033[1;36m'%s'\033[0m\n",
+                        ( ( l_element->name ) ? ( l_element->name )
+                                              : ( "N/A" ) ) );
+
+                    // Type
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mType\033[0m  : "
+                        "\033[1;36m'%s'\033[0m\n",
+                        GLTF_t$camera$type$toString( l_element->type ) );
+
+                    // Orthographic
+                    if ( l_element->type == ORTHOGRAPHIC ) {
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m=== GLTF Camera Orthographic Info "
+                            "===\033[0m\n" );
+
+                        // Xmag
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mXmag\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->orthographic.xmag )
+                                  ? ( l_element->orthographic.xmag )
+                                  : ( 0 ) ) );
+
+                        // Ymag
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mYmag\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->orthographic.ymag )
+                                  ? ( l_element->orthographic.ymag )
+                                  : ( 0 ) ) );
+
+                        // Zfar
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mZfar\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->orthographic.zfar )
+                                  ? ( l_element->orthographic.zfar )
+                                  : ( 0 ) ) );
+
+                        // Znear
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mZnear\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->orthographic.znear )
+                                  ? ( l_element->orthographic.znear )
+                                  : ( 0 ) ) );
+
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m========================\033[0m\n" );
+                    }
+
+                    // Perspective
+                    if ( l_element->type == PERSPECTIVE ) {
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m=== GLTF Camera Perspective Info "
+                            "===\033[0m\n" );
+
+                        // AspectRatio
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mAspectRation\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->perspective.aspectRatio )
+                                  ? ( l_element->perspective.aspectRatio )
+                                  : ( 0 ) ) );
+
+                        // YFOV
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mYFOV\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->perspective.yfov )
+                                  ? ( l_element->perspective.yfov )
+                                  : ( 0 ) ) );
+
+                        // Zfar
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mZfar\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->perspective.zfar )
+                                  ? ( l_element->perspective.zfar )
+                                  : ( 0 ) ) );
+
+                        // Znear
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mZnear\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_element->perspective.znear )
+                                  ? ( l_element->perspective.znear )
+                                  : ( 0 ) ) );
+
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m========================\033[0m\n" );
+                    }
+
+                    APPEND_TO_LOG_BUFFER(
+                        "\033[1;32m========================\033[0m\n" );
+                }
+
+                APPEND_TO_LOG_BUFFER(
+                    "\033[1;32m========================\033[0m\n" );
+            }
+
+            // Animations
+            if ( arrayLength( _GLTF->animations ) ) {
+                APPEND_TO_LOG_BUFFER(
+                    "\033[1;32m=== GLTF Animations Info ===\033[0m\n" );
+
+                FOR_ARRAY( struct GLTF_animation**, _GLTF->animations ) {
+                    APPEND_TO_LOG_BUFFER(
+                        "\033[1;32m=== GLTF Animation Info ===\033[0m\n" );
+
+                    struct GLTF_animation* l_element = *_element;
+
+                    // Name
+                    APPEND_TO_LOG_BUFFER(
+                        "  \033[1;34mName\033[0m  : \033[1;36m'%s'\033[0m\n",
+                        ( ( l_element->name ) ? ( l_element->name )
+                                              : ( "N/A" ) ) );
+
+                    // Channels
+                    if ( arrayLength( l_element->channels ) ) {
+                        FOR_ARRAY( struct GLTF_animation_channel**,
+                                   l_element->channels ) {
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m=== GLTF Animation Channel Info "
+                                "===\033[0m\n" );
+
+                            // Sampler
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mSampler\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( ( *_element )->sampler )
+                                      ? ( ( *_element )->sampler )
+                                      : ( 0 ) ) );
+
+                            // Target
+                            {
+                                APPEND_TO_LOG_BUFFER(
+                                    "\033[1;32m=== GLTF Animation Channel "
+                                    "Target Info ===\033[0m\n" );
+
+                                // Node
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mNode\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( ( *_element )->target.node )
+                                          ? ( ( *_element )->target.node )
+                                          : ( 0 ) ) );
+
+                                // Path
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mPath\033[0m  : "
+                                    "\033[1;36m'%s'\033[0m\n",
+                                    GLTF_t$animation$channel$target$path$toString(
+                                        ( *_element )->target.path ) );
+
+                                APPEND_TO_LOG_BUFFER(
+                                    "\033[1;32m========================\033["
+                                    "0m\n" );
+                            }
+
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m========================\033[0m\n" );
+                        }
+                    }
+
+                    // Samplers
+                    if ( arrayLength( l_element->samplers ) ) {
+                        FOR_ARRAY( struct GLTF_animation_sampler**,
+                                   l_element->samplers ) {
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m=== GLTF Animation Sampler Info "
+                                "===\033[0m\n" );
+
+                            // Input
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mInput\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( ( *_element )->input )
+                                      ? ( ( *_element )->input )
+                                      : ( 0 ) ) );
+
+                            // Interpolation
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mInterpolation\033[0m  : "
+                                "\033[1;36m'%s'\033[0m\n",
+                                GLTF_t$animation$sampler$interpolation$toString(
+                                    ( *_element )->interpolation ) );
+
+                            // Output
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mOutput\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( ( *_element )->output )
+                                      ? ( ( *_element )->output )
+                                      : ( 0 ) ) );
+
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m========================\033[0m\n" );
+                        }
+                    }
 
                     APPEND_TO_LOG_BUFFER(
                         "\033[1;32m========================\033[0m\n" );

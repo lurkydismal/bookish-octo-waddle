@@ -61,7 +61,7 @@
 #else
 
 #define LOG_MAX_TRANSACTION_SIZE_DEFAULT \
-    ( ( size_t )( ( ( size_t )1024 * 10 * 10 ) * sizeof( char ) ) )
+    ( ( size_t )( ( ( size_t )1024 * 10 * 100 ) * sizeof( char ) ) )
 
 #endif
 

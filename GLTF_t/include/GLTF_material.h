@@ -7,7 +7,7 @@
 #include "stdfloat16.h"
 
 #define DEFAULT_GLTF_MATERIAL_PBR_METALLIC_ROUGHNESS_BASE_COLOR_FACTOR \
-    { 0, 0, 0, 0 }
+    { 0, 0, 0, 1 }
 
 #define DEFAULT_GLTF_MATERIAL_PBR_METALLIC_ROUGHNESS_BASE_COLOR_TEXTURE \
     DEFAULT_GLTF_TEXTURE_INFO
@@ -58,13 +58,13 @@ struct GLTF_material_pbrMetallicRoughness {
 
 struct GLTF_material_normal_texture_info {
     uint8_t index;
-    uint8_t texCoord;
+    uint32_t texCoord;
     float scale;
 };
 
 struct GLTF_material_occlusion_texture_info {
     uint8_t index;
-    uint8_t texCoord;
+    uint32_t texCoord;
     float strength;
 };
 
@@ -84,6 +84,10 @@ struct GLTF_material {
 
 static FORCE_INLINE enum GLTF_material_alphaMode
 GLTF_t$material$alphaMode$fromString( const char* _string ) {
+    if ( !_string ) {
+        return ( DEFAULT_GLTF_MATERIAL_ALPHA_MODE );
+    }
+
     if ( __builtin_strcmp( _string, "OPAQUE" ) == 0 ) {
         return ( OPAQUE );
 

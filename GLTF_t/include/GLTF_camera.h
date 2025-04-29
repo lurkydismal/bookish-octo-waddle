@@ -40,3 +40,39 @@ struct GLTF_camera {
     struct GLTF_camera_orthographic orthographic;
     struct GLTF_camera_perspective perspective;
 };
+
+static FORCE_INLINE enum GLTF_camera_type GLTF_t$camera$type$fromString(
+    const char* _string ) {
+    if ( !_string ) {
+        return ( DEFAULT_GLTF_CAMERA_TYPE );
+    }
+
+    {
+        if ( __builtin_strcmp( _string, "perspective" ) == 0 ) {
+            return ( PERSPECTIVE );
+
+        } else if ( __builtin_strcmp( _string, "orthographic" ) == 0 ) {
+            return ( ORTHOGRAPHIC );
+
+        } else {
+            return ( DEFAULT_GLTF_CAMERA_TYPE );
+        }
+    }
+}
+
+static FORCE_INLINE const char* GLTF_t$camera$type$toString(
+    const enum GLTF_camera_type _type ) {
+    switch ( _type ) {
+        case ( PERSPECTIVE ): {
+            return ( "perspective" );
+        }
+
+        case ( ORTHOGRAPHIC ): {
+            return ( "orthographic" );
+        }
+
+        default: {
+            return ( GLTF_t$camera$type$toString( DEFAULT_GLTF_CAMERA_TYPE ) );
+        }
+    }
+}

@@ -94,7 +94,7 @@ struct GLTF_accessor {
 
 static FORCE_INLINE enum GLTF_accessor_type GLTF_t$accessor$type$fromString(
     const char* _string ) {
-    if ( UNLIKELY( !_string ) ) {
+    if ( !_string ) {
         return ( DEFAULT_GLTF_ACCESSOR_TYPE );
     }
 
