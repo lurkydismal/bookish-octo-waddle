@@ -2144,11 +2144,213 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         ( ( l_element->name ) ? ( l_element->name )
                                               : ( "N/A" ) ) );
 
+                    // PBRMetallicRoughness
+                    {
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m=== GLTF PBR Metallic Roughness Info "
+                            "===\033[0m\n" );
+
+                        struct GLTF_material_pbrMetallicRoughness*
+                            l_pbrMetallicRoughness =
+                                &( l_element->pbrMetallicRoughness );
+
+                        // BaseColorFactor
+                        LOG_ARRAY_IF_NOT_DEFAULT(
+                            l_pbrMetallicRoughness->baseColorFactor, "%f",
+                            DEFAULT_GLTF_MATERIAL_PBR_METALLIC_ROUGHNESS_BASE_COLOR_FACTOR,
+                            "  \033[1;34mBaseColorFactor\033[0m  : "
+                            "\033[1;36m'%s'\033[0m\n" );
+
+                        // MetallicFactor
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mMetallicFactor\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_pbrMetallicRoughness->metallicFactor )
+                                  ? ( l_pbrMetallicRoughness->metallicFactor )
+                                  : ( 0 ) ) );
+
+                        // RoughnessFactor
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mRoughnessFactor\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_pbrMetallicRoughness->roughnessFactor )
+                                  ? ( l_pbrMetallicRoughness->roughnessFactor )
+                                  : ( 0 ) ) );
+
+                        // BaseColorTexture
+                        {
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m=== GLTF Base Color Texture Info "
+                                "===\033[0m\n" );
+
+                            struct GLTF_texture_info* l_baseColorTexture =
+                                &( l_pbrMetallicRoughness->baseColorTexture );
+
+                            // Index
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mIndex\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( l_baseColorTexture->index )
+                                      ? ( l_baseColorTexture->index )
+                                      : ( 0 ) ) );
+
+                            // TexCoord
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mTexCoord\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( l_baseColorTexture->texCoord )
+                                      ? ( l_baseColorTexture->texCoord )
+                                      : ( 0 ) ) );
+
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m========================\033[0m\n" );
+                        }
+
+                        // MetallicRoughnessTexture
+                        {
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m=== GLTF Metallic Roughness Texture "
+                                "Info ===\033[0m\n" );
+
+                            struct GLTF_texture_info*
+                                l_metallicRoughnessTexture =
+                                    &( l_pbrMetallicRoughness
+                                           ->metallicRoughnessTexture );
+
+                            // Index
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mIndex\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( l_metallicRoughnessTexture->index )
+                                      ? ( l_metallicRoughnessTexture->index )
+                                      : ( 0 ) ) );
+
+                            // TexCoord
+                            APPEND_TO_LOG_BUFFER(
+                                "  \033[1;34mTexCoord\033[0m  : "
+                                "\033[1;36m'%u'\033[0m\n",
+                                ( ( l_metallicRoughnessTexture->texCoord )
+                                      ? ( l_metallicRoughnessTexture->texCoord )
+                                      : ( 0 ) ) );
+
+                            APPEND_TO_LOG_BUFFER(
+                                "\033[1;32m========================\033[0m\n" );
+                        }
+
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m========================\033[0m\n" );
+                    }
+
+                    // NormalTexture
+                    {
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m=== GLTF Normal Texture Info "
+                            "===\033[0m\n" );
+
+                        struct GLTF_material_normal_texture_info*
+                            l_normalTexture = &( l_element->normalTexture );
+
+                        // Index
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mIndex\033[0m  : "
+                            "\033[1;36m'%u'\033[0m\n",
+                            ( ( l_normalTexture->index )
+                                  ? ( l_normalTexture->index )
+                                  : ( 0 ) ) );
+
+                        // TexCoord
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mTexCoord\033[0m  : "
+                            "\033[1;36m'%u'\033[0m\n",
+                            ( ( l_normalTexture->texCoord )
+                                  ? ( l_normalTexture->texCoord )
+                                  : ( 0 ) ) );
+
+                        // Scale
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mScale\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_normalTexture->scale )
+                                  ? ( l_normalTexture->scale )
+                                  : ( 0 ) ) );
+
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m========================\033[0m\n" );
+                    }
+
+                    // OcclusionTexture
+                    {
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m=== GLTF Occlusion Texture Info "
+                            "===\033[0m\n" );
+
+                        struct GLTF_material_occlusion_texture_info*
+                            l_occlusionTexture =
+                                &( l_element->occlusionTexture );
+
+                        // Index
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mIndex\033[0m  : "
+                            "\033[1;36m'%u'\033[0m\n",
+                            ( ( l_occlusionTexture->index )
+                                  ? ( l_occlusionTexture->index )
+                                  : ( 0 ) ) );
+
+                        // TexCoord
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mTexCoord\033[0m  : "
+                            "\033[1;36m'%u'\033[0m\n",
+                            ( ( l_occlusionTexture->texCoord )
+                                  ? ( l_occlusionTexture->texCoord )
+                                  : ( 0 ) ) );
+
+                        // Strength
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mStrength\033[0m  : "
+                            "\033[1;36m'%f'\033[0m\n",
+                            ( ( l_occlusionTexture->strength )
+                                  ? ( l_occlusionTexture->strength )
+                                  : ( 0 ) ) );
+
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m========================\033[0m\n" );
+                    }
+
+                    // EmissiveTexture
+                    {
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m=== GLTF Emissive Texture Info "
+                            "===\033[0m\n" );
+
+                        struct GLTF_texture_info* l_emissiveTexture =
+                            &( l_element->emissiveTexture );
+
+                        // Index
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mIndex\033[0m  : "
+                            "\033[1;36m'%u'\033[0m\n",
+                            ( ( l_emissiveTexture->index )
+                                  ? ( l_emissiveTexture->index )
+                                  : ( 0 ) ) );
+
+                        // TexCoord
+                        APPEND_TO_LOG_BUFFER(
+                            "  \033[1;34mTexCoord\033[0m  : "
+                            "\033[1;36m'%u'\033[0m\n",
+                            ( ( l_emissiveTexture->texCoord )
+                                  ? ( l_emissiveTexture->texCoord )
+                                  : ( 0 ) ) );
+
+                        APPEND_TO_LOG_BUFFER(
+                            "\033[1;32m========================\033[0m\n" );
+                    }
+
                     // EmissiveFactor
-                    LOG_ARRAY_IF_NOT_DEFAULT( l_element->emissiveFactor, "%f",
-                                              DEFAULT_GLTF_MATERIAL_EMISSIVE_FACTOR,
-                                              "  \033[1;34mMatrix\033[0m  : "
-                                              "\033[1;36m'%s'\033[0m\n" );
+                    LOG_ARRAY_IF_NOT_DEFAULT(
+                        l_element->emissiveFactor, "%f",
+                        DEFAULT_GLTF_MATERIAL_EMISSIVE_FACTOR,
+                        "  \033[1;34mEmissiveFactor\033[0m  : "
+                        "\033[1;36m'%s'\033[0m\n" );
 
                     // AlphaMode
                     APPEND_TO_LOG_BUFFER(
@@ -2159,15 +2361,18 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
 
                     // AlphaCutoff
                     APPEND_TO_LOG_BUFFER(
-                        "  \033[1;34mAlphaCutoff\033[0m  : \033[1;36m'%f'\033[0m\n",
-                        ( ( l_element->alphaCutoff ) ? ( l_element->alphaCutoff )
-                                                : ( 0 ) ) );
+                        "  \033[1;34mAlphaCutoff\033[0m  : "
+                        "\033[1;36m'%f'\033[0m\n",
+                        ( ( l_element->alphaCutoff )
+                              ? ( l_element->alphaCutoff )
+                              : ( 0 ) ) );
 
                     // DoubleSided
                     APPEND_TO_LOG_BUFFER(
-                        "  \033[1;34mDoubleSided\033[0m  : \033[1;36m'%s'\033[0m\n",
+                        "  \033[1;34mDoubleSided\033[0m  : "
+                        "\033[1;36m'%s'\033[0m\n",
                         ( ( l_element->doubleSided ) ? ( "True" )
-                                                : ( "False" ) ) );
+                                                     : ( "False" ) ) );
 
                     APPEND_TO_LOG_BUFFER(
                         "\033[1;32m========================\033[0m\n" );
