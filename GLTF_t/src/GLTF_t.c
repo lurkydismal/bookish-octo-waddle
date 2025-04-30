@@ -24,6 +24,17 @@ typedef yyjson_val* field_t;
         *( l_buffer - 1 ) = '\0';                                          \
     } while ( 0 )
 
+#define joinArrayRange( _range, _array, _storage, _elementFormat, _delimeter ) \
+    do {                                                                       \
+        char* l_buffer = ( _storage );                                         \
+        FOR_RANGE( size_t, 0, ( _range ) ) {                                   \
+            l_buffer += sprintf( l_buffer, _elementFormat _delimeter,          \
+                                 ( _array )[ _index ] );                       \
+        }                                                                      \
+        /* Remove trailing space */                                            \
+        *( l_buffer - 1 ) = '\0';                                              \
+    } while ( 0 )
+
 #define joinArray( _array, _storage, _elementFormat, _delimeter )              \
     do {                                                                       \
         if ( _array ) {                                                        \
@@ -1677,6 +1688,28 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
         }                                                                    \
     } while ( 0 )
 
+#define LOG_ARRAY_RANGE_IF_NOT_DEFAULT( _range, _array, _elementFormat,      \
+                                        _defaultArray, _format )             \
+    do {                                                                     \
+        bool l_isNotDefault = false;                                         \
+        const typeof( *( _array ) ) l_arrayDefault[] = _defaultArray;        \
+        FOR_RANGE( size_t, 0, _range ) {                                     \
+            if ( ( typeof( *( _array ) ) )( ( _array )[ _index ] ) !=        \
+                 l_arrayDefault[ _index ] ) {                                \
+                l_isNotDefault = true;                                       \
+                break;                                                       \
+            }                                                                \
+        }                                                                    \
+        if ( l_isNotDefault ) {                                              \
+            char l_arrayAsString[ 256 ] = "";                                \
+            joinArrayRange( _range, _array, l_arrayAsString, _elementFormat, \
+                            " " );                                           \
+            APPEND_TO_LOG_BUFFER( ( _format ), l_arrayAsString );            \
+        } else {                                                             \
+            APPEND_TO_LOG_BUFFER( ( _format ), "N/A" );                      \
+        }                                                                    \
+    } while ( 0 )
+
             // Asset
             {
                 APPEND_TO_LOG_BUFFER(
@@ -2032,16 +2065,18 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                         GLTF_t$accessor$type$toString( l_element->type ) );
 
                     // Max
-                    LOG_ARRAY_IF_NOT_DEFAULT( l_element->max, "%f",
-                                              DEFAULT_GLTF_ACCESSOR_MAX,
-                                              "  \033[1;34mMax\033[0m  : "
-                                              "\033[1;36m'%s'\033[0m\n" );
+                    LOG_ARRAY_RANGE_IF_NOT_DEFAULT( l_element->type,
+                                                    l_element->max, "%f",
+                                                    DEFAULT_GLTF_ACCESSOR_MAX,
+                                                    "  \033[1;34mMax\033[0m  : "
+                                                    "\033[1;36m'%s'\033[0m\n" );
 
                     // Min
-                    LOG_ARRAY_IF_NOT_DEFAULT( l_element->min, "%f",
-                                              DEFAULT_GLTF_ACCESSOR_MIN,
-                                              "  \033[1;34mMin\033[0m  : "
-                                              "\033[1;36m'%s'\033[0m\n" );
+                    LOG_ARRAY_RANGE_IF_NOT_DEFAULT( l_element->type,
+                                                    l_element->min, "%f",
+                                                    DEFAULT_GLTF_ACCESSOR_MIN,
+                                                    "  \033[1;34mMin\033[0m  : "
+                                                    "\033[1;36m'%s'\033[0m\n" );
 
                     // Sparse
                     if ( l_element->sparse.count ) {
