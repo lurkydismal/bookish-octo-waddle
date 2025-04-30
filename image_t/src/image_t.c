@@ -5,6 +5,14 @@
 #include "log.h"
 #include "stdfunc.h"
 
+#if defined( WRITE_IMAGE_TO_IMAGE )
+
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+
+#include <stb/stb_image_write.h>
+
+#endif
+
 // Constants
 #define RGBA_PIXEL_SIZE ( ( size_t )4 )
 #define BGR_PIXEL_SIZE ( ( size_t )3 )
@@ -208,6 +216,13 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
             _image->size = l_dataSize;
         }
 
+        if ( UNLIKELY( _image->size != ( _image->width * _image->height *
+                                         RGBA_PIXEL_SIZE ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+
         l_returnValue = true;
 
     EXIT_HEADER:
@@ -266,6 +281,18 @@ bool image_t$load$fromAsset( image_t* restrict _image,
         log$transaction$query$format( ( logLevel_t )debug,
                                       "Image width: %d, height: %d\n",
                                       _image->width, _image->height );
+
+#if defined( WRITE_IMAGE_TO_IMAGE )
+
+        stbi_write_png( "image.png", _image->width, _image->height,
+                        RGBA_PIXEL_SIZE, _image->data,
+                        ( _image->width * _image->height ) );
+
+        log$transaction$query(
+            ( logLevel_t )info,
+            "'fontAtlas.png' file was created with trimmed fomt bitmap\n" );
+
+#endif
 
         l_returnValue = true;
     }
