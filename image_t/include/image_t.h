@@ -5,6 +5,10 @@
 
 #include "asset_t.h"
 
+// Constants
+#define RGBA_PIXEL_SIZE ( ( size_t )4 )
+#define BGR_PIXEL_SIZE ( ( size_t )3 )
+
 #define IMAGE_DEFAULT_ALPHA ( 0xFF )
 #define DEFAULT_IMAGE { .width = 0, .height = 0, .data = NULL, .size = 0 }
 

@@ -42,16 +42,16 @@ export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
     "gameState_t/include"
     "GLTF_t/include"
-    "image_t/include"
-    "font_t/include"
+    "FPS/include"
     "settings_t/include"
     "window_t/include"
     "vsync/include"
-    "FPS/include"
+    "texture_t/include"
+    "font_t/include"
+    "image_t/include"
     "asset_t/include"
     "log/include"
     "stdfunc/include"
-    "hashMap_t/include"
     "glad/include"
     "yyjson/include"
 )
@@ -73,6 +73,7 @@ export declare LIBRARIES_TO_LINK=(
 )
 export declare EXTERNAL_LIBRARIES_TO_LINK=(
     "snappy"
+    "ktx_read"
 )
 export declare LIBRARIES_TO_LINK_TESTS=(
     "m"

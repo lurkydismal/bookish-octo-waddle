@@ -203,13 +203,16 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
 
 #if defined( WRITE_FONT_TO_IMAGE )
 
-            stbi_write_png( "fontAtlas.png", _font->atlasWidth,
+            const char* l_exportFileName = "fontAtlas.png";
+
+            stbi_write_png( l_exportFileName, _font->atlasWidth,
                             _font->atlasHeight, 1, l_bitmapTrimmed,
                             _font->atlasWidth );
 
-            log$transaction$query(
+            log$transaction$query$format(
                 ( logLevel_t )info,
-                "'fontAtlas.png' file was created with trimmed fomt bitmap\n" );
+                "'%s' file was created with trimmed fomt bitmap\n",
+                l_exportFileName );
 
 #endif
 

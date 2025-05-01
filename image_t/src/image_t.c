@@ -13,10 +13,6 @@
 
 #endif
 
-// Constants
-#define RGBA_PIXEL_SIZE ( ( size_t )4 )
-#define BGR_PIXEL_SIZE ( ( size_t )3 )
-
 #define BMP_DATA_START_VALUE_OFFsET ( 10 )
 #define BMP_WIDTH_OFFSET ( 18 )
 #define BMP_HEIGHT_OFFSET ( 22 )
@@ -284,13 +280,14 @@ bool image_t$load$fromAsset( image_t* restrict _image,
 
 #if defined( WRITE_IMAGE_TO_IMAGE )
 
-        stbi_write_png( "image.png", _image->width, _image->height,
+        const char* l_exportFileName = "image.png";
+
+        stbi_write_png( l_exportFileName, _image->width, _image->height,
                         RGBA_PIXEL_SIZE, _image->data,
                         ( _image->width * _image->height ) );
 
-        log$transaction$query(
-            ( logLevel_t )info,
-            "'fontAtlas.png' file was created with trimmed fomt bitmap\n" );
+        log$transaction$query$format(
+            ( logLevel_t )info, "%s' file was created\n", l_exportFileName );
 
 #endif
 
