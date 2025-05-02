@@ -578,11 +578,33 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                                             &( l_attributes->TANGENT ),
                                             ( uint16_t ));
 
-                                        // TODO: Implement
-                                        // TEXCOORD_n
-                                        // COLOR_n
-                                        // JOINTS_n
-                                        // WEIGHTS_n
+                                        // TEXCOORD_0
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName,
+                                            "TEXCOORD_0", uint, uint16_t,
+                                            &( l_attributes->TEXCOORD_0 ),
+                                            ( uint16_t ));
+
+                                        // TEXCOORD_1
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName,
+                                            "TEXCOORD_1", uint, uint16_t,
+                                            &( l_attributes->TEXCOORD_1 ),
+                                            ( uint16_t ));
+
+                                        // JOINTS_0
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName,
+                                            "JOINTS_0", uint, uint16_t,
+                                            &( l_attributes->JOINTS_0 ),
+                                            ( uint16_t ));
+
+                                        // WEIGHTS_0
+                                        GLTF_t$bind$value(
+                                            l_field, l_rootFieldName,
+                                            "WEIGHTS_0", uint, uint16_t,
+                                            &( l_attributes->WEIGHTS_0 ),
+                                            ( uint16_t ));
                                     }
                                 }
 
@@ -1905,6 +1927,38 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                                     "\033[1;36m'%u'\033[0m\n",
                                     ( ( l_attributes.TANGENT )
                                           ? ( l_attributes.TANGENT )
+                                          : ( 0 ) ) );
+
+                                // TEXCOORD_0
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mTexCoord_0\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.TEXCOORD_0 )
+                                          ? ( l_attributes.TEXCOORD_0 )
+                                          : ( 0 ) ) );
+
+                                // TEXCOORD_1
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mTexCoord_1\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.TEXCOORD_1 )
+                                          ? ( l_attributes.TEXCOORD_1 )
+                                          : ( 0 ) ) );
+
+                                // JOINTS_0
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mJoints_0\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.JOINTS_0 )
+                                          ? ( l_attributes.JOINTS_0 )
+                                          : ( 0 ) ) );
+
+                                // WEIGHTS_0
+                                APPEND_TO_LOG_BUFFER(
+                                    "  \033[1;34mWeights_0\033[0m  : "
+                                    "\033[1;36m'%u'\033[0m\n",
+                                    ( ( l_attributes.WEIGHTS_0 )
+                                          ? ( l_attributes.WEIGHTS_0 )
                                           : ( 0 ) ) );
 
                                 APPEND_TO_LOG_BUFFER(

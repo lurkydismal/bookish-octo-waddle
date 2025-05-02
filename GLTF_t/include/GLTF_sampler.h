@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "stdfunc.h"
 
 #define DEFAULT_GLTF_SAMPLER_MAG_FILER NEAREST
 

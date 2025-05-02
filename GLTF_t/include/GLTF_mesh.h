@@ -3,15 +3,16 @@
 #include <stdint.h>
 
 #include "stdfloat16.h"
+#include "stdfunc.h"
 
 #define DEFAULT_GLTF_MESH_PRIMITIVES_ATTRIBUTES \
     { .POSITION = 0,                            \
       .NORMAL = 0,                              \
       .TANGENT = 0,                             \
-      .TEXCOORD_n = NULL,                       \
-      .COLOR_n = NULL,                          \
-      .JOINTS_n = NULL,                         \
-      .WEIGHTS_n = NULL }
+      .TEXCOORD_0 = 0,                          \
+      .TEXCOORD_1 = 0,                          \
+      .JOINTS_0 = 0,                            \
+      .WEIGHTS_0 = 0 }
 
 #define DEFAULT_GLTF_MESH_PRIMITIVES_MODE TRIANGLES
 
@@ -31,10 +32,10 @@ struct GLTF_mesh_primitive_attributes {
     uint16_t POSITION;
     uint16_t NORMAL;
     uint16_t TANGENT;
-    uint16_t* TEXCOORD_n;
-    uint16_t* COLOR_n; // If vec3 then 4th is 1.0
-    uint16_t* JOINTS_n;
-    uint16_t* WEIGHTS_n;
+    uint16_t TEXCOORD_0;
+    uint16_t TEXCOORD_1;
+    uint16_t JOINTS_0;
+    uint16_t WEIGHTS_0;
 };
 
 enum GLTF_mesh_primitive_mode {

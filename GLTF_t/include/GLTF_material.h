@@ -2,9 +2,11 @@
 
 #include <stdbool.h>
 #include <stdint.h>
+#include <cglm.h>
 
 #include "GLTF_texture_info.h"
 #include "stdfloat16.h"
+#include "stdfunc.h"
 
 #define DEFAULT_GLTF_MATERIAL_PBR_METALLIC_ROUGHNESS_BASE_COLOR_FACTOR \
     { 0, 0, 0, 1 }
@@ -49,7 +51,7 @@
       .doubleSided = false }
 
 struct GLTF_material_pbrMetallicRoughness {
-    float baseColorFactor[ 4 ];
+    vec4 baseColorFactor;
     float metallicFactor;
     float roughnessFactor;
     struct GLTF_texture_info baseColorTexture;
@@ -76,7 +78,7 @@ struct GLTF_material {
     struct GLTF_material_normal_texture_info normalTexture;
     struct GLTF_material_occlusion_texture_info occlusionTexture;
     struct GLTF_texture_info emissiveTexture;
-    float emissiveFactor[ 3 ];
+    vec3 emissiveFactor;
     enum GLTF_material_alphaMode alphaMode;
     float alphaCutoff;
     bool doubleSided;

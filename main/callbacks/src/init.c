@@ -123,7 +123,6 @@ callbackResult_t init( applicationState_t* restrict _applicationState ) {
                 GLAD_VERSION_MINOR( _applicationState->glVersion ) );
         }
 
-#if 0
         {
             GLTF_t t = GLTF_t$create();
 
@@ -145,7 +144,6 @@ callbackResult_t init( applicationState_t* restrict _applicationState ) {
                 goto EXIT;
             }
         }
-#endif
 
         // Vsync
         {
