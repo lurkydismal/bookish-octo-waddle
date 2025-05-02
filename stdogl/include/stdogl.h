@@ -1,6 +1,7 @@
 #pragma once
 
-#include <cglm.h>
+#include <cglm/cglm.h>
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
