@@ -6,7 +6,7 @@
 
 #include "asset_t.h"
 
-#define DEFAULT_TEXTURE { .texture = 0, .data = NULL }
+#define DEFAULT_TEXTURE { .texture = 0, .type = 0 .data = NULL }
 
 // TOOD: Offset list for each mipmap
 typedef struct {

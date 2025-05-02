@@ -26,6 +26,8 @@ bool texture_t$destroy( texture_t* _texture ) {
     }
 
     {
+        _texture->texture = 0;
+        _texture->type = 0;
         _texture->data = NULL;
 
         l_returnValue = true;
@@ -124,6 +126,8 @@ bool texture_t$unload( texture_t* _texture ) {
 
     {
         ktxTexture2_Destroy( _texture->data );
+        _texture->texture = 0;
+        _texture->type = 0;
 
         l_returnValue = true;
     }
