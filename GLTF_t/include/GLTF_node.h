@@ -1,7 +1,7 @@
 #pragma once
 
+#include <cglm/cglm.h>
 #include <stdint.h>
-#include <cglm.h>
 
 #include "stdfloat16.h"
 

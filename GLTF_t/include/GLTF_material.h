@@ -1,8 +1,8 @@
 #pragma once
 
+#include <cglm/cglm.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <cglm.h>
 
 #include "GLTF_texture_info.h"
 #include "stdfloat16.h"
