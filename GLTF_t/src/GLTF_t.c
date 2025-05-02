@@ -75,11 +75,11 @@ typedef yyjson_val* field_t;
 
 #if defined( DEBUG_LOG_ROOT_FIELD_NOT_FOUND )
 
-#define LOG_ROOT_FIELD_NOT_FOUND( _rootFieldName )                            \
-    do {                                                                      \
-        log$transaction$query$format(                                         \
-            ( logLevel_t )warn, "Root field '%s' not found in GLTF object\n", \
-            ( _rootFieldName ) );                                             \
+#define LOG_ROOT_FIELD_NOT_FOUND( _rootFieldName )                             \
+    do {                                                                       \
+        log$transaction$query$format(                                          \
+            ( logLevel_t )debug, "Root field '%s' not found in GLTF object\n", \
+            ( _rootFieldName ) );                                              \
     } while ( 0 )
 
 #else
