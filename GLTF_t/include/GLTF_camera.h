@@ -3,6 +3,7 @@
 #include <stdint.h>
 
 #include "stdfloat16.h"
+#include "stdfunc.h"
 
 #define DEFAULT_GLTF_CAMERA_TYPE PERSPECTIVE
 

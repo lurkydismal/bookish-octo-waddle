@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include "stdfunc.h"
+
 #define DEFAULT_GLTF_ANIMATION_CHANNEL_TARGET_PATH TRANSLATION
 
 #define DEFAULT_GLTF_ANIMATION_CHANNEL_TARGET \
