@@ -169,11 +169,27 @@ fi
 
 if [ ${#EXTERNAL_LIBRARIES_TO_LINK[@]} -ne 0 ]; then
     printf -v externalLibrariesAsString -- "%s " "${EXTERNAL_LIBRARIES_TO_LINK[@]}"
+
     echo -e "$EXTERNAL_LIBRARIES_COLOR""$externalLibrariesAsString""$RESET_COLOR"
     externalLibrariesBuildCFlagsAsString="$(pkg-config --static --cflags $externalLibrariesAsString)"' '
+
+    SEARCH_STATUS=$?
+
+    if [ $SEARCH_STATUS -ne 0 ]; then
+        exit $SEARCH_STATUS
+    fi
+
     echo -e "$INCLUDES_COLOR""$externalLibrariesBuildCFlagsAsString""$RESET_COLOR"
     externalLibrariesLinkFlagsAsString="$(pkg-config --static --libs $externalLibrariesAsString)"' '
+
+    SEARCH_STATUS=$?
+
+    if [ $SEARCH_STATUS -ne 0 ]; then
+        exit $SEARCH_STATUS
+    fi
+
     echo -e "$LIBRARIES_COLOR""$externalLibrariesLinkFlagsAsString""$RESET_COLOR"
+
     unset externalLibrariesAsString
 fi
 
