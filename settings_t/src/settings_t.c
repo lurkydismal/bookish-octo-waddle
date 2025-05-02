@@ -4,16 +4,9 @@
 
 #include "asset_t.h"
 #include "log.h"
+#include "settingsOption_t.h"
+#include "stdfloat16.h"
 #include "stdfunc.h"
-
-static enum settingsTypeCode { s0, su, vsync };
-
-static void settings_t$bind( const char* _source,
-                             void* _storage,
-                             const enum settingsTypeCode _code ) {}
-
-static FORCE_INLINE void settings_t$tryBind( const char* _key,
-                                             const char* _value ) {}
 
 settings_t settings_t$create( void ) {
     settings_t l_returnValue = DEFAULT_SETTINGS;
@@ -83,9 +76,9 @@ bool settings_t$load( settings_t* restrict _settings,
                 }
             }
 
-            log$transaction$query$format(
-                ( logLevel_t )debug, "Settings:\nData: {%s}\nSize: %lu\n",
-                l_settingsAsset.data, l_settingsAsset.size );
+            log$transaction$query$format( ( logLevel_t )debug,
+                                          "Settings size: %zu\n",
+                                          l_settingsAsset.size );
 
             {
                 char** l_lines = splitStringIntoArrayBySymbol(
@@ -95,83 +88,113 @@ bool settings_t$load( settings_t* restrict _settings,
                     goto EXIT_SETTINGS_DATA_LINES;
                 }
 
-                // TODO: Implement
                 {
-                    settings_t$bind( "window_name", &( l_settings.window.name ),
-                                     ( enum settingsTypeCode )( s0 ) );
-                    settings_t$bind( "window_width",
-                                     &( l_settings.window.width ),
-                                     ( enum settingsTypeCode )( su ) );
-                    settings_t$bind( "window_height",
-                                     &( l_settings.window.height ),
-                                     ( enum settingsTypeCode )( su ) );
-                    settings_t$bind( "window_desired_FPS",
-                                     &( l_settings.window.desiredFPS ),
-                                     ( enum settingsTypeCode )( su ) );
-                    settings_t$bind( "window_vsync",
-                                     &( l_settings.window.vsync ),
-                                     ( enum settingsTypeCode )( vsync ) );
-                    settings_t$bind( "limited_loop_desired_FPS",
-                                     &( l_settings.limitedLoopDesiredFPS ),
-                                     ( enum settingsTypeCode )( su ) );
-                }
+                    settingsOption_t** l_settingsOptions =
+                        createArray( settingsOption_t* );
 
-                FOR_ARRAY( char* const*, l_lines ) {
-                    const char* l_line = sanitizeString( *_element );
+                    {
+#define INSERT_SETTINGS_OPTION( _array, _key, _storage )                \
+    ( {                                                                 \
+        settingsOption_t l_settingsOption = settingsOption_t$create();  \
+        settingsOption_t$map( &l_settingsOption, _key, _storage );      \
+        settingsOption_t* l_settingsOptionAllocated =                   \
+            ( settingsOption_t* )malloc( sizeof( settingsOption_t ) );  \
+        __builtin_memcpy( l_settingsOptionAllocated, &l_settingsOption, \
+                          sizeof( settingsOption_t ) );                 \
+        insertIntoArray( _array, l_settingsOptionAllocated );           \
+    } )
 
-                    if ( l_line ) {
-                        log$transaction$query$format( ( logLevel_t )info,
-                                                      "%s\n", l_line );
+                        INSERT_SETTINGS_OPTION( &l_settingsOptions,
+                                                "window_name",
+                                                &( l_settings.window.name ) );
+                        INSERT_SETTINGS_OPTION( &l_settingsOptions,
+                                                "window_width",
+                                                &( l_settings.window.width ) );
+                        INSERT_SETTINGS_OPTION( &l_settingsOptions,
+                                                "window_height",
+                                                &( l_settings.window.height ) );
+                        INSERT_SETTINGS_OPTION(
+                            &l_settingsOptions, "window_desired_FPS",
+                            &( l_settings.window.desiredFPS ) );
+                        INSERT_SETTINGS_OPTION( &l_settingsOptions,
+                                                "window_vsync",
+                                                &( l_settings.window.vsync ) );
+                        INSERT_SETTINGS_OPTION(
+                            &l_settingsOptions, "limited_loop_desired_FPS",
+                            &( l_settings.limitedLoopDesiredFPS ) );
 
-                        char** l_keyAndValue =
-                            splitStringIntoArrayBySymbol( l_line, '=' );
-
-                        if ( arrayLength( l_keyAndValue ) != 2 ) {
-                            log$transaction$query$format(
-                                ( logLevel_t )error, "Settings line '%s'\n",
-                                l_line );
-
-                            goto LOOP_CONTINUE;
-                        }
-
-                        const char* l_key = arrayFirstElement( l_keyAndValue );
-                        const char* l_value = arrayLastElement( l_keyAndValue );
-
-                        settings_t$tryBind( l_key, l_value );
-
-                        // TODO: Implement something like settingsOption_t
-                        if ( __builtin_strcmp( l_key, "window_name" ) == 0 ) {
-                            free( l_settings.window.name );
-
-                            l_settings.window.name = duplicateString( l_value );
-
-                        } else if ( __builtin_strcmp( l_key, "window_width" ) ==
-                                    0 ) {
-                            l_settings.window.width = atoi( l_value );
-
-                        } else if ( __builtin_strcmp( l_key,
-                                                      "window_height" ) == 0 ) {
-                            l_settings.window.height = atoi( l_value );
-
-                        } else if ( __builtin_strcmp(
-                                        l_key, "window_desired_FPS" ) == 0 ) {
-                            l_settings.window.desiredFPS = atoi( l_value );
-
-                        } else if ( __builtin_strcmp( l_key, "window_vsync" ) ==
-                                    0 ) {
-                            l_settings.window.vsync =
-                                vsync_t$fromString( l_value );
-
-                        } else if ( __builtin_strcmp(
-                                        l_key, "limited_loop_desired_FPS" ) ==
-                                    0 ) {
-                            l_settings.limitedLoopDesiredFPS = atoi( l_value );
-                        }
-
-                    LOOP_CONTINUE:
-                        FREE_ARRAY_ELEMENTS( l_keyAndValue );
-                        FREE_ARRAY( l_keyAndValue );
+#undef INSERT_SETTINGS_OPTION
                     }
+
+                    FOR_ARRAY( char* const*, l_lines ) {
+                        const char* l_line = sanitizeString( *_element );
+
+                        if ( l_line ) {
+                            log$transaction$query$format( ( logLevel_t )debug,
+                                                          "%s\n", l_line );
+
+                            char** l_keyAndValue =
+                                splitStringIntoArrayBySymbol( l_line, '=' );
+
+                            if ( arrayLength( l_keyAndValue ) != 2 ) {
+                                log$transaction$query$format(
+                                    ( logLevel_t )error,
+                                    "Settings line: '%s'\n", l_line );
+
+                                goto LOOP_CONTINUE;
+                            }
+
+                            const char* l_key =
+                                arrayFirstElement( l_keyAndValue );
+                            const char* l_value =
+                                arrayLastElement( l_keyAndValue );
+
+                            bool l_result = false;
+
+                            FOR_ARRAY( settingsOption_t* const*,
+                                       l_settingsOptions ) {
+                                l_result = settingsOption_t$bind(
+                                    *_element, l_key, l_value );
+
+                                if ( l_result ) {
+                                    break;
+                                }
+                            }
+
+                            if ( UNLIKELY( !l_result ) ) {
+                                log$transaction$query$format(
+                                    ( logLevel_t )error,
+                                    "Corrupted settings key: '%s'\n", l_key );
+
+                                goto LOOP_CONTINUE;
+                            }
+
+                        LOOP_CONTINUE:
+                            FREE_ARRAY_ELEMENTS( l_keyAndValue );
+                            FREE_ARRAY( l_keyAndValue );
+                        }
+                    }
+
+                    FOR_ARRAY( settingsOption_t* const*, l_settingsOptions ) {
+                        if ( !settingsOption_t$unmap( *_element ) ) {
+                            log$transaction$query$format(
+                                ( logLevel_t )error,
+                                "Settings option unmap\n" );
+
+                            break;
+                        }
+
+                        if ( !settingsOption_t$destroy( *_element ) ) {
+                            log$transaction$query$format(
+                                ( logLevel_t )error,
+                                "Settings option destroy\n" );
+
+                            break;
+                        }
+                    }
+
+                    FREE_ARRAY_ELEMENTS( l_settingsOptions );
+                    FREE_ARRAY( l_settingsOptions );
                 }
 
             EXIT_SETTINGS_DATA_LINES:

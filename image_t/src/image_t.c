@@ -1,6 +1,27 @@
 #include "image_t.h"
 
+#if defined( __AVX512F__ )
+#pragma message( "image_t: AVX512" )
+
+#include <simde/x86/avx512.h>
+
+#define SIMD_PIXELS ( 16 )
+
+#elif defined( __AVX__ )
+#pragma message( "image_t: AVX1" )
+
+#include <simde/x86/avx.h>
+
+#define SIMD_PIXELS ( 8 )
+
+#elif defined( __SSE2__ )
+#pragma message( "image_t: SSE2" )
+
 #include <simde/x86/sse2.h>
+
+#define SIMD_PIXELS ( 4 )
+
+#endif
 
 #include "log.h"
 #include "stdfunc.h"
@@ -20,8 +41,9 @@
 #define RGBA_ROW_SIZE( _width ) ( ( _width ) * RGBA_PIXEL_SIZE )
 
 // Computes total RGBA data size
-#define RGBA_DATA_SIZE( _image ) \
-    ( RGBA_ROW_SIZE( ( _image ).width ) * ( _image ).height )
+#define RGBA_DATA_SIZE( _image )                                        \
+    ( size_t )( RGBA_ROW_SIZE( ( _image ).width ) * ( _image ).height * \
+                sizeof( uint8_t ) )
 
 /**
  * @brief Computes the size of a single row (scanline) in a BMP image, including
@@ -129,14 +151,8 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                 const size_t l_rowOffset = ( _index * l_rgbaRowSize );
                 uint8_t* l_rgbaRow = ( _image->data + l_rowOffset );
 
-#if 1
-                // TODO: Add 256 and 512 AVX support
-#ifdef __SSE2__
-#pragma message( "image_t: SSE2" )
-
+#if defined( SIMD_PIXELS )
                 {
-#define SIMD_PIXELS ( 4 )
-
                     // Number of pixels not aligned for SIMD
                     const size_t l_noSIMDPixelsCount =
                         ( _image->width % SIMD_PIXELS );
@@ -145,7 +161,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     FOR_RANGE_BY( size_t, 0,
                                   ( _image->width - l_noSIMDPixelsCount ),
                                   SIMD_PIXELS ) {
-                        // TODO: Improve l_tempBGR
                         uint8_t l_tempBGR[ SIMD_PIXELS * BGR_PIXEL_SIZE ];
                         __builtin_memcpy(
                             l_tempBGR, ( l_bgrRow + l_index * BGR_PIXEL_SIZE ),
@@ -162,17 +177,67 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                         }
 
                         // clang-format off
-    simde__m128i l_rgbaVector = simde_mm_setr_epi8(
-        r[ 0 ], g[ 0 ], b[ 0 ], ( char )IMAGE_DEFAULT_ALPHA,
-        r[ 1 ], g[ 1 ], b[ 1 ], ( char )IMAGE_DEFAULT_ALPHA,
-        r[ 2 ], g[ 2 ], b[ 2 ], ( char )IMAGE_DEFAULT_ALPHA,
-        r[ 3 ], g[ 3 ], b[ 3 ], ( char )IMAGE_DEFAULT_ALPHA );
-                        // clang-format on
+#if ( SIMD_PIXELS == 16 )
+
+                        simde__m512i l_rgbaVector = simde_mm512_setr_epi8(
+
+#elif ( SIMD_PIXELS == 8 )
+
+                        simde__m256i l_rgbaVector = simde_mm256_setr_epi8(
+
+#elif ( SIMD_PIXELS == 4 )
+
+                        simde__m128i l_rgbaVector = simde_mm_setr_epi8(
+
+#endif
+
+#if ( SIMD_PIXELS >= 4 )
+
+                        r[ 0 ], g[ 0 ], b[ 0 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 1 ], g[ 1 ], b[ 1 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 2 ], g[ 2 ], b[ 2 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 3 ], g[ 3 ], b[ 3 ], ( char )IMAGE_DEFAULT_ALPHA );
+
+#elif ( SIMD_PIXELS >= 8 )
+
+                        r[ 4 ], g[ 4 ], b[ 4 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 5 ], g[ 5 ], b[ 5 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 6 ], g[ 6 ], b[ 6 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 7 ], g[ 7 ], b[ 7 ], ( char )IMAGE_DEFAULT_ALPHA );
+
+#elif ( SIMD_PIXELS >= 16 )
+
+                        r[ 8 ], g[ 8 ], b[ 8 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 9 ], g[ 9 ], b[ 9 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 10 ], g[ 10 ], b[ 10 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 11 ], g[ 11 ], b[ 11 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 12 ], g[ 12 ], b[ 12 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 13 ], g[ 13 ], b[ 13 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 14 ], g[ 14 ], b[ 14 ], ( char )IMAGE_DEFAULT_ALPHA,
+                        r[ 15 ], g[ 15 ], b[ 15 ], ( char )IMAGE_DEFAULT_ALPHA );
+
+#endif
+
+#if ( SIMD_PIXELS == 16 )
+
+                        simde_mm_storeu_si512(
+                            ( simde__m512i* )
+
+#elif ( SIMD_PIXELS == 8 )
+
+                        simde_mm_storeu_si256(
+                            ( simde__m256i* )
+
+#elif ( SIMD_PIXELS == 4 )
 
                         simde_mm_storeu_si128(
-                            ( simde__m128i* )( l_rgbaRow +
-                                               l_index * RGBA_PIXEL_SIZE ),
-                            l_rgbaVector );
+                            ( simde__m128i* )
+
+#endif
+
+                            ( l_rgbaRow + l_index * RGBA_PIXEL_SIZE ),
+                        l_rgbaVector );
+                        // clang-format on
 
                         l_index = _index;
                     }
@@ -192,7 +257,7 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
 #else
 #pragma message( "image_t: No vectorization" )
 
-                // Loop over each pixel in the row (x-axis) using FOR_RANGE
+                // Loop over each pixel in the row ( x-axis ) using FOR_RANGE
                 FOR_RANGE( size_t, 0, _image->width ) {
                     const size_t l_rgbaRowIndex = ( _index * RGBA_PIXEL_SIZE );
                     const size_t l_bgrRowIndex = ( _index * BGR_PIXEL_SIZE );
@@ -205,7 +270,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     l_rgbaPixel[ 2 ] = l_bgrPixel[ 2 ];     // R
                     l_rgbaPixel[ 3 ] = IMAGE_DEFAULT_ALPHA; // A
                 }
-#endif
 #endif
             }
 

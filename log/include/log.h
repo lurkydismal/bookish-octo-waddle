@@ -34,7 +34,7 @@
 #if defined( DEBUG )
 
 #define DEBUG_INFORMATION_FORMAT \
-    "Thread %lu: File '%s': line %u in function '%s' | Message: "
+    "Thread %zu: File '%s': line %u in function '%s' | Message: "
 #define DEBUG_INFORMATION_TO_PRINT \
     syscall( SYS_gettid ), __FILE__, __LINE__, __func__
 

@@ -32,7 +32,7 @@ static FORCE_INLINE uint8_t* font_t$bake$range( font_t* restrict _font,
             ( ( l_fontAtlasWidth * l_fontAtlasHeight ) * sizeof( uint8_t ) );
 
         log$transaction$query$format( ( logLevel_t )debug,
-                                      "Font bitmap size: %lu\n", l_bitmapSize );
+                                      "Font bitmap size: %zu\n", l_bitmapSize );
 
         uint8_t* l_bitmap = ( uint8_t* )malloc( l_bitmapSize );
 
@@ -193,7 +193,7 @@ bool font_t$load$fromAsset( font_t* restrict _font, asset_t* restrict _asset ) {
                     _font->atlasHeight = l_maxY;
 
                     log$transaction$query$format(
-                        ( logLevel_t )debug, "Trimmed font bitmap size: %lu\n",
+                        ( logLevel_t )debug, "Trimmed font bitmap size: %zu\n",
                         ( ( _font->atlasWidth * _font->atlasHeight ) *
                           sizeof( uint8_t ) ) );
                 }
