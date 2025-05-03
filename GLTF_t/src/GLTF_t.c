@@ -4,9 +4,6 @@
 #include "stdfunc.h"
 #include "yyjson.h"
 
-#define DEBUG_LOG_ROOT_FIELD_NOT_FOUND
-#define DEBUG_LOG_FIELD_NOT_FOUND
-#define DEBUG_LOG_FIELD_ARRAY_RANGE_NOT_FOUND
 #define LOG_PARSED_GLTF
 
 typedef yyjson_doc* document_t;

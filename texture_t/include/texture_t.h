@@ -16,7 +16,10 @@ typedef struct {
 } texture_t;
 
 texture_t texture_t$create( void );
-bool texture_t$destroy( texture_t* _texture );
+bool texture_t$destroy( texture_t* restrict _texture );
 
-bool texture_t$load$fromAsset( texture_t* _texture, asset_t* _asset );
-bool texture_t$unload( texture_t* _texture );
+bool texture_t$load$fromAsset( texture_t* restrict _texture,
+                               asset_t* restrict _asset );
+bool texture_t$load$fromPath( texture_t* restrict _texture,
+                              const char* restrict _path );
+bool texture_t$unload( texture_t* restrict _texture );

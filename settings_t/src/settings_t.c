@@ -129,10 +129,7 @@ bool settings_t$load( settings_t* restrict _settings,
                     FOR_ARRAY( char* const*, l_lines ) {
                         const char* l_line = sanitizeString( *_element );
 
-                        if ( l_line ) {
-                            log$transaction$query$format( ( logLevel_t )debug,
-                                                          "%s\n", l_line );
-
+                        if ( ( l_line ) && ( __builtin_strlen( l_line ) ) ) {
                             char** l_keyAndValue =
                                 splitStringIntoArrayBySymbol( l_line, '=' );
 

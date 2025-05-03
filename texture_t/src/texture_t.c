@@ -1,16 +1,10 @@
 #include "texture_t.h"
 
+#include <glad/gl.h>
+
 #include "image_t.h"
 #include "log.h"
 #include "stdfunc.h"
-
-#if defined( WRITE_TEXTURE_TO_IMAGE )
-
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-
-#include <stb/stb_image_write.h>
-
-#endif
 
 texture_t texture_t$create( void ) {
     texture_t l_returnValue = DEFAULT_TEXTURE;
@@ -18,7 +12,7 @@ texture_t texture_t$create( void ) {
     return ( l_returnValue );
 }
 
-bool texture_t$destroy( texture_t* _texture ) {
+bool texture_t$destroy( texture_t* restrict _texture ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_texture ) ) {
@@ -37,7 +31,8 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool texture_t$load$fromAsset( texture_t* _texture, asset_t* _asset ) {
+bool texture_t$load$fromAsset( texture_t* restrict _texture,
+                               asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_texture ) ) {
@@ -56,59 +51,85 @@ bool texture_t$load$fromAsset( texture_t* _texture, asset_t* _asset ) {
             &( _texture->data ) );
 
         if ( UNLIKELY( l_result != KTX_SUCCESS ) ) {
+            log$transaction$query$format( ( logLevel_t )error,
+                                          "Creating texture from memory: %s\n",
+                                          ktxErrorString( l_result ) );
+
             goto EXIT;
         }
 
-        GLenum l_error;
+        // TODO: Refactor
+        if ( ktxTexture2_NeedsTranscoding( _texture->data ) ) {
+            GLint numFormats = 0;
+            glGetIntegerv( GL_NUM_COMPRESSED_TEXTURE_FORMATS, &numFormats );
+            GLint* formats = malloc( numFormats * sizeof( GLint ) );
+            glGetIntegerv( GL_COMPRESSED_TEXTURE_FORMATS, formats );
 
-        l_result = ktxTexture_GLUpload( ktxTexture( _texture->texture ),
+            bool hasASTC = false, hasETC2 = false, hasBC3 = false;
+            for ( int i = 0; i < numFormats; ++i ) {
+                switch ( formats[ i ] ) {
+                    case GL_COMPRESSED_RGBA_ASTC_4x4_KHR:
+                        hasASTC = true;
+                        break;
+                    case GL_COMPRESSED_RGBA8_ETC2_EAC:
+                        hasETC2 = true;
+                        break;
+                    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+                        hasBC3 = true;
+                        break;
+                    default:
+                        break;
+                }
+            }
+            free( formats );
+
+            // 2) Pick a transcode target
+            ktx_transcode_fmt_e tf = KTX_TTF_RGBA32; // fallback to raw
+            if ( _texture->data->supercompressionScheme == KTX_SS_BASIS_LZ ) {
+                if ( hasASTC )
+                    tf = KTX_TTF_ASTC_4x4_RGBA;
+                else if ( hasETC2 )
+                    tf = KTX_TTF_ETC2_RGBA;
+                else if ( hasBC3 )
+                    tf = KTX_TTF_BC3_RGBA;
+                // else leave as RGBA32
+            }
+
+            // 3) Transcode
+            l_result = ktxTexture2_TranscodeBasis( _texture->data, tf, 0 );
+            if ( UNLIKELY( l_result != KTX_SUCCESS ) ) {
+                log$transaction$query$format( ( logLevel_t )error,
+                                              "TranscodeBasis failed: %s\n",
+                                              ktxErrorString( l_result ) );
+                goto EXIT;
+            }
+        }
+
+        GLenum l_glError = GL_NO_ERROR;
+
+        l_result = ktxTexture_GLUpload( ktxTexture( _texture->data ),
                                         &( _texture->texture ),
-                                        &( _texture->type ), &l_error );
+                                        &( _texture->type ), &l_glError );
+
+        if ( UNLIKELY( l_glError != GL_NO_ERROR ) ) {
+            log$transaction$query$format(
+                ( logLevel_t )error, "Uploading texture to OpenGL: '0x%X'\n",
+                l_glError );
+
+            goto EXIT;
+        }
 
         if ( UNLIKELY( l_result != KTX_SUCCESS ) ) {
-            log$transaction$query( ( logLevel_t )error, "Error\n" );
-
-            goto EXIT;
-        }
-
-        if ( UNLIKELY( l_error != GL_NO_ERROR ) ) {
-            log$transaction$query( ( logLevel_t )error, "Error\n" );
+            log$transaction$query$format( ( logLevel_t )error,
+                                          "Uploading texture to OpenGL: %s\n",
+                                          ktxErrorString( l_result ) );
 
             goto EXIT;
         }
 
         log$transaction$query$format(
-            ( logLevel_t )debug, "Image width: %d, height: %d\n",
+            ( logLevel_t )debug, "Texture width: %d, height: %d\n",
             _texture->data->baseWidth, _texture->data->baseHeight );
-
-#if defined( WRITE_TEXTURE_TO_IMAGE )
-
-        const size_t l_width = _texture->data->baseWidth;
-        const size_t l_height = _texture->data->baseHeight;
-
-        size_t l_imageOffset;
-
-        if ( UNLIKELY( ktxTexture_GetImageOffset( ktxTexture( _texture->data ),
-                                                  0, 0, 0, &l_imageOffset ) !=
-                       KTX_SUCCESS ) ) {
-            log$transaction$query( ( logLevel_t )error, "Error\n" );
-
-            l_returnValue = false;
-
-            goto EXIT;
-        }
-
-        const char* l_exportFileName = "texture.png";
-
-        stbi_write_png( l_exportFileName, l_width, l_height, RGBA_PIXEL_SIZE,
-                        ( ktxTexture_GetData( ktxTexture( _texture->data ) ) +
-                          l_imageOffset ),
-                        ( l_width * RGBA_PIXEL_SIZE ) );
-
-        log$transaction$query$format(
-            ( logLevel_t )info, "%s' file was created\n", l_exportFileName );
-
-#endif
 
         l_returnValue = true;
     }
@@ -117,7 +138,57 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool texture_t$unload( texture_t* _texture ) {
+bool texture_t$load$fromPath( texture_t* restrict _texture,
+                              const char* restrict _path ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_texture ) ) {
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_path ) ) {
+        goto EXIT;
+    }
+
+    {
+        asset_t l_textureAsset = asset_t$create();
+
+        {
+            l_returnValue = asset_t$load( &l_textureAsset, _path );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_TEXTURE_ASSET;
+            }
+
+            l_returnValue =
+                texture_t$load$fromAsset( _texture, &l_textureAsset );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_TEXTURE_ASSET;
+            }
+
+            l_returnValue = asset_t$unload( &l_textureAsset );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT_TEXTURE_ASSET;
+            }
+        }
+
+        l_returnValue = true;
+
+    EXIT_TEXTURE_ASSET:
+        if ( UNLIKELY( !asset_t$destroy( &l_textureAsset ) ) ) {
+            l_returnValue = false;
+
+            goto EXIT;
+        }
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool texture_t$unload( texture_t* restrict _texture ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_texture ) ) {

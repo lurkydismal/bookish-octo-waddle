@@ -1,7 +1,10 @@
+#define GLFW_INCLUDE_NONE
+
+#include <GLFW/glfw3.h>
 #include <glad/gl.h>
+#include <ktx.h>
 
 #include "FPS.h"
-#include "GLTF_t.h"
 #include "asset_t.h"
 #include "callbacks.h"
 #include "log.h"
@@ -108,38 +111,29 @@ callbackResult_t init( applicationState_t* restrict _applicationState ) {
 
         // glad
         {
-            _applicationState->glVersion = gladLoadGL( glfwGetProcAddress );
+            const int l_glVersion = gladLoadGL( glfwGetProcAddress );
 
-            if ( UNLIKELY( !( _applicationState->glVersion ) ) ) {
+            if ( UNLIKELY( !( l_glVersion ) ) ) {
                 log$transaction$query( ( logLevel_t )error,
                                        "Initializing OpenGL with glad\n" );
 
                 goto EXIT;
             }
 
-            log$transaction$query$format(
-                ( logLevel_t )info, "GL version: %d.%d\n",
-                GLAD_VERSION_MAJOR( _applicationState->glVersion ),
-                GLAD_VERSION_MINOR( _applicationState->glVersion ) );
+            log$transaction$query$format( ( logLevel_t )info,
+                                          "GL version: %d.%d\n",
+                                          GLAD_VERSION_MAJOR( l_glVersion ),
+                                          GLAD_VERSION_MINOR( l_glVersion ) );
         }
 
+        // KTX
         {
-            GLTF_t t = GLTF_t$create();
+            KTX_error_code l_result =
+                ktxLoadOpenGL( ( PFNGLGETPROCADDRESS )glfwGetProcAddress );
 
-            if ( !GLTF_t$load$fromPath( &t, "t.gltf" ) ) {
-                log$transaction$query( ( logLevel_t )error, "GLTF1\n" );
-
-                goto EXIT;
-            }
-
-            if ( !GLTF_t$unload( &t ) ) {
-                log$transaction$query( ( logLevel_t )error, "GLTF2\n" );
-
-                goto EXIT;
-            }
-
-            if ( !GLTF_t$destroy( &t ) ) {
-                log$transaction$query( ( logLevel_t )error, "GLTF3\n" );
+            if ( UNLIKELY( l_result != KTX_SUCCESS ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Initializing KTX with glfw\n" );
 
                 goto EXIT;
             }

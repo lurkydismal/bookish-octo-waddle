@@ -129,7 +129,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                 const size_t l_rowOffset = ( _index * l_rgbaRowSize );
                 uint8_t* l_rgbaRow = ( _image->data + l_rowOffset );
 
-                // TODO: Add 256 and 512 AVX support
 #ifdef __SSE2__
 #pragma message( "image_t: SSE2" )
 
@@ -144,7 +143,6 @@ static FORCE_INLINE bool BMP$load( image_t* restrict _image,
                     FOR_RANGE_BY( size_t, 0,
                                   ( _image->width - l_noSIMDPixelsCount ),
                                   SIMD_PIXELS ) {
-                        // TODO: Improve l_tempBGR
                         uint8_t l_tempBGR[ SIMD_PIXELS * BGR_PIXEL_SIZE ];
                         __builtin_memcpy(
                             l_tempBGR, ( l_bgrRow + l_index * BGR_PIXEL_SIZE ),
@@ -282,7 +280,7 @@ bool image_t$load$fromAsset( image_t* restrict _image,
 
         stbi_write_png( l_exportFileName, _image->width, _image->height,
                         RGBA_PIXEL_SIZE, _image->data,
-                        ( _image->width * _image->height ) );
+                        ( _image->width * RGBA_PIXEL_SIZE ) );
 
         log$transaction$query$format(
             ( logLevel_t )info, "%s' file was created\n", l_exportFileName );
