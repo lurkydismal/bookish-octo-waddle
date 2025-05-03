@@ -12,7 +12,6 @@
 #include "log.h"
 
 // TODO: Implement adaptive vsync in a separate from main thread
-// TODO: Fix vsync OFF and custom FPS not working
 
 #if 0
 static pthread_t g_adaptiveVsyncCheckThread;
