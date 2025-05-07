@@ -111,19 +111,19 @@ callbackResult_t init( applicationState_t* restrict _applicationState ) {
 
         // glad
         {
-            const int l_glVersion = gladLoadGL( glfwGetProcAddress );
+            _applicationState->glVersion = gladLoadGL( glfwGetProcAddress );
 
-            if ( UNLIKELY( !( l_glVersion ) ) ) {
+            if ( UNLIKELY( !( _applicationState->glVersion ) ) ) {
                 log$transaction$query( ( logLevel_t )error,
                                        "Initializing OpenGL with glad\n" );
 
                 goto EXIT;
             }
 
-            log$transaction$query$format( ( logLevel_t )info,
-                                          "GL version: %d.%d\n",
-                                          GLAD_VERSION_MAJOR( l_glVersion ),
-                                          GLAD_VERSION_MINOR( l_glVersion ) );
+            log$transaction$query$format(
+                ( logLevel_t )info, "GL version: %d.%d\n",
+                GLAD_VERSION_MAJOR( _applicationState->glVersion ),
+                GLAD_VERSION_MINOR( _applicationState->glVersion ) );
         }
 
         // KTX

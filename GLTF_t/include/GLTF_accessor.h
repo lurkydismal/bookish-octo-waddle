@@ -9,7 +9,7 @@
 #define GLTF_ACCESSOR_MAX_BUFFER_SIZE 16
 #define GLTF_ACCESSOR_MIN_BUFFER_SIZE 16
 
-#define DEFAULT_GLTF_ACCESSOR_COMPONENT_TYPE INT8
+#define DEFAULT_GLTF_ACCESSOR_COMPONENT_TYPE BYTE
 
 #define DEFAULT_GLTF_ACCESSOR_MAX \
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }
@@ -44,11 +44,11 @@
       .sparse = DEFAULT_GLTF_ACCESSOR_SPARSE }
 
 enum GLTF_accessor_componentType {
-    INT8 = 5120,
-    UINT8 = 5121,
-    INT16 = 5122,
-    UINT16 = 5123,
-    UINT32 = 5125,
+    BYTE = 5120,
+    UNSIGNED_BYTE = 5121,
+    SHORT = 5122,
+    UNSIGNED_SHORT = 5123,
+    UNSIGNED_INT = 5125,
     FLOAT = 5126
 };
 
@@ -129,24 +129,24 @@ static FORCE_INLINE enum GLTF_accessor_type GLTF_t$accessor$type$fromString(
 static FORCE_INLINE const char* GLTF_t$accessor$componentType$toString(
     const enum GLTF_accessor_componentType _componentType ) {
     switch ( _componentType ) {
-        case ( INT8 ): {
-            return ( "INT8" );
+        case ( BYTE ): {
+            return ( "BYTE" );
         }
 
-        case ( UINT8 ): {
-            return ( "UINT8" );
+        case ( UNSIGNED_BYTE ): {
+            return ( "UNSIGNED_BYTE" );
         }
 
-        case ( INT16 ): {
-            return ( "INT16" );
+        case ( SHORT ): {
+            return ( "SHORT" );
         }
 
-        case ( UINT16 ): {
-            return ( "UINT16" );
+        case ( UNSIGNED_SHORT ): {
+            return ( "UNSIGNED_SHORT" );
         }
 
-        case ( UINT32 ): {
-            return ( "UINT32" );
+        case ( UNSIGNED_INT ): {
+            return ( "UNSIGNED_INT" );
         }
 
         case ( FLOAT ): {
