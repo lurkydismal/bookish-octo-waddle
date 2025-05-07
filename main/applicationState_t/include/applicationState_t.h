@@ -13,6 +13,7 @@
 typedef struct {
     GLFWwindow* window;
     settings_t settings;
+    int glVersion;
     size_t totalFramesRendered;
 } applicationState_t;
 

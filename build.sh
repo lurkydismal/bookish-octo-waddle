@@ -41,8 +41,9 @@ export declare BUILD_DEFINES_PROFILE=(
 export declare BUILD_INCLUDES=(
     "main/applicationState_t/include"
     "gameState_t/include"
-    "GLTF_t/include"
     "FPS/include"
+    "stdogl/include"
+    "GLTF_t/include"
     "settings_t/include"
     "window_t/include"
     "vsync/include"

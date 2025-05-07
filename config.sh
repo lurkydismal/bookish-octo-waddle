@@ -1,8 +1,9 @@
 #!/bin/bash
 declare -a partsToBuild=(
     "gameState_t"
-    "GLTF_t"
     "FPS"
+    "stdogl"
+    "GLTF_t"
     "settings_t"
     "window_t"
     "vsync"

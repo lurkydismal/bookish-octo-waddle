@@ -1202,6 +1202,24 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                                        char*, &( l_buffer.uri ),
                                        duplicateString );
 
+                    // Asset
+                    {
+                        asset_t l_asset = asset_t$create();
+
+                        if ( UNLIKELY(
+                                 !asset_t$load( &l_asset, l_buffer.uri ) ) ) {
+                            log$transaction$query( ( logLevel_t )error, "\n" );
+                        }
+
+                        asset_t* l_assetAllocated =
+                            ( asset_t* )malloc( sizeof( asset_t ) );
+
+                        __builtin_memcpy( l_assetAllocated, &l_asset,
+                                          sizeof( asset_t ) );
+
+                        l_buffer.asset = l_assetAllocated;
+                    }
+
                     struct GLTF_buffer* l_bufferAllocated =
                         ( struct GLTF_buffer* )malloc(
                             sizeof( struct GLTF_buffer ) );
@@ -1386,6 +1404,24 @@ bool GLTF_t$load$fromAsset( GLTF_t* restrict _GLTF, asset_t* restrict _asset ) {
                     GLTF_t$bind$value( _element, l_rootFieldName, "bufferView",
                                        uint, uint8_t, &( l_image.bufferView ),
                                        ( uint8_t ));
+
+                    // Asset
+                    {
+                        asset_t l_asset = asset_t$create();
+
+                        if ( UNLIKELY(
+                                 !asset_t$load( &l_asset, l_image.uri ) ) ) {
+                            log$transaction$query( ( logLevel_t )error, "\n" );
+                        }
+
+                        asset_t* l_assetAllocated =
+                            ( asset_t* )malloc( sizeof( asset_t ) );
+
+                        __builtin_memcpy( l_assetAllocated, &l_asset,
+                                          sizeof( asset_t ) );
+
+                        l_image.asset = l_assetAllocated;
+                    }
 
                     struct GLTF_image* l_imageAllocated =
                         ( struct GLTF_image* )malloc(
