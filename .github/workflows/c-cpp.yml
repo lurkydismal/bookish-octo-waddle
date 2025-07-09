@@ -1,10 +1,23 @@
-name: C/C++ CI
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: C CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
+      - master
+
   pull_request:
-    branches: [ "main" ]
+    branches:
+      - main
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -15,23 +28,81 @@ defaults:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: Build on ubuntu-latest
+    runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
 
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
+      uses: step-security/harden-runner@6c439dc8bdf85cadbbce9ed30d1c7b959517bc49 # v2.12.2
       with:
         egress-policy: audit
 
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-    - name: Build
+    - name: Install dependencies
       run: |
-        TERM=xterm IS_CI=1 ./build.sh
+        sudo apt-get update && \
+        sudo apt-get install -y fd-find libsnappy-dev libxxhash-dev libmimalloc-dev libelf-dev libomp-dev \
+          cmake ninja-build build-essential \
+          libx11-dev libxext-dev libxrandr-dev libxss-dev libxcursor-dev \
+          libxi-dev libxinerama-dev && \
+        sudo ln -sf "$(command -v fdfind)" /bin/fd
+
+    - name: ccache
+      uses: hendrikmuhs/ccache-action@63069e3931dedbf3b63792097479563182fe70d1 # v1.2.18
+      with:
+        create-symlink: true
+
+    - name: mold
+      uses: rui314/setup-mold@v1
+
+    - name: Build SDL3
+      run: |
+        git clone --depth=1 --single-branch https://github.com/libsdl-org/SDL.git SDL3 && \
+        cd SDL3 && \
+        export CC="ccache gcc" && \
+        export CXX="ccache g++" && \
+        cmake -B build -G Ninja \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_LINKER=mold \
+          -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" \
+          -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold" \
+          -DCMAKE_INSTALL_PREFIX=/usr/local && \
+        cmake --build build && \
+        sudo cmake --install build
+
+    - name: Build SDL3 image
+      run: |
+        git clone --depth=1 --single-branch https://github.com/libsdl-org/SDL_image.git SDL3_image && \
+        cd SDL3_image && \
+        export CC="ccache gcc" && \
+        export CXX="ccache g++" && \
+        cmake -B build -G Ninja \
+          -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+          -DCMAKE_LINKER=mold \
+          -DCMAKE_EXE_LINKER_FLAGS="-fuse-ld=mold" \
+          -DCMAKE_SHARED_LINKER_FLAGS="-fuse-ld=mold" \
+          -DCMAKE_INSTALL_PREFIX=/usr/local && \
+        cmake --build build && \
+        sudo cmake --install build
+
+    - name: Save ccache
+      run: ccache -s
+
+    - name: Build debug
+      run: TERM=xterm ./build.sh
+
+    - name: Build debug with hot reload
+      run: TERM=xterm ENABLE_HOT_RELOAD= ./build.sh
+
+    - name: Build tests
+      run: TERM=xterm BUILD_TYPE=3 ./build.sh
+
+    - name: Run tests
+      run: TERM=xterm ./out/main.out_test
