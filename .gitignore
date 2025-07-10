@@ -10,11 +10,14 @@ glad
 # Profiling
 **/*.gc*
 **/*.info
+**/coverage*
+**/*.prof*
 
 # Binary
 **/*.o
-**/out
+**/**out**
 **/*vgcore*
+**/*.data
 
 # In-progress
 Style_Guide.md
