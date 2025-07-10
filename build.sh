@@ -23,7 +23,7 @@ export BUILD_C_FLAGS_RELEASE="-fprofile-instr-use -O3 -ffast-math -funroll-loops
 export BUILD_C_FLAGS_PROFILE="-fprofile-instr-generate -pg -O3 -ffast-math -funroll-loops -fno-asynchronous-unwind-tables"
 export BUILD_C_FLAGS_TESTS="$BUILD_C_FLAGS_DEBUG -fopenmp"
 
-export BUILD_CPP_FLAGS="$BUILD_C_FLAGS -std=gnu++26 -Wno-enum-enum-conversion -Wno-deprecated"
+export BUILD_CPP_FLAGS="$BUILD_C_FLAGS -std=gnu++26 -fno-rtti -fno-exceptions -fno-unwind-tables -fno-threadsafe-statics -Wno-enum-enum-conversion -Wno-deprecated -Wno-c99-designator -Wno-missing-field-initializers"
 export BUILD_CPP_FLAGS_DEBUG="$BUILD_C_FLAGS_DEBUG"
 export BUILD_CPP_FLAGS_RELEASE="$BUILD_C_FLAGS_RELEASE"
 export BUILD_CPP_FLAGS_PROFILE="$BUILD_C_FLAGS_PROFILE"

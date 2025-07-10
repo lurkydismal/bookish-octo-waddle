@@ -1,11 +1,22 @@
 #include "FPS.h"
 
-#include <errno.h>
+#if defined( clone )
+
+#define temp clone
+#undef clone
+
 #include <pthread.h>
+
+#undef clone
+#define clone temp
+#undef temp
+
+#endif
+
+#include <errno.h>
 #include <time.h>
 
 #include "log.h"
-#include "stdfunc.h"
 
 #if defined( HOT_RELOAD )
 

@@ -5,6 +5,8 @@
 #include <stdint.h>
 #include <sys/inotify.h>
 
+#include "stdfunc.h"
+
 #define EVENT_WRITE IN_CLOSE_WRITE
 #define EVENT_DELETE IN_DELETE
 #define EVENT_RENAME ( IN_MOVED_FROM | IN_MOVED_TO )

@@ -6,7 +6,6 @@
 
 #include "asset_t.h"
 #include "log.h"
-#include "stdfunc.h"
 
 #define MAX_EVENT_AMOUNT ( 8 )
 #define MAX_SINGLE_EVENT_SIZE ( sizeof( struct inotify_event ) + NAME_MAX + 1 )
@@ -178,7 +177,7 @@ bool watch_t$add$toGlob( watch_t* restrict _watch,
     }
 
     {
-        char** l_paths = getPathsByGlob( _glob, NULL, NULL );
+        char** l_paths = getPathsByGlob( _glob, NULL, false );
 
         FOR_ARRAY( char* const*, l_paths ) {
             const bool l_isDirectory =
@@ -297,42 +296,47 @@ bool watch_t$check( watch_t* _watch, bool _isBlocking ) {
                             goto LOOP_CONTINUE;
                         }
 
-                        watchCallback_t l_callback = NULL;
-                        void* l_context = NULL;
+                        {
+                            watchCallback_t l_callback = NULL;
+                            void* l_context = NULL;
 
-                        FOR_RANGE( arrayLength_t, 0,
-                                   arrayLength( _watch->watchDescriptors ) ) {
-                            const int l_watchDescriptor =
-                                _watch->watchDescriptors[ _index ];
+                            FOR_RANGE(
+                                arrayLength_t, 0,
+                                arrayLength( _watch->watchDescriptors ) ) {
+                                const int l_watchDescriptor =
+                                    _watch->watchDescriptors[ _index ];
 
-                            if ( l_watchDescriptor == l_event->wd ) {
-                                l_callback = _watch->watchCallbacks[ _index ];
-                                l_context = _watch->callbackContexts[ _index ];
+                                if ( l_watchDescriptor == l_event->wd ) {
+                                    l_callback =
+                                        _watch->watchCallbacks[ _index ];
+                                    l_context =
+                                        _watch->callbackContexts[ _index ];
 
-                                break;
+                                    break;
+                                }
                             }
-                        }
 
-                        l_returnValue = !!( l_callback );
+                            l_returnValue = !!( l_callback );
 
-                        if ( UNLIKELY( !l_returnValue ) ) {
-                            log$transaction$query( ( logLevel_t )error,
-                                                   "Corrupted callback" );
+                            if ( UNLIKELY( !l_returnValue ) ) {
+                                log$transaction$query( ( logLevel_t )error,
+                                                       "Corrupted callback" );
 
-                            trap();
+                                trap();
 
-                            goto EXIT;
-                        }
+                                goto EXIT;
+                            }
 
-                        l_returnValue =
-                            l_callback( l_context, l_event->name, l_event->mask,
-                                        l_event->cookie );
+                            l_returnValue =
+                                l_callback( l_context, l_event->name,
+                                            l_event->mask, l_event->cookie );
 
-                        if ( UNLIKELY( !l_returnValue ) ) {
-                            log$transaction$query( ( logLevel_t )error,
-                                                   "Watch callback" );
+                            if ( UNLIKELY( !l_returnValue ) ) {
+                                log$transaction$query( ( logLevel_t )error,
+                                                       "Watch callback" );
 
-                            goto EXIT;
+                                goto EXIT;
+                            }
                         }
 
                     LOOP_CONTINUE:

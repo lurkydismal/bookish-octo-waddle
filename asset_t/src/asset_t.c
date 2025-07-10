@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include "log.h"
-#include "stdfunc.h"
 
 #if defined( HOT_RELOAD )
 

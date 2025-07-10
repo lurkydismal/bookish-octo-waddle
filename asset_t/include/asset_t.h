@@ -4,6 +4,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "stdfunc.h"
+
 #define DEFAULT_ASSET \
     {                 \
         .data = NULL, \

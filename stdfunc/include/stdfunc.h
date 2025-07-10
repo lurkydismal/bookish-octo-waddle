@@ -19,6 +19,8 @@
 #include <unistd.h>
 #include <xxhash.h>
 
+#include "cpp_compatibility.h"
+
 // Function attributes
 #define FORCE_INLINE __attribute__( ( always_inline ) ) inline
 #define NO_OPTIMIZE __attribute__( ( optimize( "0" ) ) )
