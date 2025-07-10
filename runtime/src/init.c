@@ -8,7 +8,6 @@
 
 #include "FPS.h"
 #include "asset_t.h"
-#include "config_t.h"
 #include "log.h"
 #include "settings_t.h"
 #include "stdfunc.h"
@@ -32,39 +31,10 @@
 // Keys should match keys for settings options
 #define SETTINGS_FORMAT_STRING \
     "window_width = %zu\n"     \
-    "window_height = %zu\n"    \
-    "up = %s\n"                \
-    "down = %s\n"              \
-    "left = %s\n"              \
-    "right = %s\n"             \
-    "light_attack = %s\n"      \
-    "medium_attack = %s\n"     \
-    "heavy_attack = %s\n"      \
-    "shield = %s\n"            \
-    "background_index = %zu\n" \
-    "HUD_index = %zu\n"        \
-    "character_index = %zu\n"
+    "window_height = %zu\n"
 
-#define SETTINGS_FORMAT_ARGUMENTS( _settings )                 \
-    ( _settings ).window.width, ( _settings ).window.height,   \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.up.scancode ),              \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.down.scancode ),            \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.left.scancode ),            \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.right.scancode ),           \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.A.scancode ),               \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.B.scancode ),               \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.C.scancode ),               \
-        control_t$scancode$convert$toStaticString(             \
-            ( _settings ).controls.D.scancode ),               \
-        ( _settings ).backgroundIndex, ( _settings ).HUDIndex, \
-        ( _settings ).characterIndex
+#define SETTINGS_FORMAT_ARGUMENTS( _settings ) \
+    ( _settings ).window.width, ( _settings ).window.height
 
 const char* argp_program_version;
 const char* argp_program_bug_address;
@@ -112,76 +82,6 @@ static error_t parserForOption( int _key,
             break;
         }
 
-            // Background
-        case 'b': {
-            const size_t l_backgroundIndex = strtoul( _value, NULL, 10 );
-
-            if ( UNLIKELY(
-                     l_backgroundIndex >=
-                     arrayLength( l_applicationState->config.backgrounds ) ) ) {
-                log$transaction$query$format( ( logLevel_t )error,
-                                              "Background index: %s", _value );
-
-                argp_error( _state, "Background index '%s' is out of range",
-                            _value );
-
-                break;
-            }
-
-            l_applicationState->settings.backgroundIndex = l_backgroundIndex;
-
-            l_applicationState->background =
-                l_applicationState->config.backgrounds[ l_backgroundIndex ];
-
-            break;
-        }
-
-            // HUD
-        case 'h': {
-            const size_t l_HUDIndex = strtoul( _value, NULL, 10 );
-
-            if ( UNLIKELY( l_HUDIndex >=
-                           arrayLength( l_applicationState->config.HUDs ) ) ) {
-                log$transaction$query$format( ( logLevel_t )error,
-                                              "HUD index: %s", _value );
-
-                argp_error( _state, "HUD index '%s' is out of range", _value );
-
-                break;
-            }
-
-            l_applicationState->settings.HUDIndex = l_HUDIndex;
-
-            l_applicationState->HUD =
-                l_applicationState->config.HUDs[ l_HUDIndex ];
-
-            break;
-        }
-
-            // Character
-        case 'c': {
-            const size_t l_characterIndex = strtoul( _value, NULL, 10 );
-
-            if ( UNLIKELY(
-                     l_characterIndex >=
-                     arrayLength( l_applicationState->config.characters ) ) ) {
-                log$transaction$query$format( ( logLevel_t )error,
-                                              "Character index: %s", _value );
-
-                argp_error( _state, "Character index '%s' is out of range",
-                            _value );
-
-                break;
-            }
-
-            l_applicationState->settings.characterIndex = l_characterIndex;
-
-            l_applicationState->character =
-                l_applicationState->config.characters[ l_characterIndex ];
-
-            break;
-        }
-
             // Print
         case 'p': {
             char l_configAsString[ PATH_MAX ] = { '\0' };
@@ -215,10 +115,6 @@ static error_t parserForOption( int _key,
             configFieldHandler( *_element, #_field, l_configAsString ); \
         }                                                               \
     } while ( 0 )
-
-            HANDLE_CONFIG_FIELD( background );
-            HANDLE_CONFIG_FIELD( HUD );
-            HANDLE_CONFIG_FIELD( character );
 
 #undef HANDLE_CONFIG_FIELD
 
@@ -328,10 +224,6 @@ static error_t parserForOption( int _key,
         }                                                                   \
     } while ( 0 )
 
-            PICK_RANDOM_IF_NULL( background );
-            PICK_RANDOM_IF_NULL( HUD );
-            PICK_RANDOM_IF_NULL( character );
-
 #undef PICK_RANDOM_IF_NULL
 
             break;
@@ -393,11 +285,6 @@ static FORCE_INLINE bool parseArguments(
             struct argp_option l_options[] = {
                 { "verbose", 'v', 0, 0, "Produce verbose output", 0 },
                 { "quiet", 'q', 0, 0, "Do not produce any output", 0 },
-                { "background", 'b', "INDEX", 0, "Select background by index",
-                  0 },
-                { "HUD", 'h', "INDEX", 0, "Select HUD by index", 0 },
-                { "character", 'c', "INDEX", 0, "Select character by index",
-                  0 },
                 { "print", 'p', 0, 0, "Print available configuration", 0 },
                 { "save", 's', 0, 0, "Save without running", 0 },
                 { 0 } };
@@ -525,22 +412,6 @@ bool init( applicationState_t* restrict _applicationState,
                     log$transaction$query$format( ( logLevel_t )error,
                                                   "Setting render scale: '%s'",
                                                   SDL_GetError() );
-
-                    goto EXIT;
-                }
-            }
-
-            // Configuration
-            {
-                // Backgrounds
-                // UI
-                // TODO: Implement
-                // Characters
-                if ( UNLIKELY( !config_t$load$fromPath(
-                         &( _applicationState->config ), CONFIG_FILE_NAME,
-                         CONFIG_FILE_EXTENSION ) ) ) {
-                    log$transaction$query( ( logLevel_t )error,
-                                           "Loading config" );
 
                     goto EXIT;
                 }

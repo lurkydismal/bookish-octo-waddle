@@ -11,7 +11,6 @@ settings_t settings_t$create( void ) {
 
     {
         l_returnValue.window = window_t$create();
-        l_returnValue.controls = controls_t$create();
         l_returnValue.version = duplicateString( DEFAULT_SETTINGS_VERSION );
         l_returnValue.identifier = duplicateString( l_returnValue.window.name );
         l_returnValue.description =
@@ -40,18 +39,6 @@ bool settings_t$destroy( settings_t* restrict _settings ) {
 
             goto EXIT;
         }
-
-        l_returnValue = controls_t$destroy( &( _settings->controls ) );
-
-        if ( UNLIKELY( !l_returnValue ) ) {
-            log$transaction$query( ( logLevel_t )error, "Destroying controls" );
-
-            goto EXIT;
-        }
-
-        _settings->backgroundIndex = SIZE_MAX;
-        _settings->HUDIndex = SIZE_MAX;
-        _settings->characterIndex = SIZE_MAX;
 
         free( _settings->version );
         _settings->version = NULL;
@@ -145,96 +132,6 @@ bool settings_t$load$fromAsset( settings_t* restrict _settings,
                         INSERT_SETTINGS_OPTION( &l_settingsOptions,
                                                 "window_vsync",
                                                 &( _settings->window.vsync ) );
-                    }
-
-                    // Controls
-                    {
-                        // Directions by names
-                        {
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "up",
-                                &( _settings->controls.up.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "down",
-                                &( _settings->controls.down.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "left",
-                                &( _settings->controls.left.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "right",
-                                &( _settings->controls.right.scancode ) );
-                        }
-
-                        // Directions by notation
-                        {
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "8",
-                                &( _settings->controls.up.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "2",
-                                &( _settings->controls.down.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "4",
-                                &( _settings->controls.left.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "6",
-                                &( _settings->controls.right.scancode ) );
-                        }
-
-                        // Buttons by names
-                        {
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "light_attack",
-                                &( _settings->controls.A.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "medium_attack",
-                                &( _settings->controls.B.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "heavy_attack",
-                                &( _settings->controls.C.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "shield",
-                                &( _settings->controls.D.scancode ) );
-                        }
-
-                        // Buttons by notation
-                        {
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "A",
-                                &( _settings->controls.A.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "B",
-                                &( _settings->controls.B.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "C",
-                                &( _settings->controls.C.scancode ) );
-
-                            INSERT_SETTINGS_OPTION(
-                                &l_settingsOptions, "D",
-                                &( _settings->controls.D.scancode ) );
-                        }
-
-                        INSERT_SETTINGS_OPTION(
-                            &l_settingsOptions, "background_index",
-                            &( _settings->backgroundIndex ) );
-
-                        INSERT_SETTINGS_OPTION( &l_settingsOptions, "HUD_index",
-                                                &( _settings->HUDIndex ) );
-
-                        INSERT_SETTINGS_OPTION(
-                            &l_settingsOptions, "character_index",
-                            &( _settings->characterIndex ) );
                     }
 
 #undef INSERT_SETTINGS_OPTION

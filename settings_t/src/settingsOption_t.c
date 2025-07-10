@@ -2,7 +2,6 @@
 
 #include <stdlib.h>
 
-#include "controls_t.h"
 #include "log.h"
 
 settingsOption_t settingsOption_t$create( void ) {
@@ -147,12 +146,15 @@ bool settingsOption_t$bind( settingsOption_t* restrict _settingsOption,
                 break;
             }
 
+            // TODO
+#if 0
             case scancode: {
                 *( ( SDL_Scancode* )( _settingsOption->storage ) ) =
                     control_t$scancode$convert$fromString( _value );
 
                 break;
             }
+#endif
 
             case string: {
                 free( *( _settingsOption->storage ) );

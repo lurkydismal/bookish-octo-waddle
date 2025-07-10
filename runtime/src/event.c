@@ -4,8 +4,6 @@
 #include <SDL3/SDL_render.h>
 #include <stddef.h>
 
-#include "controls_t.h"
-#include "inputBuffer_t.h"
 #include "log.h"
 #include "stdfunc.h"
 
@@ -70,82 +68,6 @@ static FORCE_INLINE bool handleKeyboardState(
             _applicationState->totalFramesRendered;
 
         if ( l_lastInputFrame < l_totalFramesRendered ) {
-            input_t l_input = input_t$create();
-
-            {
-                int l_keysAmount = 0;
-                const bool* l_keysState = SDL_GetKeyboardState( &l_keysAmount );
-
-                ASSUME( l_keysAmount == SDL_SCANCODE_COUNT );
-
-                const size_t l_SDLScancodeFirst = SDL_SCANCODE_A;
-
-                FOR_RANGE( int, l_SDLScancodeFirst, l_keysAmount ) {
-                    // If pressed
-                    if ( l_keysState[ _index ] ) {
-                        SDL_Scancode l_scancode = _index;
-
-                        const control_t* l_control =
-                            controls_t$control_t$convert$fromScancode(
-                                &( _applicationState->settings.controls ),
-                                l_scancode );
-
-                        if ( l_control ) {
-                            l_input.data |= l_control->input.data;
-                        }
-                    }
-                }
-            }
-
-            l_returnValue =
-                player_t$input$add( &( _applicationState->localPlayer ),
-                                    &l_input, l_totalFramesRendered );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                log$transaction$query( ( logLevel_t )error,
-                                       "Adding player input" );
-
-                goto EXIT;
-            }
-
-            {
-                // TODO: Fix
-#if 1
-                input_t** l_inputs = player_t$inputsSequences$get$withLimit(
-                    &( _applicationState->localPlayer ),
-                    _applicationState->totalFramesRendered + 1, 8 );
-
-                if ( arrayLength( l_inputs ) ) {
-                    static bool asd = false;
-                    static char* l_result = NULL;
-
-                    if ( !asd ) {
-                        asd = true;
-
-                        l_result = ( char* )malloc( 100 );
-                    }
-
-                    size_t l_len = 0;
-
-                    FOR_ARRAY_REVERSE( input_t* const*, l_inputs ) {
-                        const char* s =
-                            input_t$convert$toStaticString( *_element );
-                        const size_t sl = __builtin_strlen( s );
-
-                        __builtin_memcpy( ( l_result + l_len ), s, sl );
-
-                        l_len += sl;
-                    }
-
-                    l_result[ l_len ] = '\0';
-
-                    log$transaction$query$format( ( logLevel_t )debug, "SEQ %s",
-                                                  l_result );
-                }
-
-                FREE_ARRAY( l_inputs );
-#endif
-            }
         }
 
         l_lastInputFrame = l_totalFramesRendered;
