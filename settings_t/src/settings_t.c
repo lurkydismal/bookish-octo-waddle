@@ -2,10 +2,8 @@
 
 #include <stdlib.h>
 
-#include "asset_t.h"
 #include "log.h"
 #include "settingsOption_t.h"
-#include "stdfloat16.h"
 #include "stdfunc.h"
 
 settings_t settings_t$create( void ) {
@@ -13,15 +11,24 @@ settings_t settings_t$create( void ) {
 
     {
         l_returnValue.window = window_t$create();
+        l_returnValue.controls = controls_t$create();
+        l_returnValue.version = duplicateString( DEFAULT_SETTINGS_VERSION );
+        l_returnValue.identifier = duplicateString( l_returnValue.window.name );
+        l_returnValue.description =
+            duplicateString( DEFAULT_SETTINGS_DESCRIPTION );
+        l_returnValue.contactAddress =
+            duplicateString( DEFAULT_SETTINGS_CONTACT_ADDRESS );
     }
 
     return ( l_returnValue );
 }
 
-bool settings_t$destroy( settings_t* _settings ) {
+bool settings_t$destroy( settings_t* restrict _settings ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_settings ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
         goto EXIT;
     }
 
@@ -29,8 +36,34 @@ bool settings_t$destroy( settings_t* _settings ) {
         l_returnValue = window_t$destroy( &( _settings->window ) );
 
         if ( UNLIKELY( !l_returnValue ) ) {
+            log$transaction$query( ( logLevel_t )error, "Destroying window" );
+
             goto EXIT;
         }
+
+        l_returnValue = controls_t$destroy( &( _settings->controls ) );
+
+        if ( UNLIKELY( !l_returnValue ) ) {
+            log$transaction$query( ( logLevel_t )error, "Destroying controls" );
+
+            goto EXIT;
+        }
+
+        _settings->backgroundIndex = SIZE_MAX;
+        _settings->HUDIndex = SIZE_MAX;
+        _settings->characterIndex = SIZE_MAX;
+
+        free( _settings->version );
+        _settings->version = NULL;
+
+        free( _settings->identifier );
+        _settings->identifier = NULL;
+
+        free( _settings->description );
+        _settings->description = NULL;
+
+        free( _settings->contactAddress );
+        _settings->contactAddress = NULL;
 
         l_returnValue = true;
     }
@@ -39,108 +72,190 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool settings_t$load( settings_t* restrict _settings,
-                      const char* restrict _fileName,
-                      const char* restrict _fileExtension ) {
+bool settings_t$load$fromAsset( settings_t* restrict _settings,
+                                const asset_t* restrict _asset ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_settings ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_asset ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
         goto EXIT;
     }
 
     {
-        settings_t l_settings = settings_t$create();
+#if defined( LOG_SETTINGS )
 
-        // Parse settings file
+        log$transaction$query$format( ( logLevel_t )debug, "Settings size: %zu",
+                                      _asset->size );
+
+#endif
+
+        char* l_dataWithNull =
+            ( char* )malloc( ( _asset->size + 1 ) * sizeof( char ) );
+
+        __builtin_memcpy( l_dataWithNull, _asset->data, _asset->size );
+
+        l_dataWithNull[ _asset->size ] = '\0';
+
         {
-            asset_t l_settingsAsset = asset_t$create();
+            char** l_lines =
+                splitStringIntoArrayBySymbol( l_dataWithNull, '\n' );
 
-            // Load settings file
-            {
-                char* l_filePath = duplicateString( "." );
+            free( l_dataWithNull );
 
-                l_returnValue = !!( concatBeforeAndAfterString(
-                    &l_filePath, _fileName, _fileExtension ) );
+            if ( UNLIKELY( !arrayLength( l_lines ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Empty settings file" );
 
-                if ( UNLIKELY( !l_returnValue ) ) {
-                    goto EXIT_FILE_PATH_CONCAT;
-                }
-
-                l_returnValue = asset_t$load( &l_settingsAsset, l_filePath );
-
-            EXIT_FILE_PATH_CONCAT:
-                free( l_filePath );
-
-                if ( UNLIKELY( !l_returnValue ) ) {
-                    goto EXIT;
-                }
+                goto EXIT_SETTINGS_DATA_LINES;
             }
 
-            log$transaction$query$format( ( logLevel_t )debug,
-                                          "Settings size: %zu\n",
-                                          l_settingsAsset.size );
-
             {
-                char** l_lines = splitStringIntoArrayBySymbol(
-                    ( char* )( l_settingsAsset.data ), '\n' );
-
-                if ( UNLIKELY( !arrayLength( l_lines ) ) ) {
-                    goto EXIT_SETTINGS_DATA_LINES;
-                }
+                settingsOption_t** l_settingsOptions =
+                    createArray( settingsOption_t* );
 
                 {
-                    settingsOption_t** l_settingsOptions =
-                        createArray( settingsOption_t* );
-
-                    {
-#define INSERT_SETTINGS_OPTION( _array, _key, _storage )                \
-    ( {                                                                 \
-        settingsOption_t l_settingsOption = settingsOption_t$create();  \
-        settingsOption_t$map( &l_settingsOption, _key, _storage );      \
-        settingsOption_t* l_settingsOptionAllocated =                   \
-            ( settingsOption_t* )malloc( sizeof( settingsOption_t ) );  \
-        __builtin_memcpy( l_settingsOptionAllocated, &l_settingsOption, \
-                          sizeof( settingsOption_t ) );                 \
-        insertIntoArray( _array, l_settingsOptionAllocated );           \
+#define INSERT_SETTINGS_OPTION( _array, _key, _storage )               \
+    ( {                                                                \
+        settingsOption_t l_settingsOption = settingsOption_t$create(); \
+        settingsOption_t$map( &l_settingsOption, _key, _storage );     \
+        insertIntoArray( _array, clone( &l_settingsOption ) );         \
     } )
 
+                    // Window
+                    {
                         INSERT_SETTINGS_OPTION( &l_settingsOptions,
                                                 "window_name",
-                                                &( l_settings.window.name ) );
+                                                &( _settings->window.name ) );
                         INSERT_SETTINGS_OPTION( &l_settingsOptions,
                                                 "window_width",
-                                                &( l_settings.window.width ) );
+                                                &( _settings->window.width ) );
                         INSERT_SETTINGS_OPTION( &l_settingsOptions,
                                                 "window_height",
-                                                &( l_settings.window.height ) );
+                                                &( _settings->window.height ) );
                         INSERT_SETTINGS_OPTION(
                             &l_settingsOptions, "window_desired_FPS",
-                            &( l_settings.window.desiredFPS ) );
+                            &( _settings->window.desiredFPS ) );
                         INSERT_SETTINGS_OPTION( &l_settingsOptions,
                                                 "window_vsync",
-                                                &( l_settings.window.vsync ) );
-                        INSERT_SETTINGS_OPTION(
-                            &l_settingsOptions, "limited_loop_desired_FPS",
-                            &( l_settings.limitedLoopDesiredFPS ) );
-
-#undef INSERT_SETTINGS_OPTION
+                                                &( _settings->window.vsync ) );
                     }
 
-                    FOR_ARRAY( char* const*, l_lines ) {
-                        const char* l_line = sanitizeString( *_element );
+                    // Controls
+                    {
+                        // Directions by names
+                        {
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "up",
+                                &( _settings->controls.up.scancode ) );
 
-                        if ( ( l_line ) && ( __builtin_strlen( l_line ) ) ) {
-                            char** l_keyAndValue =
-                                splitStringIntoArrayBySymbol( l_line, '=' );
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "down",
+                                &( _settings->controls.down.scancode ) );
 
-                            if ( arrayLength( l_keyAndValue ) != 2 ) {
-                                log$transaction$query$format(
-                                    ( logLevel_t )error,
-                                    "Settings line: '%s'\n", l_line );
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "left",
+                                &( _settings->controls.left.scancode ) );
 
-                                goto LOOP_CONTINUE;
-                            }
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "right",
+                                &( _settings->controls.right.scancode ) );
+                        }
 
+                        // Directions by notation
+                        {
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "8",
+                                &( _settings->controls.up.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "2",
+                                &( _settings->controls.down.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "4",
+                                &( _settings->controls.left.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "6",
+                                &( _settings->controls.right.scancode ) );
+                        }
+
+                        // Buttons by names
+                        {
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "light_attack",
+                                &( _settings->controls.A.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "medium_attack",
+                                &( _settings->controls.B.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "heavy_attack",
+                                &( _settings->controls.C.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "shield",
+                                &( _settings->controls.D.scancode ) );
+                        }
+
+                        // Buttons by notation
+                        {
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "A",
+                                &( _settings->controls.A.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "B",
+                                &( _settings->controls.B.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "C",
+                                &( _settings->controls.C.scancode ) );
+
+                            INSERT_SETTINGS_OPTION(
+                                &l_settingsOptions, "D",
+                                &( _settings->controls.D.scancode ) );
+                        }
+
+                        INSERT_SETTINGS_OPTION(
+                            &l_settingsOptions, "background_index",
+                            &( _settings->backgroundIndex ) );
+
+                        INSERT_SETTINGS_OPTION( &l_settingsOptions, "HUD_index",
+                                                &( _settings->HUDIndex ) );
+
+                        INSERT_SETTINGS_OPTION(
+                            &l_settingsOptions, "character_index",
+                            &( _settings->characterIndex ) );
+                    }
+
+#undef INSERT_SETTINGS_OPTION
+                }
+
+                FOR_ARRAY( char* const*, l_lines ) {
+                    char* l_line = sanitizeString( *_element );
+
+                    if ( ( l_line ) && ( __builtin_strlen( l_line ) ) ) {
+                        char** l_keyAndValue =
+                            splitStringIntoArrayBySymbol( l_line, '=' );
+
+                        if ( arrayLength( l_keyAndValue ) != 2 ) {
+                            log$transaction$query$format( ( logLevel_t )error,
+                                                          "Settings line: '%s'",
+                                                          l_line );
+
+                            goto LOOP_CONTINUE;
+                        }
+
+                        {
                             const char* l_key =
                                 arrayFirstElement( l_keyAndValue );
                             const char* l_value =
@@ -161,58 +276,44 @@ bool settings_t$load( settings_t* restrict _settings,
                             if ( UNLIKELY( !l_result ) ) {
                                 log$transaction$query$format(
                                     ( logLevel_t )error,
-                                    "Corrupted settings key: '%s'\n", l_key );
+                                    "Corrupted settings key: '%s'", l_key );
 
                                 goto LOOP_CONTINUE;
                             }
-
-                        LOOP_CONTINUE:
-                            FREE_ARRAY_ELEMENTS( l_keyAndValue );
-                            FREE_ARRAY( l_keyAndValue );
                         }
+
+                    LOOP_CONTINUE:
+                        FREE_ARRAY_ELEMENTS( l_keyAndValue );
+                        FREE_ARRAY( l_keyAndValue );
                     }
 
-                    FOR_ARRAY( settingsOption_t* const*, l_settingsOptions ) {
-                        if ( !settingsOption_t$unmap( *_element ) ) {
-                            log$transaction$query$format(
-                                ( logLevel_t )error,
-                                "Settings option unmap\n" );
-
-                            break;
-                        }
-
-                        if ( !settingsOption_t$destroy( *_element ) ) {
-                            log$transaction$query$format(
-                                ( logLevel_t )error,
-                                "Settings option destroy\n" );
-
-                            break;
-                        }
-                    }
-
-                    FREE_ARRAY_ELEMENTS( l_settingsOptions );
-                    FREE_ARRAY( l_settingsOptions );
+                    free( l_line );
                 }
 
-            EXIT_SETTINGS_DATA_LINES:
-                FREE_ARRAY_ELEMENTS( l_lines );
-                FREE_ARRAY( l_lines );
+                FOR_ARRAY( settingsOption_t* const*, l_settingsOptions ) {
+                    if ( !settingsOption_t$unmap( *_element ) ) {
+                        log$transaction$query( ( logLevel_t )error,
+                                               "Settings option unmap" );
+
+                        break;
+                    }
+
+                    if ( !settingsOption_t$destroy( *_element ) ) {
+                        log$transaction$query( ( logLevel_t )error,
+                                               "Settings option destroy" );
+
+                        break;
+                    }
+                }
+
+                FREE_ARRAY_ELEMENTS( l_settingsOptions );
+                FREE_ARRAY( l_settingsOptions );
             }
 
-            l_returnValue = asset_t$unload( &l_settingsAsset );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT;
-            }
-
-            l_returnValue = asset_t$destroy( &l_settingsAsset );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT;
-            }
+        EXIT_SETTINGS_DATA_LINES:
+            FREE_ARRAY_ELEMENTS( l_lines );
+            FREE_ARRAY( l_lines );
         }
-
-        *_settings = l_settings;
 
         l_returnValue = true;
     }
@@ -221,18 +322,114 @@ EXIT:
     return ( l_returnValue );
 }
 
-bool settings_t$unload( settings_t* _settings ) {
+bool settings_t$load$fromPath( settings_t* restrict _settings,
+                               const char* restrict _fileName,
+                               const char* restrict _fileExtension ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_settings ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_fileName ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_fileExtension ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
         goto EXIT;
     }
 
     {
-        if ( UNLIKELY( !window_t$destroy( &( _settings->window ) ) ) ) {
-            goto EXIT;
+#if defined( LOG_SETTINGS )
+
+        log$transaction$query$format( ( logLevel_t )debug,
+                                      "Settings path: '%s.%s'", _fileName,
+                                      _fileExtension );
+
+#endif
+
+        // Parse settings file
+        {
+            asset_t l_settingsAsset = asset_t$create();
+
+            {
+                {
+                    char* l_filePath = duplicateString( "." );
+
+                    concatBeforeAndAfterString( &l_filePath, _fileName,
+                                                _fileExtension );
+
+                    l_returnValue =
+                        asset_t$load$fromPath( &l_settingsAsset, l_filePath );
+
+                    free( l_filePath );
+
+                    if ( UNLIKELY( !l_returnValue ) ) {
+                        log$transaction$query( ( logLevel_t )error,
+                                               "Loading asset from path" );
+
+                        goto EXIT_SETTINGS_LOAD;
+                    }
+                }
+
+                l_returnValue =
+                    settings_t$load$fromAsset( _settings, &l_settingsAsset );
+
+                if ( UNLIKELY( !l_returnValue ) ) {
+                    log$transaction$query( ( logLevel_t )error,
+                                           "Loading settings from asset" );
+
+                    goto EXIT_SETTINGS_LOAD;
+                }
+
+                l_returnValue = asset_t$unload( &l_settingsAsset );
+
+                if ( UNLIKELY( !l_returnValue ) ) {
+                    log$transaction$query( ( logLevel_t )error,
+                                           "Unloading asset" );
+
+                    goto EXIT_SETTINGS_LOAD;
+                }
+            }
+
+        EXIT_SETTINGS_LOAD:
+            if ( UNLIKELY( !asset_t$destroy( &l_settingsAsset ) ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Destroying asset" );
+
+                l_returnValue = false;
+
+                goto EXIT;
+            }
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                goto EXIT;
+            }
         }
 
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool settings_t$unload( settings_t* restrict _settings ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_settings ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    {
         l_returnValue = true;
     }
 

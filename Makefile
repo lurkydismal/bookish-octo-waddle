@@ -8,8 +8,6 @@ EXES                  =
 
 ### Common settings
 
-CEXTRA                = $(C_FLAGS)
-CXXEXTRA              =
 RCEXTRA               =
 DEFINES               = $(DEFINES)
 INCLUDE_PATH          = $(INCLUDES) \
@@ -23,8 +21,7 @@ LIBRARIES             =
 ### Output file sources and settings
 
 libfile_a_MODULE       = $(OUTPUT_FILE)
-libfile_a_C_SRCS       = $(foreach _pattern, $(FILES_TO_COMPILE), $(wildcard $(_pattern)))
-libfile_a_CXX_SRCS     =
+libfile_a_SRCS         = $(foreach _pattern, $(FILES_TO_COMPILE), $(wildcard $(_pattern)))
 libfile_a_RC_SRCS      =
 libfile_a_LDFLAGS      =
 libfile_a_ARFLAGS      = rc
@@ -33,23 +30,19 @@ libfile_a_DLLS         =
 libfile_a_LIBRARY_PATH =
 libfile_a_LIBRARIES    =
 
-libfile_a_OBJS         = $(libfile_a_C_SRCS:.c=.o) \
-			$(libfile_a_CXX_SRCS:.cpp=.o) \
+libfile_a_OBJS         = $(libfile_a_SRCS:.c=.o) \
 			$(libfile_a_RC_SRCS:.rc=.res)
 
 
 
 ### Global source lists
 
-C_SRCS                = $(libfile_a_C_SRCS)
-CXX_SRCS              = $(libfile_a_CXX_SRCS)
+SRCS                = $(libfile_a_SRCS)
 RC_SRCS               = $(libfile_a_RC_SRCS)
 
 
 ### Tools
 
-CC = $(C_COMPILER)
-CXX = ccache g++
 RC = rcc
 AR = gcc-ar
 
@@ -71,16 +64,12 @@ $(SUBDIRS): dummy
 DEFINCL = $(INCLUDE_PATH) $(DEFINES) $(OPTIONS)
 
 .c.o:
-	$(CC) -c $(CFLAGS) $(CEXTRA) $(DEFINCL) -o $@ $<
-
-.cpp.o:
-	$(CXX) -c $(CXXFLAGS) $(CXXEXTRA) $(DEFINCL) -o $@ $<
-
-.cxx.o:
-	$(CXX) -c $(CXXFLAGS) $(CXXEXTRA) $(DEFINCL) -o $@ $<
+	@echo "Compiling $<"
+	@$(COMPILER) -c $< $(BUILD_FLAGS) $(DEFINCL) -o $@
 
 .rc.res:
-	$(RC) $(RCFLAGS) $(RCEXTRA) $(DEFINCL) -fo$@ $<
+	@echo "Compiling resource $<"
+	@$(RC) $(RCFLAGS) $(RCEXTRA) $(DEFINCL) -fo$@ $<
 
 # Rules for cleaning
 
@@ -88,8 +77,8 @@ CLEAN_FILES     = y.tab.c y.tab.h lex.yy.c core *.orig *.rej \
                   \\\#*\\\# *~ *% .\\\#*
 
 clean:: $(SUBDIRS:%=%/__clean__) $(EXTRASUBDIRS:%=%/__clean__)
-	$(RM) $(CLEAN_FILES) $(RC_SRCS:.rc=.res) $(C_SRCS:.c=.o) $(CXX_SRCS:.cpp=.o)
-	$(RM) $(DLLS:%=%.so) $(LIBS) $(EXES) $(EXES:%=%.so)
+	@$(RM) $(CLEAN_FILES) $(RC_SRCS:.rc=.res) $(SRCS:.c=.o)
+	@$(RM) $(DLLS:%=%.so) $(LIBS) $(EXES) $(EXES:%=%.so)
 
 $(SUBDIRS:%=%/__clean__): dummy
 	cd `dirname $@` && $(MAKE) clean
@@ -101,6 +90,7 @@ $(EXTRASUBDIRS:%=%/__clean__): dummy
 DEFLIB = $(LIBRARY_PATH) $(LIBRARIES) $(DLL_PATH) $(DLL_IMPORTS:%=-l%)
 
 $(libfile_a_MODULE): $(libfile_a_OBJS)
-	$(AR) $(libfile_a_ARFLAGS) $@ $(libfile_a_OBJS)
+	@echo "Archiving $<"
+	@$(AR) $(libfile_a_ARFLAGS) $@ $(libfile_a_OBJS)
 
 

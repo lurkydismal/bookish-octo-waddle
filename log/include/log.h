@@ -7,17 +7,16 @@
 
 #include "stdfunc.h"
 
-#define COLOR_RED "\e[1;31m"
-#define COLOR_GREEN "\e[1;32m"
-#define COLOR_YELLOW "\e[1;33m"
-#define COLOR_CYAN_LIGHT "\e[1;36m"
-#define COLOR_RESET "\e[0m"
+#define LOG_COLOR_THREAD_ID ASCII_COLOR_PURPLE_LIGHT
+#define LOG_COLOR_FILE_NAME ASCII_COLOR_PURPLE_LIGHT
+#define LOG_COLOR_LINE_NUMBER ASCII_COLOR_PURPLE_LIGHT
+#define LOG_COLOR_FUNCTION_NAME ASCII_COLOR_PURPLE_LIGHT
 
-#define LOG_COLOR_DEBUG COLOR_CYAN_LIGHT
-#define LOG_COLOR_INFO COLOR_GREEN
-#define LOG_COLOR_WARN COLOR_YELLOW
-#define LOG_COLOR_ERROR COLOR_RED
-#define LOG_COLOR_UNKNOWN COLOR_RESET
+#define LOG_COLOR_DEBUG ASCII_COLOR_CYAN_LIGHT
+#define LOG_COLOR_INFO ASCII_COLOR_GREEN
+#define LOG_COLOR_WARN ASCII_COLOR_YELLOW
+#define LOG_COLOR_ERROR ASCII_COLOR_RED
+#define LOG_COLOR_UNKNOWN ASCII_COLOR_RESET_FOREGROUND
 
 #define LOG_LEVEL_AS_STRING_DEBUG "DEBUG"
 #define LOG_LEVEL_AS_STRING_INFO "INFO"
@@ -25,26 +24,29 @@
 #define LOG_LEVEL_AS_STRING_ERROR "ERROR"
 #define LOG_LEVEL_AS_STRING_UNKNOWN "UNKNOWN"
 
-#define LOG_COLOR_MAX_LENGTH __builtin_strlen( LOG_COLOR_DEBUG )
-#define LOG_LEVEL_AS_STRING_MAX_LENGTH \
-    __builtin_strlen( LOG_LEVEL_AS_STRING_UNKNOWN )
-
-#define LOG_LEVEL_DEFAULT ( ( logLevel_t )warn )
-
 #if defined( DEBUG )
 
-#define DEBUG_INFORMATION_FORMAT \
-    "Thread %zu: File '%s': line %u in function '%s' | Message: "
-#define DEBUG_INFORMATION_TO_PRINT \
+#define LOG_DEBUG_INFORMATION_FORMAT                                           \
+    "Thread " LOG_COLOR_THREAD_ID "%zu" ASCII_COLOR_RESET_FOREGROUND           \
+    ": File '" LOG_COLOR_FILE_NAME "%s" ASCII_COLOR_RESET_FOREGROUND           \
+    "': line " LOG_COLOR_LINE_NUMBER "%u" ASCII_COLOR_RESET_FOREGROUND         \
+    " in function '" LOG_COLOR_FUNCTION_NAME "%s" ASCII_COLOR_RESET_FOREGROUND \
+    "' | Message: "
+
+#define LOG_DEBUG_INFORMATION_ARGUMENTS \
     syscall( SYS_gettid ), __FILE__, __LINE__, __func__
 
 #define log$transaction$query( _logLevel, _string ) \
-    log$transaction$query$format( ( _logLevel ), _string )
+    log$transaction$query$format( ( _logLevel ), "%s", _string )
 
-#define log$transaction$query$format( _logLevel, _format, ... )      \
-    _log$transaction$query$format( ( _logLevel ),                    \
-                                   DEBUG_INFORMATION_FORMAT _format, \
-                                   DEBUG_INFORMATION_TO_PRINT, ##__VA_ARGS__ )
+#define log$transaction$query$format( _logLevel, _format, ... )  \
+    ( {                                                          \
+        _Static_assert( ( sizeof( #__VA_ARGS__ ) > 1 ),          \
+                        "Missing variadic arguments" );          \
+        _log$transaction$query$format(                           \
+            ( _logLevel ), LOG_DEBUG_INFORMATION_FORMAT _format, \
+            LOG_DEBUG_INFORMATION_ARGUMENTS, ##__VA_ARGS__ );    \
+    } )
 
 #else
 
@@ -67,7 +69,7 @@
 
 typedef enum { debug, info, warn, error, unknownLogLevel } logLevel_t;
 
-static FORCE_INLINE const char* log$level$convert$toString(
+static FORCE_INLINE const char* log$level$convert$toStaticString(
     const logLevel_t _logLevel ) {
     switch ( _logLevel ) {
         case ( logLevel_t )debug: {
@@ -115,17 +117,23 @@ log$level$convert$fromString( const char* restrict _string ) {
     }
 }
 
-bool log$init( const char* _fileName, const char* _fileExtension );
-bool log$quit( void );
-
 bool log$level$set( const logLevel_t _logLevel );
-bool log$level$set$string( const char* _string );
+bool log$level$set$string( const char* restrict _string );
 
 logLevel_t log$level$get( void );
 const char* log$level$get$string( void );
 
-bool _log$transaction$query( const logLevel_t _logLevel, const char* _string );
+bool log$init( const char* restrict _fileName,
+               const char* restrict _fileExtension );
+bool log$quit( void );
+
+bool _log$transaction$query( const logLevel_t _logLevel,
+                             const char* restrict _string );
 bool _log$transaction$query$format( const logLevel_t _logLevel,
-                                    const char* _format,
-                                    ... );
+                                    const char* restrict _format,
+                                    ... )
+    __attribute__( ( format( printf,
+                             2, // Format index
+                             3  // First format argument index
+                             ) ) );
 bool log$transaction$commit( void );

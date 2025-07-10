@@ -44,20 +44,10 @@ TEST( trim ) {
     }
 
     {
-        char l_buffer[] = "xyz";
-        char* l_string = l_buffer;
-
-        // No change
-        trim( &l_string, -1, -1 );
-
-        ASSERT_STRING_EQ( l_string, "xyz" );
-    }
-
-    {
         char l_buffer[] = "abcdef";
 
         char* l_string = l_buffer;
-        trim( &l_string, -1, 4 );
+        trim( &l_string, 0, 4 );
 
         ASSERT_STRING_EQ( l_string, "abcd" );
     }
@@ -75,7 +65,7 @@ TEST( lengthOfNumber ) {
         const size_t l_expectedLength =
             ( ( _index == 0 ) ? ( 1 ) : ( log10( _index ) + 1 ) );
 
-        if ( UNLIKELY( l_actualLength != l_expectedLength ) ) {
+        if ( l_actualLength != l_expectedLength ) {
             l_actualLengthFailed = l_actualLength;
             l_expectedLengthFailed = l_expectedLength;
         }
@@ -195,10 +185,9 @@ TEST( generateHash ) {
     {
         // Ensure multiple calls return nonzero values
         {
-            size_t l_actualHashFailed = 0;
-            size_t l_expectedHashFailed = 0;
+            bool l_hasFailed = false;
 
-#pragma omp parallel for shared( l_actualHashFailed, l_expectedHashFailed )
+#pragma omp parallel for shared( l_hasFailed )
             FOR_RANGE( size_t, 1, MAX_BUFFER_LENGTH ) {
                 const size_t l_bufferLength = _index;
 
@@ -211,17 +200,15 @@ TEST( generateHash ) {
 
                 const size_t l_actualHash =
                     generateHash( l_buffer, l_bufferLength );
-                const size_t l_expectedHash = ( size_t )0;
 
-                if ( UNLIKELY( l_actualHash != l_expectedHash ) ) {
-                    l_actualHashFailed = l_actualHash;
-                    l_expectedHashFailed = l_expectedHash;
+                if ( !l_actualHash ) {
+                    l_hasFailed = true;
                 }
 
                 free( l_buffer );
             }
 
-            ASSERT_NOT_EQ( "%zu", l_actualHashFailed, l_expectedHashFailed );
+            ASSERT_FALSE( l_hasFailed );
         }
     }
 
@@ -229,14 +216,15 @@ TEST( generateHash ) {
 }
 
 TEST( duplicateString ) {
-#define duplicateStringTest( _string )         \
-    do {                                       \
-        l_result = duplicateString( _string ); \
-        ASSERT_STRING_EQ( l_result, _string ); \
-        free( l_result );                      \
+#define duplicateStringTest( _string )                                 \
+    do {                                                               \
+        char* l_result = duplicateString( _string );                   \
+        const size_t l_resultLength = __builtin_strlen( l_result );    \
+        char l_resultStatic[ l_resultLength + 1 ];                     \
+        strlcpy( l_resultStatic, l_result, sizeof( l_resultStatic ) ); \
+        free( l_result );                                              \
+        ASSERT_STRING_EQ( l_resultStatic, _string );                   \
     } while ( 0 )
-
-    char* l_result;
 
     // Simple string
     duplicateStringTest( "Hello" );
@@ -250,7 +238,7 @@ TEST( duplicateString ) {
 
     // NULL input
     {
-        l_result = duplicateString( NULL );
+        char* l_result = duplicateString( NULL );
 
         // Should return NULL
         ASSERT_EQ( "%p", l_result, NULL );
@@ -262,54 +250,53 @@ TEST( duplicateString ) {
 TEST( findSymbolInString ) {
     // Symbol present
     {
-        ASSERT_EQ( "%ld", findSymbolInString( "hello", 'e' ), ( ssize_t )1 );
-        ASSERT_EQ( "%ld", findSymbolInString( "abcdef", 'd' ), ( ssize_t )3 );
+        ASSERT_EQ( "%zd", findSymbolInString( "hello", 'e' ), ( ssize_t )1 );
+        ASSERT_EQ( "%zd", findSymbolInString( "abcdef", 'd' ), ( ssize_t )3 );
     }
 
     // Symbol at the beginning
-    ASSERT_EQ( "%ld", findSymbolInString( "world", 'w' ), ( ssize_t )0 );
+    ASSERT_EQ( "%zd", findSymbolInString( "world", 'w' ), ( ssize_t )0 );
 
     // Symbol at the end
-    ASSERT_EQ( "%ld", findSymbolInString( "test", 't' ), ( ssize_t )0 );
+    ASSERT_EQ( "%zd", findSymbolInString( "test", 't' ), ( ssize_t )0 );
 
     // Symbol not present
-    ASSERT_EQ( "%ld", findSymbolInString( "abc", 'z' ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findSymbolInString( "abc", 'z' ), ( ssize_t )( -1 ) );
 
     // Empty string
-    ASSERT_EQ( "%ld", findSymbolInString( "", 'x' ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findSymbolInString( "", 'x' ), ( ssize_t )( -1 ) );
 
     // NULL string
-    ASSERT_EQ( "%ld", findSymbolInString( NULL, 'a' ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findSymbolInString( NULL, 'a' ), ( ssize_t )( -1 ) );
 }
 
 TEST( findLastSymbolInString ) {
     // Last occurrence in middle
-    ASSERT_EQ( "%ld", findLastSymbolInString( "hello", 'l' ), ( ssize_t )3 );
+    ASSERT_EQ( "%zd", findLastSymbolInString( "hello", 'l' ), ( ssize_t )3 );
 
     // Symbol at the end
-    ASSERT_EQ( "%ld", findLastSymbolInString( "abcdef", 'f' ), ( ssize_t )5 );
+    ASSERT_EQ( "%zd", findLastSymbolInString( "abcdef", 'f' ), ( ssize_t )5 );
 
     // Symbol at the beginning
-    ASSERT_EQ( "%ld", findLastSymbolInString( "test", 't' ), ( ssize_t )3 );
+    ASSERT_EQ( "%zd", findLastSymbolInString( "test", 't' ), ( ssize_t )3 );
 
     // Multiple occurrences, last one should be returned
-    ASSERT_EQ( "%ld", findLastSymbolInString( "banana", 'a' ), ( ssize_t )5 );
+    ASSERT_EQ( "%zd", findLastSymbolInString( "banana", 'a' ), ( ssize_t )5 );
 
     // Symbol not present
-    ASSERT_EQ( "%ld", findLastSymbolInString( "xyz", 'a' ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findLastSymbolInString( "xyz", 'a' ), ( ssize_t )( -1 ) );
 
     // Empty string
-    ASSERT_EQ( "%ld", findLastSymbolInString( "", 'x' ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findLastSymbolInString( "", 'x' ), ( ssize_t )( -1 ) );
 
     // NULL string
-    ASSERT_EQ( "%ld", findLastSymbolInString( NULL, 'a' ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findLastSymbolInString( NULL, 'a' ), ( ssize_t )( -1 ) );
 }
 
 TEST( concatBeforeAndAfterString ) {
 #define concatBeforeAndAfterStringTest( _string, _beforeString, _afterString ) \
     do {                                                                       \
-        l_string = ( char* )malloc( ( sizeof( _string ) * sizeof( char ) ) );  \
-        __builtin_strcpy( l_string, _string );                                 \
+        char* l_string = duplicateString( _string );                           \
         ASSERT_EQ(                                                             \
             "%zu",                                                             \
             ( size_t )( concatBeforeAndAfterString( &l_string, _beforeString,  \
@@ -321,8 +308,6 @@ TEST( concatBeforeAndAfterString ) {
         ASSERT_STRING_EQ( l_string, ( _beforeString _string _afterString ) );  \
         free( l_string );                                                      \
     } while ( 0 )
-
-    char* l_string;
 
     // Normal case
     concatBeforeAndAfterStringTest( "world", "Hello ", "!" );
@@ -341,7 +326,7 @@ TEST( concatBeforeAndAfterString ) {
         ASSERT_EQ( "%zu", concatBeforeAndAfterString( NULL, "A", "B" ),
                    ( size_t )0 );
 
-        l_string = NULL;
+        char* l_string = NULL;
 
         ASSERT_EQ( "%zu", concatBeforeAndAfterString( &l_string, "A", "B" ),
                    ( size_t )0 );
@@ -397,6 +382,7 @@ TEST( splitStringIntoArray ) {
         ASSERT_STRING_EQ( l_result[ 1 ], "banana" );
         ASSERT_STRING_EQ( l_result[ 2 ], "cherry" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -406,6 +392,7 @@ TEST( splitStringIntoArray ) {
         ASSERT_STRING_EQ( l_result[ 0 ], "one" );
         ASSERT_STRING_EQ( l_result[ 1 ], "two" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -415,6 +402,7 @@ TEST( splitStringIntoArray ) {
         ASSERT_STRING_EQ( l_result[ 0 ], "first" );
         ASSERT_STRING_EQ( l_result[ 1 ], "second" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -423,6 +411,7 @@ TEST( splitStringIntoArray ) {
         l_result = splitStringIntoArray( "X", "," );
         ASSERT_STRING_EQ( l_result[ 0 ], "X" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -461,6 +450,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         ASSERT_STRING_EQ( l_result[ 1 ], "banana" );
         ASSERT_STRING_EQ( l_result[ 2 ], "cherry" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -470,6 +460,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         ASSERT_STRING_EQ( l_result[ 0 ], "one" );
         ASSERT_STRING_EQ( l_result[ 1 ], "two" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -479,6 +470,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         ASSERT_STRING_EQ( l_result[ 0 ], "first" );
         ASSERT_STRING_EQ( l_result[ 1 ], "second" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -487,6 +479,7 @@ TEST( splitStringIntoArrayBySymbol ) {
         l_result = splitStringIntoArrayBySymbol( "X", ',' );
         ASSERT_STRING_EQ( l_result[ 0 ], "X" );
 
+        FREE_ARRAY_ELEMENTS( l_result );
         FREE_ARRAY( l_result );
     }
 
@@ -528,7 +521,6 @@ TEST( createArray ) {
         ASSERT_EQ( "%zu", arrayLength( l_array ), ( size_t )0 );
 
         // Free allocated memory
-        // FREE_ARRAY for Allocated elements, safe if length is 0
         FREE_ARRAY( l_array );
     }
 
@@ -822,13 +814,11 @@ TEST( insertIntoArray ) {
 
         l_personFirst->id = 1;
         __builtin_strcpy( l_personFirst->name, "Alice" );
-        l_personFirst->nameAllocated = ( char* )malloc( 16 * sizeof( char ) );
-        __builtin_strcpy( l_personFirst->nameAllocated, "Alice_dyn" );
+        l_personFirst->nameAllocated = duplicateString( "Alice_dyn" );
 
         l_personSecond->id = 2;
         __builtin_strcpy( l_personSecond->name, "Bob" );
-        l_personSecond->nameAllocated = ( char* )malloc( 16 * sizeof( char ) );
-        __builtin_strcpy( l_personSecond->nameAllocated, "Bob_dyn" );
+        l_personSecond->nameAllocated = duplicateString( "Bob_dyn" );
 
         // Insert struct pointers into the array
         ASSERT_EQ( "%zu", insertIntoArray( &l_array, l_personFirst ),
@@ -867,22 +857,22 @@ TEST( findStringInArray ) {
     // Cases
     {
         ASSERT_EQ(
-            "%ld",
+            "%zd",
             findStringInArray( l_array, arrayLengthNative( l_array ), "apple" ),
             ( ssize_t )0 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findStringInArray( l_array, arrayLengthNative( l_array ),
                                       "banana" ),
                    ( ssize_t )1 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findStringInArray( l_array, arrayLengthNative( l_array ),
                                       "cherry" ),
                    ( ssize_t )2 );
         ASSERT_EQ(
-            "%ld",
+            "%zd",
             findStringInArray( l_array, arrayLengthNative( l_array ), "date" ),
             ( ssize_t )3 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findStringInArray( l_array, arrayLengthNative( l_array ),
                                       "elderberry" ),
                    ( ssize_t )4 );
@@ -890,16 +880,16 @@ TEST( findStringInArray ) {
 
     // String not found
     ASSERT_EQ(
-        "%ld",
+        "%zd",
         findStringInArray( l_array, arrayLengthNative( l_array ), "fig" ),
         ( ssize_t )( -1 ) );
 
     // Empty array
-    ASSERT_EQ( "%ld", findStringInArray( NULL, 0, "apple" ),
+    ASSERT_EQ( "%zd", findStringInArray( NULL, 0, "apple" ),
                ( ssize_t )( -1 ) );
 
     // NULL search string
-    ASSERT_EQ( "%ld",
+    ASSERT_EQ( "%zd",
                findStringInArray( l_array, arrayLengthNative( l_array ), NULL ),
                ( ssize_t )( -1 ) );
 }
@@ -909,33 +899,33 @@ TEST( findInArray ) {
 
     // Cases
     {
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findInArray( l_array, arrayLengthNative( l_array ), 10 ),
                    ( ssize_t )0 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findInArray( l_array, arrayLengthNative( l_array ), 20 ),
                    ( ssize_t )1 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findInArray( l_array, arrayLengthNative( l_array ), 30 ),
                    ( ssize_t )2 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findInArray( l_array, arrayLengthNative( l_array ), 40 ),
                    ( ssize_t )3 );
-        ASSERT_EQ( "%ld",
+        ASSERT_EQ( "%zd",
                    findInArray( l_array, arrayLengthNative( l_array ), 50 ),
                    ( ssize_t )4 );
     }
 
     // String not found
-    ASSERT_EQ( "%ld", findInArray( l_array, arrayLengthNative( l_array ), 60 ),
+    ASSERT_EQ( "%zd", findInArray( l_array, arrayLengthNative( l_array ), 60 ),
                ( ssize_t )( -1 ) );
 
     // Empty array
-    ASSERT_EQ( "%ld", findInArray( ( size_t* )NULL, 0, 0 ), ( ssize_t )( -1 ) );
+    ASSERT_EQ( "%zd", findInArray( ( size_t* )NULL, 0, 0 ), ( ssize_t )( -1 ) );
 
     // NULL search string
     ASSERT_EQ(
-        "%ld",
+        "%zd",
         findInArray( l_array, arrayLengthNative( l_array ), ( size_t )NULL ),
         ( ssize_t )( -1 ) );
 }
@@ -998,4 +988,12 @@ TEST( contains ) {
         ASSERT_FALSE( contains( l_array, arrayLengthNative( l_array ), 0 ) );
         ASSERT_FALSE( contains( NULL, 0, 0 ) );
     }
+}
+
+TEST( getApplicationDirectoryAbsolutePath ) {
+    char* l_path = getApplicationDirectoryAbsolutePath();
+
+    ASSERT_NOT_EQ( "%p", l_path, NULL );
+
+    free( l_path );
 }

@@ -1,111 +1,64 @@
-#define GLFW_INCLUDE_NONE
-
 #include "vsync.h"
 
-#include <GLFW/glfw3.h>
-#include <errno.h>
-#include <pthread.h>
 #include <stdint.h>
 #include <time.h>
 
 #include "FPS.h"
 #include "log.h"
 
-// TODO: Implement adaptive vsync in a separate from main thread
+#if defined( HOT_RELOAD )
 
-#if 0
-static pthread_t g_adaptiveVsyncCheckThread;
-static bool g_shouldAdapriveVsyncCheck = false;
+#include "applicationState_t.h"
+
 #endif
 
-static size_t g_desiredFPS = 0;
+static float16_t g_desiredFPS = 0;
 static vsync_t g_vsync = VSYNC_LEVEL_DEFAULT;
 
 static struct timespec g_sleepTime, g_startTime, g_endTime;
 
-vsync_t vsync_t$fromString( const char* _string ) {
-    if ( UNLIKELY( !_string ) ) {
-        return ( ( vsync_t )unknownVsync );
-    }
-
-    if ( __builtin_strcmp( _string, VSYNC_TYPE_AS_STRING_OFF ) == 0 ) {
-        return ( ( vsync_t )off );
-
-    } else if ( __builtin_strcmp( _string, VSYNC_TYPE_AS_STRING_NORMAL ) ==
-                0 ) {
-        return ( ( vsync_t )normal );
-
-    } else if ( __builtin_strcmp( _string, VSYNC_TYPE_AS_STRING_ADAPTIVE ) ==
-                0 ) {
-        return ( ( vsync_t )adaptive );
-    }
-
-    return ( ( vsync_t )unknownVsync );
-}
-
-#if 0
-static void* adapriveVsyncCheck( void* _data ) {
-    ( void )( sizeof( _data ) );
-
-    struct timespec l_sleepTime = { .tv_sec = 1, .tv_nsec = 0 };
-
-    while ( LIKELY( g_shouldAdapriveVsyncCheck ) ) {
-        if ( FPS$get$current() > g_desiredFPS ) {
-            glfwSwapInterval( 1 );
-
-        } else {
-            glfwSwapInterval( 0 );
-        }
-
-        clock_nanosleep( CLOCK_MONOTONIC, 0, &l_sleepTime, NULL );
-    }
-
-    return ( NULL );
-}
-#endif
-
-bool vsync$init( const vsync_t _vsync, const size_t _desiredFPS ) {
+bool vsync$init( const vsync_t _vsync,
+                 const float16_t _desiredFPS,
+                 SDL_Renderer* _renderer ) {
     bool l_returnValue = false;
+
+    if ( UNLIKELY( !_renderer ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( g_desiredFPS ) ) {
+        log$transaction$query( ( logLevel_t )error, "Alraedy initialized" );
+
+        goto EXIT;
+    }
 
     {
         g_desiredFPS = _desiredFPS;
         g_vsync = _vsync;
 
-        if ( ( _vsync == ( vsync_t )off ) ||
-             ( _vsync == ( vsync_t )adaptive ) ) {
+        if ( _vsync == ( vsync_t )off ) {
             g_sleepTime.tv_sec = 0;
             g_sleepTime.tv_nsec = MILLISECONDS_TO_NANOSECONDS(
-                ONE_SECOND_IN_MILLISECONDS / _desiredFPS );
+                ONE_SECOND_IN_MILLISECONDS / ( float )_desiredFPS );
 
-            glfwSwapInterval( 0 );
+            l_returnValue = SDL_SetRenderVSync(
+                _renderer, SDL_WINDOW_SURFACE_VSYNC_DISABLED );
 
-        } else if ( _vsync == ( vsync_t )normal ) {
-            glfwSwapInterval( 1 );
-        }
-
-#if 0
-        if ( _vsync == ( vsync_t )adaptive ) {
-            g_shouldAdapriveVsyncCheck = true;
-
-            if ( UNLIKELY( pthread_create( &g_adaptiveVsyncCheckThread, NULL,
-                                           adapriveVsyncCheck, NULL ) ) ) {
-                log$transaction$query$format(
-                    ( logLevel_t )error,
-                    "%d: Insufficient resources to create another thread, or a "
-                    "system-imposed limit on the number of threads was "
-                    "encountered\n",
-                    EAGAIN );
-
-                vsync$quit();
+            if ( UNLIKELY( !l_returnValue ) ) {
+                log$transaction$query$format( ( logLevel_t )error,
+                                              "Setting renderer vsync: '%s'",
+                                              SDL_GetError() );
 
                 goto EXIT;
             }
         }
-#endif
 
         l_returnValue = true;
     }
 
+EXIT:
     return ( l_returnValue );
 }
 
@@ -115,23 +68,9 @@ bool vsync$quit( void ) {
     {
         g_desiredFPS = 0;
 
-        if ( ( g_vsync == ( vsync_t )off ) ||
-             ( g_vsync == ( vsync_t )adaptive ) ) {
+        if ( g_vsync == ( vsync_t )off ) {
             g_sleepTime.tv_nsec = 0;
         }
-
-        // Default value
-        if ( g_vsync != ( vsync_t )normal ) {
-            glfwSwapInterval( 1 );
-        }
-
-#if 0
-        if ( g_vsync == ( vsync_t )adaptive ) {
-            g_shouldAdapriveVsyncCheck = false;
-
-            pthread_join( g_adaptiveVsyncCheckThread, NULL );
-        }
-#endif
 
         l_returnValue = true;
     }
@@ -183,3 +122,80 @@ bool vsync$end( void ) {
 
     return ( l_returnValue );
 }
+
+#if defined( HOT_RELOAD )
+
+bool hotReload$unload( void** restrict _state,
+                       size_t* restrict _stateSize,
+                       applicationState_t* restrict _applicationState ) {
+    UNUSED( _applicationState );
+
+    *_stateSize =
+        ( sizeof( g_desiredFPS ) + sizeof( g_vsync ) + sizeof( g_sleepTime ) +
+          sizeof( g_startTime ) + sizeof( g_endTime ) );
+    *_state = malloc( *_stateSize );
+
+    void* l_pointer = *_state;
+
+#define APPEND_TO_STATE( _variable )                                   \
+    do {                                                               \
+        const size_t l_variableSize = sizeof( _variable );             \
+        __builtin_memcpy( l_pointer, &( _variable ), l_variableSize ); \
+        l_pointer += l_variableSize;                                   \
+    } while ( 0 )
+
+    APPEND_TO_STATE( g_desiredFPS );
+    APPEND_TO_STATE( g_vsync );
+    APPEND_TO_STATE( g_sleepTime );
+    APPEND_TO_STATE( g_startTime );
+    APPEND_TO_STATE( g_endTime );
+
+#undef APPEND_TO_STATE
+
+    return ( true );
+}
+
+bool hotReload$load( void* restrict _state,
+                     size_t _stateSize,
+                     applicationState_t* restrict _applicationState ) {
+    UNUSED( _applicationState );
+
+    bool l_returnValue = false;
+
+    {
+        const size_t l_stateSize =
+            ( sizeof( g_desiredFPS ) + sizeof( g_vsync ) +
+              sizeof( g_sleepTime ) + sizeof( g_startTime ) +
+              sizeof( g_endTime ) );
+
+        if ( UNLIKELY( _stateSize != l_stateSize ) ) {
+            trap( "Corrupted state" );
+
+            goto EXIT;
+        }
+
+        void* l_pointer = _state;
+
+#define DESERIALIZE_NEXT( _variable )                       \
+    do {                                                    \
+        const size_t l_variableSize = sizeof( _variable );  \
+        _variable = *( ( typeof( _variable )* )l_pointer ); \
+        l_pointer += l_variableSize;                        \
+    } while ( 0 )
+
+        DESERIALIZE_NEXT( g_desiredFPS );
+        DESERIALIZE_NEXT( g_vsync );
+        DESERIALIZE_NEXT( g_sleepTime );
+        DESERIALIZE_NEXT( g_startTime );
+        DESERIALIZE_NEXT( g_endTime );
+
+#undef DESERIALIZE_NEXT
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+#endif

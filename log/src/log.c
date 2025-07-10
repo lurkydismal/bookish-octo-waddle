@@ -1,16 +1,21 @@
 #include "log.h"
 
+#include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-// TODO: Make each thread have its own transaction string and implement mutex
-// for commit
+#if defined( HOT_RELOAD )
+
+#include "applicationState_t.h"
+
+#endif
+
+#define LOG_LEVEL_DEFAULT ( ( logLevel_t )warn )
 
 static int g_fileDescriptor = -1;
-static char* g_transactionString;
+static char* g_transactionString = NULL;
 static ssize_t g_transactionSize = 0;
 static logLevel_t g_currentLogLevel = LOG_LEVEL_DEFAULT;
 
@@ -44,131 +49,30 @@ static size_t log$level$prependToString( char* restrict* restrict _string,
 
     {
         if ( UNLIKELY( !_string ) || UNLIKELY( !*_string ) ) {
+            log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
             goto EXIT;
         }
 
         {
-            char* l_logLevelWithBrackets =
-                duplicateString( log$level$convert$toString( _logLevel ) );
+            char* l_logLevelWithBrackets = duplicateString(
+                log$level$convert$toStaticString( _logLevel ) );
 
-            l_returnValue =
-                concatBeforeAndAfterString( &l_logLevelWithBrackets, "[", "]" );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_PREPENDING;
-            }
+            concatBeforeAndAfterString( &l_logLevelWithBrackets, "[", "]" );
 
             // Colored
+            concatBeforeAndAfterString( &l_logLevelWithBrackets,
+                                        log$level$convert$toColor( _logLevel ),
+                                        ASCII_COLOR_RESET_FOREGROUND );
+
+            concatBeforeAndAfterString( _string, " ", NULL );
+
+            // Length of string with log level
             l_returnValue = concatBeforeAndAfterString(
-                &l_logLevelWithBrackets, log$level$convert$toColor( _logLevel ),
-                COLOR_RESET );
+                _string, l_logLevelWithBrackets, NULL );
 
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_PREPENDING;
-            }
-
-            l_returnValue = concatBeforeAndAfterString( _string, " ", "" );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_PREPENDING;
-            }
-
-            l_returnValue = concatBeforeAndAfterString(
-                _string, l_logLevelWithBrackets, "" );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_PREPENDING;
-            }
-
-        EXIT_PREPENDING:
             free( l_logLevelWithBrackets );
         }
-    }
-
-EXIT:
-    return ( l_returnValue );
-}
-
-bool log$init( const char* restrict _fileName,
-               const char* restrict _fileExtension ) {
-    bool l_returnValue = false;
-
-    if ( UNLIKELY( !_fileName ) ) {
-        goto EXIT;
-    }
-
-    if ( UNLIKELY( !_fileExtension ) ) {
-        goto EXIT;
-    }
-
-    {
-        // Open file descriptor
-        {
-            char* l_filePath = duplicateString( "." );
-
-            l_returnValue = !!( concatBeforeAndAfterString(
-                &l_filePath, _fileName, _fileExtension ) );
-
-            if ( UNLIKELY( !l_returnValue ) ) {
-                goto EXIT_FILE_PATH_CONCAT;
-            }
-
-            // Prepend absolute path to executable directory
-            {
-                char* l_directoryPath = getApplicationDirectoryAbsolutePath();
-
-                // Construct full file path
-                l_returnValue = !!( concatBeforeAndAfterString(
-                    &l_filePath, l_directoryPath, "" ) );
-
-                free( l_directoryPath );
-
-                if ( UNLIKELY( !l_returnValue ) ) {
-                    goto EXIT_FILE_PATH_CONCAT;
-                }
-            }
-
-            // 0 - No special bits
-            // 6 - Read & Write for owner
-            // 4 - Read for group members
-            // 4 - Read for others
-            // NOLINTBEGIN
-            g_fileDescriptor =
-                open( l_filePath, O_WRONLY | O_TRUNC | O_CREAT, 0644 );
-            // NOLINTEND
-
-        EXIT_FILE_PATH_CONCAT:
-            free( l_filePath );
-
-            if ( UNLIKELY( g_fileDescriptor == -1 ) ) {
-                goto EXIT;
-            }
-        }
-
-        // Allocate transaction string
-        {
-            g_transactionString =
-                ( char* )malloc( LOG_MAX_TRANSACTION_SIZE_DEFAULT );
-        }
-
-        l_returnValue = true;
-    }
-
-EXIT:
-    return ( l_returnValue );
-}
-
-bool log$quit( void ) {
-    bool l_returnValue = false;
-
-    {
-        free( g_transactionString );
-
-        if ( UNLIKELY( close( g_fileDescriptor ) == -1 ) ) {
-            goto EXIT;
-        }
-
-        l_returnValue = true;
     }
 
 EXIT:
@@ -191,6 +95,8 @@ bool log$level$set$string( const char* restrict _string ) {
     bool l_returnValue = false;
 
     if ( UNLIKELY( !_string ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
         goto EXIT;
     }
 
@@ -209,14 +115,130 @@ logLevel_t log$level$get( void ) {
 }
 
 const char* log$level$get$string( void ) {
-    return ( log$level$convert$toString( g_currentLogLevel ) );
+    return ( log$level$convert$toStaticString( g_currentLogLevel ) );
+}
+
+bool log$init( const char* restrict _fileName,
+               const char* restrict _fileExtension ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !_fileName ) ) {
+        trap( "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( !_fileExtension ) ) {
+        trap( "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    {
+        // Open file descriptor
+        {
+            char* l_filePath = duplicateString( "." );
+
+            concatBeforeAndAfterString( &l_filePath, _fileName,
+                                        _fileExtension );
+
+            // Prepend absolute path to executable directory
+            {
+                char* l_directoryPath = getApplicationDirectoryAbsolutePath();
+
+                // Construct full file path
+                concatBeforeAndAfterString( &l_filePath, l_directoryPath,
+                                            NULL );
+
+                free( l_directoryPath );
+            }
+
+            // 0 - No special bits
+            // 6 - Read & Write for owner
+            // 4 - Read for group members
+            // 4 - Read for others
+            g_fileDescriptor =
+                open( l_filePath, ( O_WRONLY | O_TRUNC | O_CREAT ), 0644 );
+
+            free( l_filePath );
+
+            l_returnValue = ( g_fileDescriptor != -1 );
+
+            if ( UNLIKELY( !l_returnValue ) ) {
+                trap( "Corrupted file descritor" );
+            }
+        }
+
+        // Allocate transaction string
+        g_transactionString =
+            ( char* )malloc( LOG_MAX_TRANSACTION_SIZE_DEFAULT );
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+bool log$quit( void ) {
+    bool l_returnValue = false;
+
+    if ( UNLIKELY( !g_transactionString ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    if ( UNLIKELY( g_fileDescriptor == -1 ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
+
+    {
+        free( g_transactionString );
+
+        g_transactionString = NULL;
+
+        g_transactionSize = 0;
+
+        g_currentLogLevel = ( logLevel_t )unknownLogLevel;
+
+        l_returnValue = ( close( g_fileDescriptor ) != -1 );
+
+        if ( UNLIKELY( !l_returnValue ) ) {
+            trap( "Corrupted file descriptor" );
+        }
+
+        g_fileDescriptor = -1;
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+static FORCE_INLINE void appendColorReset( void ) {
+    const size_t l_colorResetLength = __builtin_strlen( ASCII_COLOR_RESET );
+
+    __builtin_memcpy( ( g_transactionString + g_transactionSize ),
+                      ASCII_COLOR_RESET, l_colorResetLength );
+
+    g_transactionSize += l_colorResetLength;
 }
 
 bool _log$transaction$query( const logLevel_t _logLevel,
                              const char* restrict _string ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !g_transactionString ) ) {
+        goto EXIT;
+    }
+
     if ( UNLIKELY( !_string ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
         goto EXIT;
     }
 
@@ -224,21 +246,17 @@ bool _log$transaction$query( const logLevel_t _logLevel,
         goto EXIT;
     }
 
-    size_t l_stringLength = __builtin_strlen( _string );
-
-    if ( UNLIKELY( ( g_transactionSize + l_stringLength ) >
-                   LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
-        l_stringLength =
-            ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
-    }
-
     {
         {
             char* l_string = duplicateString( _string );
 
-            l_stringLength = log$level$prependToString( &l_string, _logLevel );
+            size_t l_stringLength =
+                log$level$prependToString( &l_string, _logLevel );
+            const size_t l_colorResetLength =
+                __builtin_strlen( ASCII_COLOR_RESET );
 
-            if ( UNLIKELY( ( g_transactionSize + l_stringLength ) >
+            if ( UNLIKELY( ( g_transactionSize + l_stringLength +
+                             l_colorResetLength ) >
                            LOG_MAX_TRANSACTION_SIZE_DEFAULT ) ) {
                 l_stringLength =
                     ( LOG_MAX_TRANSACTION_SIZE_DEFAULT - g_transactionSize );
@@ -248,6 +266,12 @@ bool _log$transaction$query( const logLevel_t _logLevel,
                               l_string, l_stringLength );
 
             g_transactionSize += l_stringLength;
+
+            appendColorReset();
+
+            g_transactionString[ g_transactionSize ] = '\n';
+
+            g_transactionSize++;
 
             free( l_string );
         }
@@ -268,7 +292,13 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
                                     ... ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !g_transactionString ) ) {
+        goto EXIT;
+    }
+
     if ( UNLIKELY( !_format ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
         goto EXIT;
     }
 
@@ -290,7 +320,11 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
 
         va_end( l_arguments );
 
-        if ( UNLIKELY( !l_writtenCount ) ) {
+        l_returnValue = !!( l_writtenCount );
+
+        if ( UNLIKELY( !l_returnValue ) ) {
+            log$transaction$query( ( logLevel_t )error, "Formatting buffer" );
+
             goto EXIT_BUFFER_APPENDING;
         }
 
@@ -307,19 +341,17 @@ bool _log$transaction$query$format( const logLevel_t _logLevel,
                               l_buffer, l_bufferSize );
 
             g_transactionSize += l_bufferSize;
+
+            appendColorReset();
+
+            g_transactionString[ g_transactionSize ] = '\n';
+
+            g_transactionSize++;
         }
-
-#if defined( DEBUG )
-
-        log$transaction$commit();
-
-#else
 
         if ( UNLIKELY( _logLevel == ( logLevel_t )error ) ) {
             log$transaction$commit();
         }
-
-#endif
 
         l_returnValue = true;
 
@@ -334,6 +366,12 @@ EXIT:
 bool log$transaction$commit( void ) {
     bool l_returnValue = false;
 
+    if ( UNLIKELY( !g_transactionString ) ) {
+        trap( "Log was not initialized" );
+
+        goto EXIT;
+    }
+
     if ( g_transactionSize ) {
         // Log to file descriptor
         {
@@ -343,15 +381,20 @@ bool log$transaction$commit( void ) {
             l_returnValue = ( l_writtenCount == g_transactionSize );
 
             if ( UNLIKELY( !l_returnValue ) ) {
+                log$transaction$query( ( logLevel_t )error, "Writing to file" );
+
                 goto EXIT;
             }
 
+#if defined( LOG_IMMEDIATE_SYNC )
+
             fdatasync( g_fileDescriptor );
+
+#endif
         }
 
-        // Log to stdout
 #if defined( DEBUG )
-
+        // Log to stdout
         {
             g_transactionString[ g_transactionSize ] = '\0';
 
@@ -361,16 +404,98 @@ bool log$transaction$commit( void ) {
             l_returnValue = ( l_writtenCount == g_transactionSize );
 
             if ( UNLIKELY( !l_returnValue ) ) {
+                log$transaction$query( ( logLevel_t )error,
+                                       "Writing to standard output" );
+
                 goto EXIT;
             }
 
+#if defined( LOG_IMMEDIATE_SYNC )
+
             fdatasync( STDOUT_FILENO );
+
+#endif
         }
 #endif
-    }
 
-    g_transactionSize = 0;
+        g_transactionSize = 0;
+
+        l_returnValue = true;
+    }
 
 EXIT:
     return ( l_returnValue );
 }
+
+#if defined( HOT_RELOAD )
+
+bool hotReload$unload( void** restrict _state,
+                       size_t* restrict _stateSize,
+                       applicationState_t* restrict _applicationState ) {
+    UNUSED( _applicationState );
+
+    *_stateSize = ( sizeof( g_fileDescriptor ) + sizeof( g_transactionString ) +
+                    sizeof( g_transactionSize ) + sizeof( g_currentLogLevel ) );
+    *_state = malloc( *_stateSize );
+
+    void* l_pointer = *_state;
+
+#define APPEND_TO_STATE( _variable )                                   \
+    do {                                                               \
+        const size_t l_variableSize = sizeof( _variable );             \
+        __builtin_memcpy( l_pointer, &( _variable ), l_variableSize ); \
+        l_pointer += l_variableSize;                                   \
+    } while ( 0 )
+
+    APPEND_TO_STATE( g_fileDescriptor );
+    APPEND_TO_STATE( g_transactionString );
+    APPEND_TO_STATE( g_transactionSize );
+    APPEND_TO_STATE( g_currentLogLevel );
+
+#undef APPEND_TO_STATE
+
+    return ( true );
+}
+
+bool hotReload$load( void* restrict _state,
+                     size_t _stateSize,
+                     applicationState_t* restrict _applicationState ) {
+    UNUSED( _applicationState );
+
+    bool l_returnValue = false;
+
+    {
+        const size_t l_stateSize =
+            ( sizeof( g_fileDescriptor ) + sizeof( g_transactionString ) +
+              sizeof( g_transactionSize ) + sizeof( g_currentLogLevel ) );
+
+        if ( UNLIKELY( _stateSize != l_stateSize ) ) {
+            trap( "Corrupted state" );
+
+            goto EXIT;
+        }
+
+        void* l_pointer = _state;
+
+#define DESERIALIZE_NEXT( _variable )                       \
+    do {                                                    \
+        const size_t l_variableSize = sizeof( _variable );  \
+        _variable = *( ( typeof( _variable )* )l_pointer ); \
+        l_pointer += l_variableSize;                        \
+    } while ( 0 )
+
+        DESERIALIZE_NEXT( g_fileDescriptor );
+        DESERIALIZE_NEXT( g_transactionString );
+        DESERIALIZE_NEXT( g_transactionSize );
+        DESERIALIZE_NEXT( g_currentLogLevel );
+
+#undef DESERIALIZE_NEXT
+
+        l_returnValue = true;
+    }
+
+EXIT:
+    return ( l_returnValue );
+}
+
+#endif

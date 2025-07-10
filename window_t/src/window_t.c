@@ -2,7 +2,7 @@
 
 #include <stdlib.h>
 
-#include "stdfunc.h"
+#include "log.h"
 
 window_t window_t$create( void ) {
     window_t l_returnValue = DEFAULT_WINDOW;
@@ -14,15 +14,25 @@ window_t window_t$create( void ) {
     return ( l_returnValue );
 }
 
-bool window_t$destroy( window_t* _window ) {
+bool window_t$destroy( window_t* restrict _window ) {
     bool l_returnValue = false;
+
+    if ( UNLIKELY( !_window ) ) {
+        log$transaction$query( ( logLevel_t )error, "Invalid argument" );
+
+        goto EXIT;
+    }
 
     {
         if ( UNLIKELY( !( _window->name ) ) ) {
+            log$transaction$query( ( logLevel_t )error, "Invalid window name" );
+
             goto EXIT;
         }
 
         free( _window->name );
+
+        _window->name = NULL;
 
         l_returnValue = true;
     }

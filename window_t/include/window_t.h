@@ -3,16 +3,19 @@
 #include <stdbool.h>
 #include <stddef.h>
 
+#include "stdfunc.h"
 #include "vsync.h"
 
 #define DEFAULT_WINDOW_NAME "Gamuingu"
 
-#define DEFAULT_WINDOW  \
-    { .name = NULL,     \
-      .width = 640,     \
-      .height = 480,    \
-      .desiredFPS = 60, \
-      .vsync = DEFAULT_VSYNC }
+#define DEFAULT_WINDOW          \
+    {                           \
+        .name = NULL,           \
+        .width = 640,           \
+        .height = 480,          \
+        .desiredFPS = 60,       \
+        .vsync = DEFAULT_VSYNC, \
+    }
 
 typedef struct {
     char* name;
@@ -23,4 +26,4 @@ typedef struct {
 } window_t;
 
 window_t window_t$create( void );
-bool window_t$destroy( window_t* _window );
+bool window_t$destroy( window_t* restrict _window );
