@@ -10,7 +10,6 @@
 #include "asset_t.h"
 #include "log.h"
 #include "settings_t.h"
-#include "stdfunc.h"
 #include "vsync.h"
 
 #define LOG_FILE_NAME_DEFAULT "log"

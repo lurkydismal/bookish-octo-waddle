@@ -144,8 +144,8 @@ static FORCE_INLINE bool collectStatesFromHandle(
 
             assert( l_handle != NULL );
 
-            hotReload$unload_t l_unloadCallback =
-                dlsym( l_handle, HOT_RELOAD_UNLOAD_FUNCTION_SIGNATURE );
+            hotReload$unload_t l_unloadCallback = ( hotReload$unload_t )dlsym(
+                l_handle, HOT_RELOAD_UNLOAD_FUNCTION_SIGNATURE );
 
             if ( l_unloadCallback ) {
                 struct state l_state;
@@ -180,8 +180,6 @@ static FORCE_INLINE char** getUndefinedFunctionsFromSoPath(
     }
 
     {
-        l_returnValue = createArray( char* );
-
         const char* names[] = {
             "__extendhfsf2",
             "__truncsfhf2",
@@ -220,9 +218,7 @@ static FORCE_INLINE char** getUndefinedFunctionsFromSoPath(
             "SDL_Quit",
         };
 
-        FOR( const char* const*, names ) {
-            insertIntoArray( &l_returnValue, duplicateString( *_element ) );
-        }
+        l_returnValue = createArrayFromNative( char*, names );
     }
 
 EXIT:
@@ -234,8 +230,6 @@ static FORCE_INLINE char** getMainExecutableFunctionNamesToPatch( void ) {
     char** l_returnValue = NULL;
 
     {
-        l_returnValue = createArray( char* );
-
         const char* names[] = {
             // Main loop
             "init",
@@ -247,9 +241,7 @@ static FORCE_INLINE char** getMainExecutableFunctionNamesToPatch( void ) {
             "concatBeforeAndAfterString",
         };
 
-        FOR( const char* const*, names ) {
-            insertIntoArray( &l_returnValue, duplicateString( *_element ) );
-        }
+        l_returnValue = createArrayFromNative( char*, names );
     }
 
     return ( l_returnValue );
@@ -299,160 +291,175 @@ static bool hotReloadSo( const char* restrict _soPath ) {
 
                 assert( l_managerHandle != NULL );
 
-                char** l_functionNames =
-                    getMainExecutableFunctionNamesToPatch();
-
-                assert( l_functionNames != NULL );
-
-                void** l_functionAddresses = createArray( void* );
-
-                preallocateArray( &l_functionAddresses,
-                                  arrayLength( l_functionNames ) );
-
-                __builtin_memset(
-                    l_functionAddresses, 0,
-                    ( arrayLength( l_functionAddresses ) * sizeof( void* ) ) );
-
                 {
-                    char** l_undefinedFunctions =
-                        getUndefinedFunctionsFromSoPath( _soPath );
+                    char** l_functionNames =
+                        getMainExecutableFunctionNamesToPatch();
 
-                    assert( l_undefinedFunctions != NULL );
+                    assert( l_functionNames != NULL );
 
-                    const Lmid_t l_namespaceId =
-                        getNamespaceId( l_managerHandle );
+                    void** l_functionAddresses = createArray( void* );
 
-                    assert( l_namespaceId != LONG_MAX );
+                    preallocateArray( &l_functionAddresses,
+                                      arrayLength( l_functionNames ) );
 
-                    struct link_map* l_linkMap;
-                    const int l_result =
-                        dlinfo( l_managerHandle, RTLD_DI_LINKMAP, &l_linkMap );
+                    __builtin_memset( l_functionAddresses, 0,
+                                      ( arrayLength( l_functionAddresses ) *
+                                        sizeof( void* ) ) );
 
-                    assert( l_result >= 0 );
+                    {
+                        char** l_undefinedFunctions =
+                            getUndefinedFunctionsFromSoPath( _soPath );
 
-                    for ( struct link_map* _linkMap = l_linkMap; _linkMap;
-                          _linkMap = _linkMap->l_next ) {
-                        if ( UNLIKELY( !( _linkMap->l_name ) ||
-                                       !( *( _linkMap->l_name ) ) ) ) {
-                            continue;
-                        }
+                        assert( l_undefinedFunctions != NULL );
 
-                        if ( UNLIKELY( __builtin_strcmp(
-                                           _linkMap->l_name,
-                                           g_rootSharedObjectPath ) == 0 ) ) {
-                            continue;
-                        }
+                        const Lmid_t l_namespaceId =
+                            getNamespaceId( l_managerHandle );
 
-                        if ( !comparePathsDirectories(
-                                 _linkMap->l_name, g_rootSharedObjectPath ) ) {
-                            continue;
-                        }
+                        assert( l_namespaceId != LONG_MAX );
 
-                        void* l_handle =
-                            dlmopen( l_namespaceId, _linkMap->l_name,
-                                     ( RTLD_LAZY | RTLD_NOLOAD ) );
+                        struct link_map* l_linkMap;
+                        const int l_result = dlinfo(
+                            l_managerHandle, RTLD_DI_LINKMAP, &l_linkMap );
 
-                        assert( l_handle != NULL );
+                        assert( l_result >= 0 );
 
-                        {
-                            hotReload$load_t l_loadCallback = dlsym(
-                                l_handle, HOT_RELOAD_LOAD_FUNCTION_SIGNATURE );
+                        for ( struct link_map* _linkMap = l_linkMap; _linkMap;
+                              _linkMap = _linkMap->l_next ) {
+                            if ( UNLIKELY( !( _linkMap->l_name ) ||
+                                           !( *( _linkMap->l_name ) ) ) ) {
+                                continue;
+                            }
 
-                            if ( l_loadCallback ) {
-                                FOR_RANGE( arrayLength_t, 0,
-                                           arrayLength( l_stateNames ) ) {
-                                    const char* l_name = l_stateNames[ _index ];
+                            if ( UNLIKELY( __builtin_strcmp(
+                                               _linkMap->l_name,
+                                               g_rootSharedObjectPath ) ==
+                                           0 ) ) {
+                                continue;
+                            }
 
-                                    if ( __builtin_strcmp(
-                                             l_name, _linkMap->l_name ) == 0 ) {
-                                        struct state* l_state =
-                                            l_states[ _index ];
+                            if ( !comparePathsDirectories(
+                                     _linkMap->l_name,
+                                     g_rootSharedObjectPath ) ) {
+                                continue;
+                            }
 
-                                        void* l_stateData = l_state->data;
-                                        size_t l_stateDataSize = l_state->size;
+                            void* l_handle =
+                                dlmopen( l_namespaceId, _linkMap->l_name,
+                                         ( RTLD_LAZY | RTLD_NOLOAD ) );
 
-                                        l_returnValue = l_loadCallback(
-                                            l_stateData, l_stateDataSize,
-                                            &g_applicationState );
+                            assert( l_handle != NULL );
 
-                                        if ( UNLIKELY( !l_returnValue ) ) {
-                                            continue;
+                            {
+                                hotReload$load_t l_loadCallback =
+                                    ( hotReload$load_t )dlsym(
+                                        l_handle,
+                                        HOT_RELOAD_LOAD_FUNCTION_SIGNATURE );
+
+                                if ( l_loadCallback ) {
+                                    FOR_RANGE( arrayLength_t, 0,
+                                               arrayLength( l_stateNames ) ) {
+                                        const char* l_name =
+                                            l_stateNames[ _index ];
+
+                                        if ( __builtin_strcmp(
+                                                 l_name, _linkMap->l_name ) ==
+                                             0 ) {
+                                            struct state* l_state =
+                                                l_states[ _index ];
+
+                                            void* l_stateData = l_state->data;
+                                            size_t l_stateDataSize =
+                                                l_state->size;
+
+                                            l_returnValue = l_loadCallback(
+                                                l_stateData, l_stateDataSize,
+                                                &g_applicationState );
+
+                                            if ( UNLIKELY( !l_returnValue ) ) {
+                                                continue;
+                                            }
                                         }
+                                    }
+                                }
+                            }
+
+                            // Patch undefined functions with base namespace
+                            {
+                                plthook_t* l_plthookHandle;
+
+                                const int l_result = plthook_open_by_handle(
+                                    &l_plthookHandle, l_handle );
+
+                                if ( l_result != 0 ) {
+                                    continue;
+                                }
+
+                                FOR_ARRAY( char* const*,
+                                           l_undefinedFunctions ) {
+                                    plthook_replace(
+                                        l_plthookHandle, *_element,
+                                        dlsym( RTLD_DEFAULT, *_element ),
+                                        NULL );
+                                }
+
+                                plthook_close( l_plthookHandle );
+                            }
+
+                            // Locate functions used in main executable for
+                            // patching
+                            {
+                                FOR_RANGE( arrayLength_t, 0,
+                                           arrayLength( l_functionNames ) ) {
+                                    const char* l_name =
+                                        l_functionNames[ _index ];
+
+                                    void* l_address = dlsym( l_handle, l_name );
+
+                                    if ( l_address ) {
+                                        l_functionAddresses[ _index ] =
+                                            l_address;
                                     }
                                 }
                             }
                         }
 
-                        // Patch undefined functions with base namespace
-                        {
-                            plthook_t* l_plthookHandle;
-
-                            const int l_result = plthook_open_by_handle(
-                                &l_plthookHandle, l_handle );
-
-                            if ( l_result != 0 ) {
-                                continue;
-                            }
-
-                            FOR_ARRAY( char* const*, l_undefinedFunctions ) {
-                                plthook_replace(
-                                    l_plthookHandle, *_element,
-                                    dlsym( RTLD_DEFAULT, *_element ), NULL );
-                            }
-
-                            plthook_close( l_plthookHandle );
-                        }
-
-                        // Locate functions used in main executable for patching
-                        {
-                            FOR_RANGE( arrayLength_t, 0,
-                                       arrayLength( l_functionNames ) ) {
-                                const char* l_name = l_functionNames[ _index ];
-
-                                void* l_address = dlsym( l_handle, l_name );
-
-                                if ( l_address ) {
-                                    l_functionAddresses[ _index ] = l_address;
-                                }
-                            }
-                        }
+                        FREE_ARRAY_ELEMENTS( l_undefinedFunctions );
+                        FREE_ARRAY( l_undefinedFunctions );
                     }
 
-                    FREE_ARRAY_ELEMENTS( l_undefinedFunctions );
-                    FREE_ARRAY( l_undefinedFunctions );
-                }
+                    // Patch functions in main executable
+                    {
+                        void* l_baseHandle = dlopen( NULL, RTLD_NOW );
 
-                // Patch functions in main executable
-                {
-                    void* l_baseHandle = dlopen( NULL, RTLD_NOW );
+                        plthook_t* l_plthookHandle;
 
-                    plthook_t* l_plthookHandle;
-
-                    const int l_result = plthook_open_by_handle(
-                        &l_plthookHandle, l_baseHandle );
-
-                    assert( l_result == 0 );
-
-                    FOR_RANGE( arrayLength_t, 0,
-                               arrayLength( l_functionNames ) ) {
-                        const char* l_name = l_functionNames[ _index ];
-                        void* l_address = l_functionAddresses[ _index ];
-
-                        assert( l_address,
-                                "Function for main executable was not found" );
-
-                        const int l_result = plthook_replace(
-                            l_plthookHandle, l_name, l_address, NULL );
+                        const int l_result = plthook_open_by_handle(
+                            &l_plthookHandle, l_baseHandle );
 
                         assert( l_result == 0 );
+
+                        FOR_RANGE( arrayLength_t, 0,
+                                   arrayLength( l_functionNames ) ) {
+                            const char* l_name = l_functionNames[ _index ];
+                            void* l_address = l_functionAddresses[ _index ];
+
+                            assert(
+                                l_address,
+                                "Function for main executable was not found" );
+
+                            const int l_result = plthook_replace(
+                                l_plthookHandle, l_name, l_address, NULL );
+
+                            assert( l_result == 0 );
+                        }
+
+                        plthook_close( l_plthookHandle );
                     }
 
-                    plthook_close( l_plthookHandle );
+                    FREE_ARRAY_ELEMENTS( l_functionNames );
+                    FREE_ARRAY( l_functionNames );
+                    FREE_ARRAY( l_functionAddresses );
                 }
-
-                FREE_ARRAY_ELEMENTS( l_functionNames );
-                FREE_ARRAY( l_functionNames );
-                FREE_ARRAY( l_functionAddresses );
 
             EXIT2:
                 FREE_ARRAY_ELEMENTS( l_stateNames );

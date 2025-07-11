@@ -3,5 +3,6 @@
 #include <stdbool.h>
 
 #include "applicationState_t.h"
+#include "stdfunc.h"
 
-bool quit( applicationState_t* restrict _applicationState, const bool _result );
+EXPORT bool quit( applicationState_t* restrict _applicationState, const bool _result );

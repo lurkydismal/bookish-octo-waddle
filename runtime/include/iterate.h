@@ -3,5 +3,6 @@
 #include <stdbool.h>
 
 #include "applicationState_t.h"
+#include "stdfunc.h"
 
-bool iterate( applicationState_t* restrict _applicationState );
+EXPORT bool iterate( applicationState_t* restrict _applicationState );

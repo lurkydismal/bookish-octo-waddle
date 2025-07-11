@@ -428,9 +428,9 @@ EXIT:
     return ( l_returnValue );
 }
 
-size_t concatBeforeAndAfterString( char* restrict* restrict _string,
-                                   const char* restrict _beforeString,
-                                   const char* restrict _afterString );
+EXPORT size_t concatBeforeAndAfterString( char* restrict* restrict _string,
+                                          const char* restrict _beforeString,
+                                          const char* restrict _afterString );
 char* sanitizeString( const char* restrict _string );
 char** splitStringIntoArray( const char* restrict _string,
                              const char* restrict _delimiter );
@@ -443,6 +443,16 @@ char** splitStringIntoArrayBySymbol( const char* restrict _string,
             ( arrayLength_t* )malloc( sizeof( arrayLength_t ) ); \
         *l_array = ( arrayLength_t )0;                           \
         ( _elementType* )( l_array + 1 );                        \
+    } )
+
+#define createArrayFromNative( _elementType, _arrayNative )      \
+    ( {                                                          \
+        arrayLength_t* l_array =                                 \
+            ( arrayLength_t* )malloc( sizeof( arrayLength_t ) ); \
+        *l_array = ( arrayLength_t )0;                           \
+        ( _elementType* )( l_array + 1 );                        \
+        preallocateArray
+        moveArrayIntoArray
     } )
 
 #define preallocateArray( _array, _length )                                    \

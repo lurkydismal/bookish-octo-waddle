@@ -5,7 +5,6 @@
 #include <stddef.h>
 
 #include "log.h"
-#include "stdfunc.h"
 
 static FORCE_INLINE bool onWindowResize(
     applicationState_t* restrict _applicationState,

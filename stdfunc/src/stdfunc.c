@@ -497,39 +497,36 @@ EXIT:
 
 #if defined( HOT_RELOAD )
 
-bool hotReload$unload( void** restrict _state,
-                       size_t* restrict _stateSize,
-                       applicationState_t* restrict _applicationState ) {
+struct state {
+    size_t g_seed;
+};
+
+EXPORT bool hotReload$unload( void** restrict _state,
+                              size_t* restrict _stateSize,
+                              applicationState_t* restrict _applicationState ) {
     UNUSED( _applicationState );
 
-    *_stateSize = ( sizeof( g_seed ) );
+    *_stateSize = sizeof( struct state );
     *_state = malloc( *_stateSize );
 
-    void* l_pointer = *_state;
+    struct state l_state = {
+        .g_seed = g_seed,
+    };
 
-#define APPEND_TO_STATE( _variable )                                   \
-    do {                                                               \
-        const size_t l_variableSize = sizeof( _variable );             \
-        __builtin_memcpy( l_pointer, &( _variable ), l_variableSize ); \
-        l_pointer += l_variableSize;                                   \
-    } while ( 0 )
-
-    APPEND_TO_STATE( g_seed );
-
-#undef APPEND_TO_STATE
+    __builtin_memcpy( *_state, clone( &l_state ), *_stateSize );
 
     return ( true );
 }
 
-bool hotReload$load( void* restrict _state,
-                     size_t _stateSize,
-                     applicationState_t* restrict _applicationState ) {
+EXPORT bool hotReload$load( void* restrict _state,
+                            size_t _stateSize,
+                            applicationState_t* restrict _applicationState ) {
     UNUSED( _applicationState );
 
     bool l_returnValue = false;
 
     {
-        const size_t l_stateSize = ( sizeof( g_seed ) );
+        const size_t l_stateSize = sizeof( struct state );
 
         if ( UNLIKELY( _stateSize != l_stateSize ) ) {
             trap( "Corrupted state" );
@@ -537,18 +534,9 @@ bool hotReload$load( void* restrict _state,
             goto EXIT;
         }
 
-        void* l_pointer = _state;
+        struct state* l_state = ( struct state* )_state;
 
-#define DESERIALIZE_NEXT( _variable )                       \
-    do {                                                    \
-        const size_t l_variableSize = sizeof( _variable );  \
-        _variable = *( ( typeof( _variable )* )l_pointer ); \
-        l_pointer += l_variableSize;                        \
-    } while ( 0 )
-
-        DESERIALIZE_NEXT( g_seed );
-
-#undef DESERIALIZE_NEXT
+        g_seed = l_state->g_seed;
 
         l_returnValue = true;
     }

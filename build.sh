@@ -108,6 +108,11 @@ if [ ! -z "${DISABLE_OPTIMIZATIONS+x}" ]; then
     BUILD_C_FLAGS_RELEASE+=" -O0"
     BUILD_C_FLAGS_PROFILE+=" -O0"
     BUILD_C_FLAGS_TESTS+=" -O0"
+
+    BUILD_CPP_FLAGS_DEBUG+=" -O0"
+    BUILD_CPP_FLAGS_RELEASE+=" -O0"
+    BUILD_CPP_FLAGS_PROFILE+=" -O0"
+    BUILD_CPP_FLAGS_TESTS+=" -O0"
 fi
 
 if [ ! -z "${ENABLE_MUSL+x}" ]; then
@@ -131,6 +136,7 @@ if [ -z "${DISABLE_CLANG+x}" ]; then
     CPP_COMPILER="clang++"
 
     BUILD_C_FLAGS+=" -Wno-c23-extensions -Wno-gnu-folding-constant"
+    BUILD_CPP_FLAGS+=" -Wno-c23-extensions -Wno-gnu-folding-constant"
 
     # Debug or Tests
     if [ $BUILD_TYPE -eq 0 ] || [ $BUILD_TYPE -eq 3 ]; then

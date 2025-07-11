@@ -8,7 +8,6 @@
 #include "FPS.h"
 #include "asset_t.h"
 #include "log.h"
-#include "stdfunc.h"
 #include "vsync.h"
 
 static FORCE_INLINE const char* result$convert$toStaticString(
