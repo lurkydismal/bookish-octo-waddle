@@ -445,14 +445,15 @@ char** splitStringIntoArrayBySymbol( const char* restrict _string,
         ( _elementType* )( l_array + 1 );                        \
     } )
 
-#define createArrayFromNative( _elementType, _arrayNative )      \
-    ( {                                                          \
-        arrayLength_t* l_array =                                 \
-            ( arrayLength_t* )malloc( sizeof( arrayLength_t ) ); \
-        *l_array = ( arrayLength_t )0;                           \
-        ( _elementType* )( l_array + 1 );                        \
-        preallocateArray
-        moveArrayIntoArray
+#define createArrayFromNative( _arrayNative )                            \
+    ( {                                                                  \
+        typeof( *_arrayNative )* l_array =                               \
+            createArray( typeof( *_arrayNative ) );                      \
+        preallocateArray( &l_array, arrayLengthNative( _arrayNative ) ); \
+        __builtin_memcpy( l_array, _arrayNative,                         \
+                          ( arrayLengthNative( _arrayNative ) *          \
+                            sizeof( typeof( *_arrayNative ) ) ) );       \
+        ( l_array );                                                     \
     } )
 
 #define preallocateArray( _array, _length )                                    \

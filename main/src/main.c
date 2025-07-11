@@ -171,9 +171,9 @@ EXIT:
 }
 
 // TODO: Implement
-static FORCE_INLINE char** getUndefinedFunctionsFromSoPath(
+static FORCE_INLINE const char** getUndefinedFunctionsFromSoPath(
     const char* restrict _soPath ) {
-    char** l_returnValue = NULL;
+    const char** l_returnValue = NULL;
 
     if ( UNLIKELY( !_soPath ) ) {
         goto EXIT;
@@ -218,7 +218,7 @@ static FORCE_INLINE char** getUndefinedFunctionsFromSoPath(
             "SDL_Quit",
         };
 
-        l_returnValue = createArrayFromNative( char*, names );
+        l_returnValue = createArrayFromNative( names );
     }
 
 EXIT:
@@ -226,8 +226,8 @@ EXIT:
 }
 
 // TODO: Implement
-static FORCE_INLINE char** getMainExecutableFunctionNamesToPatch( void ) {
-    char** l_returnValue = NULL;
+static FORCE_INLINE const char** getMainExecutableFunctionNamesToPatch( void ) {
+    const char** l_returnValue = NULL;
 
     {
         const char* names[] = {
@@ -241,7 +241,7 @@ static FORCE_INLINE char** getMainExecutableFunctionNamesToPatch( void ) {
             "concatBeforeAndAfterString",
         };
 
-        l_returnValue = createArrayFromNative( char*, names );
+        l_returnValue = createArrayFromNative( names );
     }
 
     return ( l_returnValue );
@@ -292,7 +292,7 @@ static bool hotReloadSo( const char* restrict _soPath ) {
                 assert( l_managerHandle != NULL );
 
                 {
-                    char** l_functionNames =
+                    const char** l_functionNames =
                         getMainExecutableFunctionNamesToPatch();
 
                     assert( l_functionNames != NULL );
@@ -307,7 +307,7 @@ static bool hotReloadSo( const char* restrict _soPath ) {
                                         sizeof( void* ) ) );
 
                     {
-                        char** l_undefinedFunctions =
+                        const char** l_undefinedFunctions =
                             getUndefinedFunctionsFromSoPath( _soPath );
 
                         assert( l_undefinedFunctions != NULL );
@@ -394,7 +394,7 @@ static bool hotReloadSo( const char* restrict _soPath ) {
                                     continue;
                                 }
 
-                                FOR_ARRAY( char* const*,
+                                FOR_ARRAY( const char* const*,
                                            l_undefinedFunctions ) {
                                     plthook_replace(
                                         l_plthookHandle, *_element,
@@ -423,7 +423,6 @@ static bool hotReloadSo( const char* restrict _soPath ) {
                             }
                         }
 
-                        FREE_ARRAY_ELEMENTS( l_undefinedFunctions );
                         FREE_ARRAY( l_undefinedFunctions );
                     }
 
@@ -456,7 +455,6 @@ static bool hotReloadSo( const char* restrict _soPath ) {
                         plthook_close( l_plthookHandle );
                     }
 
-                    FREE_ARRAY_ELEMENTS( l_functionNames );
                     FREE_ARRAY( l_functionNames );
                     FREE_ARRAY( l_functionAddresses );
                 }
