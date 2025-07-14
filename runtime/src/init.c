@@ -8,6 +8,7 @@
 
 #include "FPS.h"
 #include "asset_t.h"
+#include "gameStates.h"
 #include "log.h"
 #include "settings_t.h"
 #include "vsync.h"

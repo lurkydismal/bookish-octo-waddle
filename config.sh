@@ -1,5 +1,6 @@
 #!/bin/bash
 declare -a partsToBuild=(
+    "gameStates"
     "runtime"
     "FPS"
     "settings_t"
@@ -11,6 +12,7 @@ declare -a partsToBuild=(
     "stdfunc"
 )
 declare -a testsToBuild=(
+    # "gameStates"
     # "runtime"
     "FPS"
     "settings_t"

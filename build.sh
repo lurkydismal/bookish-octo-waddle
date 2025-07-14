@@ -62,6 +62,7 @@ export declare BUILD_DEFINES_HOT_RELOAD=(
 )
 
 export declare BUILD_INCLUDES=(
+    "gameStates/include"
     "runtime/include"
     "runtime/applicationState_t/include"
     "FPS/include"
